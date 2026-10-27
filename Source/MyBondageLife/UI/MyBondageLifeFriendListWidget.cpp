@@ -24,34 +24,34 @@
 namespace
 {
 	// Canvas units are 1.5x the viewport pixels at the default UI scale.
-	constexpr float EntryIconSize = 64.0f;
-	constexpr float EntryPositionX = 780.0f;
-	constexpr float EntryPositionY = -30.0f;
+	constexpr float FriendEntryIconSize = 64.0f;
+	constexpr float FriendEntryPositionX = 780.0f;
+	constexpr float FriendEntryPositionY = -30.0f;
 
-	constexpr float PanelWidth = 1500.0f;
-	constexpr float PanelHeight = 840.0f;
-	constexpr float CloseButtonSize = 52.0f;
-	constexpr float RowHeight = 56.0f;
+	constexpr float FriendPanelWidth = 1500.0f;
+	constexpr float FriendPanelHeight = 840.0f;
+	constexpr float FriendCloseButtonSize = 52.0f;
+	constexpr float FriendRowHeight = 56.0f;
 
-	constexpr float NameColumnWidth = 520.0f;
-	constexpr float ClassColumnWidth = 360.0f;
-	constexpr float StatusColumnWidth = 200.0f;
+	constexpr float FriendNameColumnWidth = 520.0f;
+	constexpr float FriendClassColumnWidth = 360.0f;
+	constexpr float FriendStatusColumnWidth = 200.0f;
 
 	/** Row box size and inner text placement (canvas units). */
-	constexpr float RowWidth = 16.0f + NameColumnWidth + ClassColumnWidth + StatusColumnWidth;
-	constexpr float RowTextOffsetY = 12.0f;
-	constexpr float RowTextHeight = 34.0f;
-	constexpr float RowPaddingX = 16.0f;
+	constexpr float FriendRowWidth = 16.0f + FriendNameColumnWidth + FriendClassColumnWidth + FriendStatusColumnWidth;
+	constexpr float FriendRowTextOffsetY = 12.0f;
+	constexpr float FriendRowTextHeight = 34.0f;
+	constexpr float FriendRowPaddingX = 16.0f;
 
 	// "好友列表（V）"
-	const TCHAR* EntryLabelText = TEXT("\u597D\u53CB\u5217\u8868\uFF08V\uFF09");
+	const TCHAR* FriendEntryLabelText = TEXT("\u597D\u53CB\u5217\u8868\uFF08V\uFF09");
 	// "好友列表"
-	const TCHAR* PanelTitleText = TEXT("\u597D\u53CB\u5217\u8868");
+	const TCHAR* FriendPanelTitleText = TEXT("\u597D\u53CB\u5217\u8868");
 	// "暂无好友"
-	const TCHAR* EmptyHintText = TEXT("\u6682\u65E0\u597D\u53CB");
+	const TCHAR* FriendEmptyHintText = TEXT("\u6682\u65E0\u597D\u53CB");
 	// "在线" / "离线"
-	const TCHAR* OnlineText = TEXT("\u5728\u7EBF");
-	const TCHAR* OfflineText = TEXT("\u79BB\u7EBF");
+	const TCHAR* FriendOnlineText = TEXT("\u5728\u7EBF");
+	const TCHAR* FriendOfflineText = TEXT("\u79BB\u7EBF");
 }
 
 UMyBondageLifeFriendListWidget::UMyBondageLifeFriendListWidget(const FObjectInitializer& ObjectInitializer)
@@ -109,7 +109,7 @@ void UMyBondageLifeFriendListWidget::BuildLayout()
 	{
 		EntrySlot->SetAnchors(FAnchors(0.0f, 1.0f, 0.0f, 1.0f));
 		EntrySlot->SetAlignment(FVector2D(0.0f, 1.0f));
-		EntrySlot->SetPosition(FVector2D(EntryPositionX, EntryPositionY));
+		EntrySlot->SetPosition(FVector2D(FriendEntryPositionX, FriendEntryPositionY));
 		EntrySlot->SetAutoSize(true);
 		EntrySlot->SetZOrder(20);
 	}
@@ -118,8 +118,8 @@ void UMyBondageLifeFriendListWidget::BuildLayout()
 	OpenButton->AddChild(EntryColumn);
 
 	USizeBox* IconSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("FriendIconSize"));
-	IconSize->SetWidthOverride(EntryIconSize);
-	IconSize->SetHeightOverride(EntryIconSize);
+	IconSize->SetWidthOverride(FriendEntryIconSize);
+	IconSize->SetHeightOverride(FriendEntryIconSize);
 	if (UVerticalBoxSlot* IconSlot = EntryColumn->AddChildToVerticalBox(IconSize))
 	{
 		IconSlot->SetHorizontalAlignment(HAlign_Center);
@@ -133,7 +133,7 @@ void UMyBondageLifeFriendListWidget::BuildLayout()
 	IconSize->AddChild(FriendIcon);
 
 	UTextBlock* EntryLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("FriendEntryLabel"));
-	EntryLabel->SetText(FText::FromString(EntryLabelText));
+	EntryLabel->SetText(FText::FromString(FriendEntryLabelText));
 	EntryLabel->SetColorAndOpacity(FSlateColor(FLinearColor::White));
 	EntryLabel->SetJustification(ETextJustify::Center);
 	EntryLabel->SetShadowOffset(FVector2D(1.0f, 1.0f));
@@ -156,7 +156,7 @@ void UMyBondageLifeFriendListWidget::BuildLayout()
 	{
 		PanelSlot->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
 		PanelSlot->SetAlignment(FVector2D(0.5f, 0.5f));
-		PanelSlot->SetSize(FVector2D(PanelWidth, PanelHeight));
+		PanelSlot->SetSize(FVector2D(FriendPanelWidth, FriendPanelHeight));
 		PanelSlot->SetZOrder(30);
 	}
 	PanelBorder->SetVisibility(ESlateVisibility::Collapsed);
@@ -165,8 +165,8 @@ void UMyBondageLifeFriendListWidget::BuildLayout()
 	PanelBorder->AddChild(PanelCanvas);
 
 	USizeBox* CloseSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("FriendCloseSize"));
-	CloseSize->SetWidthOverride(CloseButtonSize);
-	CloseSize->SetHeightOverride(CloseButtonSize);
+	CloseSize->SetWidthOverride(FriendCloseButtonSize);
+	CloseSize->SetHeightOverride(FriendCloseButtonSize);
 	if (UCanvasPanelSlot* CloseSlot = PanelCanvas->AddChildToCanvas(CloseSize))
 	{
 		CloseSlot->SetAnchors(FAnchors(1.0f, 0.0f, 1.0f, 0.0f));
@@ -191,7 +191,7 @@ void UMyBondageLifeFriendListWidget::BuildLayout()
 
 	// Title
 	UTextBlock* Title = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("FriendPanelTitle"));
-	Title->SetText(FText::FromString(PanelTitleText));
+	Title->SetText(FText::FromString(FriendPanelTitleText));
 	Title->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
 	{
 		FSlateFontInfo TitleFont = Title->GetFont();
@@ -237,14 +237,14 @@ void UMyBondageLifeFriendListWidget::BuildLayout()
 	};
 
 	// 角色名 / 角色类别 / 状态
-	AddHeaderCell(TEXT("\u89D2\u8272\u540D"), NameColumnWidth);
-	AddHeaderCell(TEXT("\u89D2\u8272\u7C7B\u522B"), ClassColumnWidth);
+	AddHeaderCell(TEXT("\u89D2\u8272\u540D"), FriendNameColumnWidth);
+	AddHeaderCell(TEXT("\u89D2\u8272\u7C7B\u522B"), FriendClassColumnWidth);
 	AddHeaderCell(TEXT("\u72B6\u6001"), 200.0f);
 
 	// Scrollable list
 	USizeBox* ListSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("FriendListSize"));
-	ListSize->SetWidthOverride(PanelWidth - 112.0f);
-	ListSize->SetHeightOverride(PanelHeight - 200.0f);
+	ListSize->SetWidthOverride(FriendPanelWidth - 112.0f);
+	ListSize->SetHeightOverride(FriendPanelHeight - 200.0f);
 	if (UCanvasPanelSlot* ListSlot = PanelCanvas->AddChildToCanvas(ListSize))
 	{
 		ListSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
@@ -262,7 +262,7 @@ void UMyBondageLifeFriendListWidget::BuildLayout()
 
 	// Empty state
 	EmptyHint = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("FriendEmptyHint"));
-	EmptyHint->SetText(FText::FromString(EmptyHintText));
+	EmptyHint->SetText(FText::FromString(FriendEmptyHintText));
 	EmptyHint->SetColorAndOpacity(FSlateColor(FLinearColor(0.5f, 0.5f, 0.5f)));
 	{
 		FSlateFontInfo HintFont = EmptyHint->GetFont();
@@ -425,8 +425,8 @@ void UMyBondageLifeFriendListWidget::RefreshFriends()
 		// Absolute layout: fixed row box with a canvas, so the three columns always
 		// land at fixed offsets regardless of text width.
 		USizeBox* RowSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-		RowSize->SetWidthOverride(RowWidth);
-		RowSize->SetHeightOverride(RowHeight);
+		RowSize->SetWidthOverride(FriendRowWidth);
+		RowSize->SetHeightOverride(FriendRowHeight);
 
 		// Clickable on purpose; per-friend actions come with the backend.
 		UButton* RowButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
@@ -458,18 +458,18 @@ void UMyBondageLifeFriendListWidget::RefreshFriends()
 			{
 				LabelSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
 				LabelSlot->SetAlignment(FVector2D(0.0f, 0.0f));
-				LabelSlot->SetPosition(FVector2D(OffsetX, RowTextOffsetY));
-				LabelSlot->SetSize(FVector2D(RowWidth - OffsetX, RowTextHeight));
+				LabelSlot->SetPosition(FVector2D(OffsetX, FriendRowTextOffsetY));
+				LabelSlot->SetSize(FVector2D(FriendRowWidth - OffsetX, FriendRowTextHeight));
 			}
 		};
 
 		// 角色名 / 角色类别 / 状态
 		const FLinearColor TextColor(0.05f, 0.05f, 0.05f);
-		AddCell(RowPaddingX, Friend.CharacterName, TextColor);
-		AddCell(RowPaddingX + NameColumnWidth,
+		AddCell(FriendRowPaddingX, Friend.CharacterName, TextColor);
+		AddCell(FriendRowPaddingX + FriendNameColumnWidth,
 			UMyBondageLifeAccountSubsystem::MakeCharacterClassLabel(Friend.CharacterClass), TextColor);
-		AddCell(RowPaddingX + NameColumnWidth + ClassColumnWidth,
-			Friend.bOnline ? OnlineText : OfflineText,
+		AddCell(FriendRowPaddingX + FriendNameColumnWidth + FriendClassColumnWidth,
+			Friend.bOnline ? FriendOnlineText : FriendOfflineText,
 			Friend.bOnline ? FLinearColor(0.10f, 0.55f, 0.15f) : FLinearColor(0.5f, 0.5f, 0.5f));
 
 		if (UScrollBoxSlot* RowSlot = Cast<UScrollBoxSlot>(FriendListBox->AddChild(RowSize)))

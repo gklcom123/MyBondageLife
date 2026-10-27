@@ -8,6 +8,11 @@ public class MyBondageLife : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
+		// Several UI sources declare identically named layout constants inside
+		// anonymous namespaces. A unity build merges them into one translation unit
+		// where those constants would clash, so this module compiles them separately.
+		bUseUnity = false;
+
 		PublicDependencyModuleNames.AddRange(new string[] {
 			"Core",
 			"CoreUObject",
