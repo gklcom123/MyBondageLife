@@ -16,6 +16,7 @@ class UMyBondageLifeGameMenuWidget;
 class UMyBondageLifeChatWidget;
 class UMyBondageLifePlayerInfoWidget;
 class UMyBondageLifeFriendListWidget;
+class UMyBondageLifeWardrobeWidget;
 class AMyBondageLifeCharacter;
 
 /**
@@ -133,6 +134,21 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Friends")
 	bool IsFriendListOpen() const { return bFriendPanelOpen; }
 
+	//~ Wardrobe -------------------------------------------------------------
+
+	UFUNCTION(BlueprintCallable, Category = "Wardrobe")
+	void ShowWardrobe();
+
+	UFUNCTION(BlueprintCallable, Category = "Wardrobe")
+	void HideWardrobe();
+
+	/** Opens or closes the wardrobe (B key and the bottom entry). */
+	UFUNCTION(BlueprintCallable, Category = "Wardrobe")
+	void ToggleWardrobe();
+
+	UFUNCTION(BlueprintPure, Category = "Wardrobe")
+	bool IsWardrobeOpen() const { return bWardrobeOpen; }
+
 protected:
 
 	/** Widget class used for the login screen. */
@@ -224,6 +240,9 @@ protected:
 	/** True while an incoming friend request dialog waits for an answer. */
 	bool bFriendRequestPending = false;
 
+	/** True while the wardrobe panel is open. */
+	bool bWardrobeOpen = false;
+
 	double LastChatInputEndSeconds = 0.0;
 
 	//~ Player info ---------------------------------------------------------
@@ -262,6 +281,22 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMyBondageLifeFriendListWidget> FriendListWidget;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Wardrobe")
+	TSubclassOf<UMyBondageLifeWardrobeWidget> WardrobeWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMyBondageLifeWardrobeWidget> WardrobeWidget;
+
+	UFUNCTION()
+	void HandleWardrobeOpenChanged(bool bIsOpen);
+
+	UFUNCTION()
+	void HandleWardrobeKeyPressed();
+
+	/** The stored body height changed: push it to the pawn. */
+	UFUNCTION()
+	void HandleHeightChanged(float NewHeightScale);
 
 	UFUNCTION()
 	void HandleFriendPanelOpenChanged(bool bIsOpen);
@@ -319,7 +354,7 @@ protected:
 	void EnsureInputSetup();
 
 	UFUNCTION(Server, Reliable)
-	void ServerSetCharacterInfo(const FString& NewCharacterName, int32 NewCharacterClass, int64 NewCreatedAtUnix);
+	void ServerSetCharacterInfo(const FString& NewCharacterName, int32 NewCharacterClass, int64 NewCreatedAtUnix, float NewHeightScale);
 
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;

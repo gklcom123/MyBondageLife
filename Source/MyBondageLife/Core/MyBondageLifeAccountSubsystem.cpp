@@ -166,6 +166,13 @@ bool UMyBondageLifeAccountSubsystem::ApplyAuthPayload(const TSharedPtr<FJsonObje
 		CharacterClass = FMath::Clamp(static_cast<int32>(ClassValue), 1, 4);
 	}
 
+	// Body height multiplier: 0.9 / 1.0 / 1.1 (server keeps the whitelist).
+	double HeightValue = 1.0;
+	if ((*UserObject)->TryGetNumberField(TEXT("heightScale"), HeightValue))
+	{
+		HeightScale = FMath::Clamp(static_cast<float>(HeightValue), 0.5f, 2.0f);
+	}
+
 	// e.g. "2026-10-26T10:39:29.323Z" - the account creation date shown in the
 	// personal info panel.
 	FString CreatedAtString;
@@ -730,4 +737,35 @@ void UMyBondageLifeAccountSubsystem::SendPresenceOffline()
 	SendFriendApiRequest(TEXT("POST"), TEXT("/presence/offline"), Body, nullptr);
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("Friends: presence offline sent."));
+}
+
+void UMyBondageLifeAccountSubsystem::RequestUpdateHeight(float NewHeightScale)
+{
+	const float ClampedScale = FMath::Clamp(NewHeightScale, 0.5f, 2.0f);
+
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetNumberField(TEXT("heightScale"), ClampedScale);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+
+	SendFriendApiRequest(TEXT("PATCH"), TEXT("/users/me"), Body,
+		[WeakThis, ClampedScale](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self)
+			{
+				return;
+			}
+
+			if (!bOk)
+			{
+				UE_LOG(LogMyBondageLife, Warning, TEXT("Height: update rejected (%d)."), StatusCode);
+				return;
+			}
+
+			Self->HeightScale = ClampedScale;
+			Self->OnHeightChanged.Broadcast(Self->HeightScale);
+
+			UE_LOG(LogMyBondageLife, Log, TEXT("Height: stored %.2f."), Self->HeightScale);
+		});
 }

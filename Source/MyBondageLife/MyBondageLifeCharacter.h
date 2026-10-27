@@ -47,6 +47,13 @@ class AMyBondageLifeCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "Identity", meta = (AllowPrivateAccess = "true"))
 	int64 CreatedAtUnix = 0;
 
+	/**
+	 *  Body height multiplier (0.9 / 1.0 / 1.1). Replicated so every client scales
+	 *  this character the same way; the server only stores the ratio.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_HeightScale, Category = "Identity", meta = (AllowPrivateAccess = "true"))
+	float HeightScale = 1.0f;
+
 protected:
 
 	/** Jump Input Action */
@@ -92,8 +99,28 @@ public:
 	UFUNCTION(BlueprintPure, Category="Identity")
 	int64 GetCreatedAtUnix() const { return CreatedAtUnix; }
 
-	/** Applies name, class and account creation time in one call. */
-	void SetCharacterIdentity(const FText& InCharacterName, int32 InCharacterClass, int64 InCreatedAtUnix);
+	/** Applies name, class, account creation time and body height in one call. */
+	void SetCharacterIdentity(const FText& InCharacterName, int32 InCharacterClass, int64 InCreatedAtUnix, float InHeightScale);
+
+	/** Current body height multiplier (0.9 / 1.0 / 1.1). */
+	UFUNCTION(BlueprintPure, Category="Identity")
+	float GetHeightScale() const { return HeightScale; }
+
+	/** Rescales the mesh and capsule to match HeightScale. */
+	UFUNCTION(BlueprintCallable, Category="Identity")
+	void ApplyHeightScale();
+
+protected:
+
+	/** Re-applied on clients whenever the replicated height changes. */
+	UFUNCTION()
+	void OnRep_HeightScale();
+
+	/** Unscaled reference sizes captured on BeginPlay. */
+	float BaseCapsuleHalfHeight = 0.0f;
+	float BaseCapsuleRadius = 0.0f;
+	FVector BaseMeshRelativeLocation = FVector::ZeroVector;
+	FVector BaseMeshScale = FVector::OneVector;
 
 protected:
 

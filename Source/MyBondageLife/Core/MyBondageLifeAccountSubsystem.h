@@ -64,6 +64,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeFriendAnswerEvent, boo
 /** Raised after we sent a friend request. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FMyBondageLifeFriendRequestSent, bool, bSucceeded, const FString&, TargetAccount);
 
+/** Raised when the stored body height changed (0.9 / 1.0 / 1.1). */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeHeightChanged, float, NewHeightScale);
+
 /**
  *  Talks to the account service (register / login), keeps the signed-in state and
  *  owns the friend list, which is served by the friends endpoints.
@@ -118,6 +121,17 @@ public:
 	/** Account creation time reported by the service (UTC). */
 	UFUNCTION(BlueprintPure, Category = "Account")
 	FDateTime GetCreatedAt() const { return CreatedAt; }
+
+	/** Body height multiplier stored for this account: 0.9 / 1.0 / 1.1. */
+	UFUNCTION(BlueprintPure, Category = "Account")
+	float GetHeightScale() const { return HeightScale; }
+
+	/** PATCH /users/me - persists a new body height and applies it locally. */
+	UFUNCTION(BlueprintCallable, Category = "Account")
+	void RequestUpdateHeight(float NewHeightScale);
+
+	UPROPERTY(BlueprintAssignable, Category = "Account")
+	FMyBondageLifeHeightChanged OnHeightChanged;
 
 	/** Character class as a player-facing label: 支配者 / 转换者 / 臣服者 / 奴隶. */
 	UFUNCTION(BlueprintPure, Category = "Account")
@@ -227,6 +241,9 @@ private:
 	int32 CharacterClass = 1;
 	FString Token;
 	FDateTime CreatedAt;
+
+	/** Body height multiplier (0.9 / 1.0 / 1.1). */
+	float HeightScale = 1.0f;
 
 	/** Friend list, refreshed from GET /friends. */
 	TArray<FMyBondageLifeFriendEntry> Friends;

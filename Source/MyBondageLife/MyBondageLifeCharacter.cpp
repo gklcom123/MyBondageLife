@@ -73,12 +73,12 @@ FVector AMyBondageLifeCharacter::GetNameplateLocation() const
 		if (MeshComponent->DoesSocketExist(NameplateAttachBone))
 		{
 			// Follow the actual head bone so the plate tracks animation.
-			return MeshComponent->GetSocketLocation(NameplateAttachBone) + FVector(0.0f, 0.0f, NameplateHeadOffset);
+			return MeshComponent->GetSocketLocation(NameplateAttachBone) + FVector(0.0f, 0.0f, NameplateHeadOffset * HeightScale);
 		}
 	}
 
 	const float CapsuleHalfHeight = GetCapsuleComponent() ? GetCapsuleComponent()->GetScaledCapsuleHalfHeight() : 96.0f;
-	return GetActorLocation() + FVector(0.0f, 0.0f, CapsuleHalfHeight + NameplateHeadOffset);
+	return GetActorLocation() + FVector(0.0f, 0.0f, CapsuleHalfHeight + NameplateHeadOffset * HeightScale);
 }
 
 FString AMyBondageLifeCharacter::GetNameplateText() const
@@ -91,11 +91,14 @@ void AMyBondageLifeCharacter::SetCharacterName(const FText& InCharacterName)
 	CharacterName = InCharacterName;
 }
 
-void AMyBondageLifeCharacter::SetCharacterIdentity(const FText& InCharacterName, int32 InCharacterClass, int64 InCreatedAtUnix)
+void AMyBondageLifeCharacter::SetCharacterIdentity(const FText& InCharacterName, int32 InCharacterClass, int64 InCreatedAtUnix, float InHeightScale)
 {
 	CharacterName = InCharacterName;
 	CharacterClass = FMath::Clamp(InCharacterClass, 1, 4);
 	CreatedAtUnix = InCreatedAtUnix;
+	HeightScale = FMath::Clamp(InHeightScale, 0.5f, 2.0f);
+
+	ApplyHeightScale();
 }
 
 void AMyBondageLifeCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -105,6 +108,7 @@ void AMyBondageLifeCharacter::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(AMyBondageLifeCharacter, CharacterName);
 	DOREPLIFETIME(AMyBondageLifeCharacter, CharacterClass);
 	DOREPLIFETIME(AMyBondageLifeCharacter, CreatedAtUnix);
+	DOREPLIFETIME(AMyBondageLifeCharacter, HeightScale);
 }
 void AMyBondageLifeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -200,6 +204,20 @@ void AMyBondageLifeCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// Reference sizes for the body height multiplier: everything is scaled relative
+	// to this designed size.
+	if (const UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		BaseCapsuleHalfHeight = Capsule->GetUnscaledCapsuleHalfHeight();
+		BaseCapsuleRadius = Capsule->GetUnscaledCapsuleRadius();
+	}
+	if (const USkeletalMeshComponent* MeshComponent = GetMesh())
+	{
+		BaseMeshRelativeLocation = MeshComponent->GetRelativeLocation();
+		BaseMeshScale = MeshComponent->GetRelativeScale3D();
+	}
+	ApplyHeightScale();
+
 	// Remember the designed camera distance: the wheel zoom keeps the range at
 	// 0.5x - 1.5x of it.
 	if (const USpringArmComponent* Boom = GetCameraBoom())
@@ -241,4 +259,43 @@ void AMyBondageLifeCharacter::Tick(float DeltaSeconds)
 		// Smooth so a single notch does not snap the camera.
 		Boom->TargetArmLength = FMath::FInterpTo(Boom->TargetArmLength, TargetArmLength, DeltaSeconds, 8.0f);
 	}
+}
+
+void AMyBondageLifeCharacter::OnRep_HeightScale()
+{
+	ApplyHeightScale();
+}
+
+void AMyBondageLifeCharacter::ApplyHeightScale()
+{
+	USkeletalMeshComponent* MeshComponent = GetMesh();
+	UCapsuleComponent* Capsule = GetCapsuleComponent();
+	if (!MeshComponent || !Capsule)
+	{
+		return;
+	}
+
+	// Capture the designed size once, before anything is scaled.
+	if (BaseCapsuleHalfHeight <= 0.0f)
+	{
+		BaseCapsuleHalfHeight = Capsule->GetUnscaledCapsuleHalfHeight();
+		BaseCapsuleRadius = Capsule->GetUnscaledCapsuleRadius();
+		BaseMeshRelativeLocation = MeshComponent->GetRelativeLocation();
+		BaseMeshScale = MeshComponent->GetRelativeScale3D();
+	}
+
+	const float Scale = FMath::Clamp(HeightScale, 0.5f, 2.0f);
+
+	// Mesh and capsule scale together so the collision shape keeps matching the body.
+	MeshComponent->SetRelativeScale3D(BaseMeshScale * Scale);
+
+	const float NewHalfHeight = BaseCapsuleHalfHeight * Scale;
+	Capsule->SetCapsuleSize(BaseCapsuleRadius * Scale, NewHalfHeight, true);
+
+	// Keep the feet on the capsule bottom: the mesh origin sits at the feet, so the
+	// relative Z only follows the capsule's change.
+	MeshComponent->SetRelativeLocation(FVector(
+		BaseMeshRelativeLocation.X,
+		BaseMeshRelativeLocation.Y,
+		BaseMeshRelativeLocation.Z - (NewHalfHeight - BaseCapsuleHalfHeight)));
 }

@@ -20,6 +20,7 @@
 #include "UI/MyBondageLifeLoginWidget.h"
 #include "UI/MyBondageLifeNameplateLayer.h"
 #include "UI/MyBondageLifePlayerInfoWidget.h"
+#include "UI/MyBondageLifeWardrobeWidget.h"
 
 namespace
 {
@@ -204,6 +205,12 @@ void AMyBondageLifePlayerController::ToggleGameMenu()
 	}
 
 	// Panels are the top-most layers: Escape closes them first.
+	if (bWardrobeOpen)
+	{
+		ToggleWardrobe();
+		return;
+	}
+
 	if (bFriendPanelOpen)
 	{
 		ToggleFriendList();
@@ -577,7 +584,7 @@ void AMyBondageLifePlayerController::RefreshChatInputState()
 		return;
 	}
 
-	const bool bBlocked = bChatTextInput || bAltMouseMode || bPlayerInfoOpen || bFriendPanelOpen || bFriendRequestPending;
+	const bool bBlocked = bChatTextInput || bAltMouseMode || bPlayerInfoOpen || bFriendPanelOpen || bFriendRequestPending || bWardrobeOpen;
 
 	SetGameplayInputBlocked(bBlocked);
 
@@ -589,7 +596,7 @@ void AMyBondageLifePlayerController::RefreshChatInputState()
 		SetInputMode(InputMode);
 
 		// Alt and the panels free the mouse; typing keeps the cursor hidden.
-		bShowMouseCursor = bAltMouseMode || bPlayerInfoOpen || bFriendPanelOpen || bFriendRequestPending;
+		bShowMouseCursor = bAltMouseMode || bPlayerInfoOpen || bFriendPanelOpen || bFriendRequestPending || bWardrobeOpen;
 	}
 	else
 	{
@@ -623,6 +630,15 @@ void AMyBondageLifePlayerController::ShowPlayerInfo()
 
 	PlayerInfoWidget->OnPanelOpenChanged.AddDynamic(this, &AMyBondageLifePlayerController::HandlePlayerInfoOpenChanged);
 	PlayerInfoWidget->OnAddFriendRequested.AddDynamic(this, &AMyBondageLifePlayerController::HandleAddFriendRequested);
+
+	// A new body height has to reach this pawn (and replicate to everyone else).
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
+		{
+			Account->OnHeightChanged.AddDynamic(this, &AMyBondageLifePlayerController::HandleHeightChanged);
+		}
+	}
 	PlayerInfoWidget->AddToViewport(PlayerInfoZOrder);
 }
 
@@ -1163,17 +1179,17 @@ void AMyBondageLifePlayerController::ApplyCharacterNameToPawn()
 	// every other client's nameplate and inspect panel.
 	if (AMyBondageLifeCharacter* PlayerCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
 	{
-		PlayerCharacter->SetCharacterIdentity(FText::FromString(RoleName), RoleClass, CreatedAtUnix);
+		PlayerCharacter->SetCharacterIdentity(FText::FromString(RoleName), RoleClass, CreatedAtUnix, Account->GetHeightScale());
 	}
 
-	ServerSetCharacterInfo(RoleName, RoleClass, CreatedAtUnix);
+	ServerSetCharacterInfo(RoleName, RoleClass, CreatedAtUnix, Account->GetHeightScale());
 }
 
-void AMyBondageLifePlayerController::ServerSetCharacterInfo_Implementation(const FString& NewCharacterName, int32 NewCharacterClass, int64 NewCreatedAtUnix)
+void AMyBondageLifePlayerController::ServerSetCharacterInfo_Implementation(const FString& NewCharacterName, int32 NewCharacterClass, int64 NewCreatedAtUnix, float NewHeightScale)
 {
 	if (AMyBondageLifeCharacter* PlayerCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
 	{
-		PlayerCharacter->SetCharacterIdentity(FText::FromString(NewCharacterName), NewCharacterClass, NewCreatedAtUnix);
+		PlayerCharacter->SetCharacterIdentity(FText::FromString(NewCharacterName), NewCharacterClass, NewCreatedAtUnix, NewHeightScale);
 	}
 
 	// The name has just arrived, so this is the first moment the join notice can
@@ -1292,6 +1308,7 @@ void AMyBondageLifePlayerController::BeginPlay()
 		ShowChat();
 		ShowPlayerInfo();
 		ShowFriendList();
+	ShowWardrobe();
 		ShowHostInfo();
 
 		RefreshChatInputState();
@@ -1326,6 +1343,9 @@ void AMyBondageLifePlayerController::SetupInputComponent()
 
 	// 好友列表面板：V 键与底部入口同效（A 是移动键，不占用）。
 	InputComponent->BindKey(EKeys::V, IE_Pressed, this, &AMyBondageLifePlayerController::HandleFriendListKeyPressed);
+
+	// 衣柜面板：B 键与底部入口同效。
+	InputComponent->BindKey(EKeys::B, IE_Pressed, this, &AMyBondageLifePlayerController::HandleWardrobeKeyPressed);
 
 	// F: inspect the nearby player.
 	InputComponent->BindKey(EKeys::F, IE_Pressed, this, &AMyBondageLifePlayerController::HandleInspectPressed);
@@ -1470,4 +1490,75 @@ void AMyBondageLifePlayerController::HandleFriendRequestSent(bool bSucceeded, co
 	}
 
 	PendingAddFriendName.Reset();
+}
+
+// ---------------------------------------------------------------------------
+// Wardrobe
+// ---------------------------------------------------------------------------
+
+void AMyBondageLifePlayerController::ShowWardrobe()
+{
+	if (!IsLocalPlayerController() || WardrobeWidget)
+	{
+		return;
+	}
+
+	if (!WardrobeWidgetClass)
+	{
+		WardrobeWidgetClass = UMyBondageLifeWardrobeWidget::StaticClass();
+	}
+
+	WardrobeWidget = CreateWidget<UMyBondageLifeWardrobeWidget>(this, WardrobeWidgetClass);
+	if (!WardrobeWidget)
+	{
+		UE_LOG(LogMyBondageLife, Error, TEXT("Wardrobe: could not create the widget."));
+		return;
+	}
+
+	WardrobeWidget->OnPanelOpenChanged.AddDynamic(this, &AMyBondageLifePlayerController::HandleWardrobeOpenChanged);
+	WardrobeWidget->AddToViewport(48);
+}
+
+void AMyBondageLifePlayerController::HideWardrobe()
+{
+	if (WardrobeWidget)
+	{
+		WardrobeWidget->RemoveFromParent();
+		WardrobeWidget = nullptr;
+	}
+
+	bWardrobeOpen = false;
+}
+
+void AMyBondageLifePlayerController::ToggleWardrobe()
+{
+	if (!WardrobeWidget)
+	{
+		return;
+	}
+
+	WardrobeWidget->TogglePanel();
+}
+
+void AMyBondageLifePlayerController::HandleWardrobeKeyPressed()
+{
+	// "B" belongs to the chat text while typing.
+	if (bChatTextInput || IsGameMenuOpen())
+	{
+		return;
+	}
+
+	ToggleWardrobe();
+}
+
+void AMyBondageLifePlayerController::HandleWardrobeOpenChanged(bool bIsOpen)
+{
+	bWardrobeOpen = bIsOpen;
+	RefreshChatInputState();
+}
+
+void AMyBondageLifePlayerController::HandleHeightChanged(float NewHeightScale)
+{
+	// Re-publish the identity so the pawn (and every other client) picks the new size.
+	ApplyCharacterNameToPawn();
 }
