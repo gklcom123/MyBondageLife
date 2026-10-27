@@ -379,6 +379,11 @@ bool UMyBondageLifePlayerInfoWidget::IsDisplayingOtherPlayer() const
 	return Character && Character != GetOwningPlayerPawn();
 }
 
+bool UMyBondageLifePlayerInfoWidget::IsDisplayingCharacter(const AMyBondageLifeCharacter* Character) const
+{
+	return Character != nullptr && DisplayedCharacter.Get() == Character;
+}
+
 bool UMyBondageLifePlayerInfoWidget::IsDisplayedCharacterFriend() const
 {
 	const AMyBondageLifeCharacter* Character = DisplayedCharacter.Get();

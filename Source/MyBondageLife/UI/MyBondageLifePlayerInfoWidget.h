@@ -48,6 +48,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "PlayerInfo")
 	bool IsPanelOpen() const;
 
+	/** True when the panel currently represents this exact character. */
+	bool IsDisplayingCharacter(const AMyBondageLifeCharacter* Character) const;
+
 	/** Fills the panel from the given character (null clears the fields). */
 	UFUNCTION(BlueprintCallable, Category = "PlayerInfo")
 	void ShowCharacterInfo(const AMyBondageLifeCharacter* Character);
@@ -86,6 +89,7 @@ protected:
 
 	/** True when the panel shows somebody else, i.e. the add-friend button applies. */
 	bool IsDisplayingOtherPlayer() const;
+
 
 	/** True when the displayed character is already in the local friend list. */
 	bool IsDisplayedCharacterFriend() const;

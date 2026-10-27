@@ -669,27 +669,48 @@ void AMyBondageLifePlayerController::HandlePlayerInfoKeyPressed()
 		return;
 	}
 
-	TogglePlayerInfo();
+	if (!PlayerInfoWidget)
+	{
+		return;
+	}
+
+	AMyBondageLifeCharacter* OwnCharacter = Cast<AMyBondageLifeCharacter>(GetPawn());
+
+	// "C" always means *my* info: when somebody else's panel is on screen it
+	// switches to the local character instead of just closing, and it only closes
+	// when the local character is already the one displayed.
+	if (PlayerInfoWidget->IsPanelOpen() && PlayerInfoWidget->IsDisplayingCharacter(OwnCharacter))
+	{
+		PlayerInfoWidget->SetPanelOpen(false);
+		return;
+	}
+
+	PlayerInfoWidget->ShowCharacterInfo(OwnCharacter);
+	PlayerInfoWidget->SetPanelOpen(true);
 }
 
 void AMyBondageLifePlayerController::HandleInspectPressed()
 {
-	// The same key closes the panel again.
-	if (bPlayerInfoOpen)
+	if (!PlayerInfoWidget)
 	{
-		TogglePlayerInfo();
 		return;
 	}
 
 	const AMyBondageLifeCharacter* Target = NearbyCharacter.Get();
-	if (!Target || !PlayerInfoWidget)
+
+	// Same rule as "C": switch the subject first, close only when it is already
+	// the character on screen.
+	if (Target && !(PlayerInfoWidget->IsPanelOpen() && PlayerInfoWidget->IsDisplayingCharacter(Target)))
 	{
+		PlayerInfoWidget->ShowCharacterInfo(Target);
+		PlayerInfoWidget->SetPanelOpen(true);
 		return;
 	}
 
-	// F inspects the nearby player rather than the local one.
-	PlayerInfoWidget->ShowCharacterInfo(Target);
-	PlayerInfoWidget->SetPanelOpen(true);
+	if (bPlayerInfoOpen)
+	{
+		PlayerInfoWidget->SetPanelOpen(false);
+	}
 }
 
 void AMyBondageLifePlayerController::UpdateNearbyCharacter()
