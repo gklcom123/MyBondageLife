@@ -28,9 +28,9 @@ namespace
 	constexpr float WardrobePanelHeight = 840.0f;
 	constexpr float WardrobeCloseSize = 52.0f;
 
-	constexpr float TabWidth = 200.0f;
-	constexpr float TabHeight = 72.0f;
-	constexpr float TabGap = 16.0f;
+	constexpr float TabWidth = 230.0f;
+	constexpr float TabHeight = 84.0f;
+	constexpr float TabGap = 18.0f;
 
 	/** Height presets: 娇小 / 普通 / 高大. */
 	const float HeightPresets[] = { 0.9f, 1.0f, 1.1f };
@@ -208,7 +208,11 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 		{
 			TabSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
 			TabSlot->SetAlignment(FVector2D(0.0f, 0.0f));
-			TabSlot->SetPosition(FVector2D(OffsetX, 110.0f));
+			TabSlot->SetPosition(FVector2D(OffsetX, 116.0f));
+
+			// Without auto size the canvas slot collapses and the tab shrinks to its
+			// text, which clips the caption.
+			TabSlot->SetAutoSize(true);
 		}
 
 		UButton* TabButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
@@ -220,7 +224,7 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 		TabLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.5f, 0.5f, 0.5f)));
 		{
 			FSlateFontInfo TabFont = TabLabel->GetFont();
-			TabFont.Size = 26;
+			TabFont.Size = 24;
 			TabLabel->SetFont(TabFont);
 		}
 		TabButton->AddChild(TabLabel);
@@ -277,13 +281,14 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 	auto AddArrow = [this](const TCHAR* LabelText, float OffsetX)
 	{
 		USizeBox* ArrowSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-		ArrowSize->SetWidthOverride(56.0f);
-		ArrowSize->SetHeightOverride(52.0f);
+		ArrowSize->SetWidthOverride(76.0f);
+		ArrowSize->SetHeightOverride(64.0f);
 		if (UCanvasPanelSlot* ArrowSlot = BodyPage->AddChildToCanvas(ArrowSize))
 		{
 			ArrowSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
 			ArrowSlot->SetAlignment(FVector2D(0.0f, 0.0f));
-			ArrowSlot->SetPosition(FVector2D(OffsetX, 226.0f));
+			ArrowSlot->SetPosition(FVector2D(OffsetX, 220.0f));
+			ArrowSlot->SetAutoSize(true);
 		}
 
 		UButton* ArrowButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
@@ -295,7 +300,7 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 		ArrowLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
 		{
 			FSlateFontInfo ArrowFont = ArrowLabel->GetFont();
-			ArrowFont.Size = 26;
+			ArrowFont.Size = 30;
 			ArrowLabel->SetFont(ArrowFont);
 		}
 		ArrowButton->AddChild(ArrowLabel);
@@ -303,8 +308,9 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 		return ArrowButton;
 	};
 
-	UButton* DownButton = AddArrow(TEXT("<"), 190.0f);
-	DownButton->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleHeightDownClicked);
+	HeightDownButton = AddArrow(TEXT("<"), 180.0f);
+	HeightDownButton->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleHeightDownClicked);
+	HeightDownLabel = Cast<UTextBlock>(HeightDownButton->GetChildAt(0));
 
 	HeightValueLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
 	HeightValueLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
@@ -318,12 +324,13 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 	{
 		ValueSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
 		ValueSlot->SetAlignment(FVector2D(0.0f, 0.0f));
-		ValueSlot->SetPosition(FVector2D(258.0f, 236.0f));
-		ValueSlot->SetSize(FVector2D(160.0f, 40.0f));
+		ValueSlot->SetPosition(FVector2D(276.0f, 232.0f));
+		ValueSlot->SetSize(FVector2D(170.0f, 44.0f));
 	}
 
-	UButton* UpButton = AddArrow(TEXT(">"), 430.0f);
-	UpButton->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleHeightUpClicked);
+	HeightUpButton = AddArrow(TEXT(">"), 470.0f);
+	HeightUpButton->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleHeightUpClicked);
+	HeightUpLabel = Cast<UTextBlock>(HeightUpButton->GetChildAt(0));
 
 	SelectTab(0);
 }
@@ -391,6 +398,8 @@ void UMyBondageLifeWardrobeWidget::RefreshHeightLabel()
 
 	HeightIndex = FMath::Clamp(HeightIndex, 0, 2);
 	HeightValueLabel->SetText(FText::FromString(HeightLabels[HeightIndex]));
+
+	RefreshArrowStates();
 }
 
 void UMyBondageLifeWardrobeWidget::StepHeight(int32 Delta)
@@ -483,4 +492,32 @@ void UMyBondageLifeWardrobeWidget::HandleHeightDownClicked()
 void UMyBondageLifeWardrobeWidget::HandleHeightUpClicked()
 {
 	StepHeight(1);
+}
+
+void UMyBondageLifeWardrobeWidget::RefreshArrowStates()
+{
+	// The selector must not leave the allowed range: 0 = 娇小, 2 = 高大.
+	const bool bCanGoDown = HeightIndex > 0;
+	const bool bCanGoUp = HeightIndex < 2;
+
+	if (HeightDownButton)
+	{
+		HeightDownButton->SetIsEnabled(bCanGoDown);
+	}
+	if (HeightUpButton)
+	{
+		HeightUpButton->SetIsEnabled(bCanGoUp);
+	}
+
+	const FLinearColor EnabledColor(0.05f, 0.05f, 0.05f);
+	const FLinearColor DisabledColor(0.72f, 0.72f, 0.74f);
+
+	if (HeightDownLabel)
+	{
+		HeightDownLabel->SetColorAndOpacity(FSlateColor(bCanGoDown ? EnabledColor : DisabledColor));
+	}
+	if (HeightUpLabel)
+	{
+		HeightUpLabel->SetColorAndOpacity(FSlateColor(bCanGoUp ? EnabledColor : DisabledColor));
+	}
 }

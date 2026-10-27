@@ -119,6 +119,21 @@ protected:
 	UPROPERTY(Transient)
 	TObjectPtr<UTextBlock> HeightValueLabel;
 
+	UPROPERTY(Transient)
+	TObjectPtr<UButton> HeightDownButton;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UButton> HeightUpButton;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> HeightDownLabel;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> HeightUpLabel;
+
+	/** Greys out the arrow that would leave the allowed height range. */
+	void RefreshArrowStates();
+
 	/** Index into the height presets (0 = 娇小, 1 = 普通, 2 = 高大). */
 	int32 HeightIndex = 1;
 };
