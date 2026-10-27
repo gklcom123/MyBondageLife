@@ -1,0 +1,352 @@
+// Copyright Epic Games, Inc. All Rights Reserved.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GameFramework/PlayerController.h"
+#include "MyBondageLifePlayerController.generated.h"
+
+class UInputMappingContext;
+class UUserWidget;
+class UMainSceneWidget;
+class UMyBondageLifeLoginWidget;
+class UMyBondageLifeHostInfoWidget;
+class UMyBondageLifeNameplateLayer;
+class UMyBondageLifeGameMenuWidget;
+class UMyBondageLifeChatWidget;
+class UMyBondageLifePlayerInfoWidget;
+class UMyBondageLifeFriendListWidget;
+class AMyBondageLifeCharacter;
+
+/**
+ *  Player controller for the third person game.
+ *
+ *  Owns the front-end flow: login screen -> main menu -> in-session HUD, plus the
+ *  chat, the personal info panel and the friend list. Which screen appears on
+ *  BeginPlay is decided by the persistent subsystems, so the flow also survives the
+ *  travel that starts or joins a room.
+ */
+UCLASS(abstract)
+class AMyBondageLifePlayerController : public APlayerController
+{
+	GENERATED_BODY()
+
+public:
+
+	AMyBondageLifePlayerController();
+
+	//~ Login screen ------------------------------------------------------
+
+	UFUNCTION(BlueprintCallable, Category = "Login")
+	void ShowLogin();
+
+	UFUNCTION(BlueprintCallable, Category = "Login")
+	void HideLogin();
+
+	UFUNCTION(BlueprintPure, Category = "Login")
+	bool IsLoginVisible() const;
+
+	//~ Main menu ---------------------------------------------------------
+
+	UFUNCTION(BlueprintCallable, Category = "MainScene")
+	void ShowMainScene();
+
+	UFUNCTION(BlueprintCallable, Category = "MainScene")
+	void HideMainScene();
+
+	UFUNCTION(BlueprintPure, Category = "MainScene")
+	bool IsMainSceneVisible() const;
+
+	//~ Session overlay ---------------------------------------------------
+
+	/** Top-right room readout shown while in a room. */
+	UFUNCTION(BlueprintCallable, Category = "Session")
+	void ShowHostInfo();
+
+	UFUNCTION(BlueprintCallable, Category = "Session")
+	void HideHostInfo();
+
+	//~ Nameplates ---------------------------------------------------------
+
+	UFUNCTION(BlueprintCallable, Category = "Nameplate")
+	void ShowNameplateLayer();
+
+	UFUNCTION(BlueprintCallable, Category = "Nameplate")
+	void HideNameplateLayer();
+
+	//~ In-game menu (Escape) ----------------------------------------------
+
+	UFUNCTION(BlueprintCallable, Category = "GameMenu")
+	void ToggleGameMenu();
+
+	UFUNCTION(BlueprintCallable, Category = "GameMenu")
+	void ShowGameMenu();
+
+	UFUNCTION(BlueprintCallable, Category = "GameMenu")
+	void HideGameMenu();
+
+	UFUNCTION(BlueprintPure, Category = "GameMenu")
+	bool IsGameMenuOpen() const;
+
+	//~ Chat ---------------------------------------------------------------
+
+	UFUNCTION(BlueprintCallable, Category = "Chat")
+	void ShowChat();
+
+	UFUNCTION(BlueprintCallable, Category = "Chat")
+	void HideChat();
+
+	UFUNCTION(BlueprintCallable, Category = "Chat")
+	void EnterChatInputMode();
+
+	UFUNCTION(BlueprintCallable, Category = "Chat")
+	void LeaveChatInputMode(bool bClearText);
+
+	UFUNCTION(BlueprintPure, Category = "Chat")
+	bool IsChatInputActive() const { return bChatTextInput; }
+
+	//~ Player info ---------------------------------------------------------
+
+	UFUNCTION(BlueprintCallable, Category = "PlayerInfo")
+	void ShowPlayerInfo();
+
+	UFUNCTION(BlueprintCallable, Category = "PlayerInfo")
+	void HidePlayerInfo();
+
+	UFUNCTION(BlueprintCallable, Category = "PlayerInfo")
+	void TogglePlayerInfo();
+
+	UFUNCTION(BlueprintPure, Category = "PlayerInfo")
+	bool IsPlayerInfoOpen() const;
+
+	//~ Friends -------------------------------------------------------------
+
+	UFUNCTION(BlueprintCallable, Category = "Friends")
+	void ShowFriendList();
+
+	UFUNCTION(BlueprintCallable, Category = "Friends")
+	void HideFriendList();
+
+	UFUNCTION(BlueprintCallable, Category = "Friends")
+	void ToggleFriendList();
+
+	UFUNCTION(BlueprintPure, Category = "Friends")
+	bool IsFriendListOpen() const { return bFriendPanelOpen; }
+
+protected:
+
+	/** Widget class used for the login screen. */
+	UPROPERTY(EditDefaultsOnly, Category = "Login")
+	TSubclassOf<UMyBondageLifeLoginWidget> LoginWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMyBondageLifeLoginWidget> LoginWidget;
+
+	/** Widget class used for the main menu. */
+	UPROPERTY(EditDefaultsOnly, Category = "MainScene")
+	TSubclassOf<UMainSceneWidget> MainSceneWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMainSceneWidget> MainSceneWidget;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Session")
+	TSubclassOf<UMyBondageLifeHostInfoWidget> HostInfoWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMyBondageLifeHostInfoWidget> HostInfoWidget;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Nameplate")
+	TSubclassOf<UMyBondageLifeNameplateLayer> NameplateLayerClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMyBondageLifeNameplateLayer> NameplateLayer;
+
+	UPROPERTY(EditDefaultsOnly, Category = "GameMenu")
+	TSubclassOf<UMyBondageLifeGameMenuWidget> GameMenuWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMyBondageLifeGameMenuWidget> GameMenuWidget;
+
+	/** Stops/starts pawn input while a menu or panel is up. */
+	void SetGameplayInputBlocked(bool bBlocked);
+
+	//~ Chat ---------------------------------------------------------------
+
+	UPROPERTY(EditDefaultsOnly, Category = "Chat")
+	TSubclassOf<UMyBondageLifeChatWidget> ChatWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMyBondageLifeChatWidget> ChatWidget;
+
+	UFUNCTION()
+	void HandleChatEnterPressed();
+
+	UFUNCTION()
+	void HandleAltPressed();
+
+	UFUNCTION()
+	void HandleAltReleased();
+
+	UFUNCTION()
+	void HandleChatMessageSubmitted(const FString& Message);
+
+	UFUNCTION()
+	void HandleChatInputEnded();
+
+	UFUNCTION(Server, Reliable)
+	void ServerSendChatMessage(const FString& Message);
+
+	UFUNCTION(Client, Reliable)
+	void ClientReceiveChatMessage(const FString& SenderName, const FString& Message);
+
+	UFUNCTION(Client, Reliable)
+	void ClientReceiveSystemMessage(const FString& Message);
+
+	void BroadcastSystemMessage(const FString& Message);
+
+	FString GetDisplayCharacterName() const;
+
+	bool bJoinNoticeSent = false;
+	FString JoinNoticeName;
+	TArray<FString> PendingSystemMessages;
+
+	/** Re-applies the input mode for chat / panels / Alt mouse mode. */
+	void RefreshChatInputState();
+
+	bool bChatTextInput = false;
+	bool bAltMouseMode = false;
+	bool bPlayerInfoOpen = false;
+	bool bFriendPanelOpen = false;
+
+	/** Mirrors the engine's move/look ignore counters so they never drift. */
+	bool bGameplayInputBlocked = false;
+
+	/** True while an incoming friend request dialog waits for an answer. */
+	bool bFriendRequestPending = false;
+
+	double LastChatInputEndSeconds = 0.0;
+
+	//~ Player info ---------------------------------------------------------
+
+	UPROPERTY(EditDefaultsOnly, Category = "PlayerInfo")
+	TSubclassOf<UMyBondageLifePlayerInfoWidget> PlayerInfoWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMyBondageLifePlayerInfoWidget> PlayerInfoWidget;
+
+	UFUNCTION()
+	void HandlePlayerInfoOpenChanged(bool bIsOpen);
+
+	UFUNCTION()
+	void HandlePlayerInfoKeyPressed();
+
+	UFUNCTION()
+	void HandleInspectPressed();
+
+	void UpdateNearbyCharacter();
+
+	UPROPERTY(Transient)
+	TWeakObjectPtr<AMyBondageLifeCharacter> NearbyCharacter;
+
+	UPROPERTY(EditDefaultsOnly, Category = "PlayerInfo")
+	float InteractionRange = 200.0f;
+
+	/** Raised by the info panel when the player asks to befriend the shown character. */
+	UFUNCTION()
+	void HandleAddFriendRequested(const AMyBondageLifeCharacter* Target);
+
+	//~ Friends -------------------------------------------------------------
+
+	UPROPERTY(EditDefaultsOnly, Category = "Friends")
+	TSubclassOf<UMyBondageLifeFriendListWidget> FriendListWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMyBondageLifeFriendListWidget> FriendListWidget;
+
+	UFUNCTION()
+	void HandleFriendPanelOpenChanged(bool bIsOpen);
+
+	UFUNCTION()
+	void HandleFriendRequestAnswered(bool bAccepted);
+
+	UFUNCTION()
+	void HandleFriendListKeyPressed();
+
+	/** An incoming request arrived from the backend. */
+	UFUNCTION()
+	void HandleFriendRequestReceived(const FString& RequestId, const FString& RequesterCharacterName);
+
+	/** The backend finished answering a request we received. */
+	UFUNCTION()
+	void HandleFriendAnswerFinished(bool bAccepted);
+
+	/** The backend accepted (or rejected) a request we sent. */
+	UFUNCTION()
+	void HandleFriendRequestSent(bool bSucceeded, const FString& TargetAccount);
+
+	/** Character name of the player we just asked to befriend, for chat feedback. */
+	FString PendingAddFriendName;
+
+	/** Legacy in-session prototype RPCs (kept for compatibility, no longer used). */
+	UFUNCTION(Server, Reliable)
+	void ServerSendFriendRequest(const FString& TargetAccountName);
+
+	UFUNCTION(Server, Reliable)
+	void ServerAnswerFriendRequest(const FString& RequesterAccountName, bool bAccepted);
+
+	UFUNCTION(Client, Reliable)
+	void ClientFriendRequestReceived(const FString& RequesterAccountName, const FString& RequesterCharacterName, int32 RequesterClass);
+
+	UFUNCTION(Client, Reliable)
+	void ClientFriendRequestAnswered(const FString& AnswererAccountName, const FString& AnswererCharacterName, int32 AnswererClass, bool bAccepted);
+
+	void RefreshFriendPresence();
+
+	FString PendingRequesterAccount;
+	FString PendingRequesterName;
+	int32 PendingRequesterClass = 1;
+
+	//~ Identity ------------------------------------------------------------
+
+	UFUNCTION()
+	void HandleLoginCompleted();
+
+	void ApplyAccountNameToPlayerState();
+
+	void ApplyCharacterNameToPawn();
+
+	/** Registers the Enhanced Input mapping contexts (movement / look / jump). */
+	void EnsureInputSetup();
+
+	UFUNCTION(Server, Reliable)
+	void ServerSetCharacterInfo(const FString& NewCharacterName, int32 NewCharacterClass, int64 NewCreatedAtUnix);
+
+	virtual void OnPossess(APawn* InPawn) override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+	//~ AActor / APlayerController interface
+	virtual void BeginPlay() override;
+	virtual void SetupInputComponent() override;
+	virtual void PlayerTick(float DeltaTime) override;
+
+	void SetMenuInputMode(bool bMenuMode);
+
+	//~ Input mapping setup ------------------------------------------------
+
+	UPROPERTY(EditAnywhere, Category = "Input|Input Mappings")
+	TArray<UInputMappingContext*> DefaultMappingContexts;
+
+	UPROPERTY(EditAnywhere, Category = "Input|Input Mappings")
+	TArray<UInputMappingContext*> MobileExcludedMappingContexts;
+
+	UPROPERTY(EditAnywhere, Category = "Input|Touch Controls")
+	TSubclassOf<UUserWidget> MobileControlsWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<UUserWidget> MobileControlsWidget;
+
+	UPROPERTY(EditAnywhere, Config, Category = "Input|Touch Controls")
+	bool bForceTouchControls = false;
+
+	bool ShouldUseTouchControls() const;
+};

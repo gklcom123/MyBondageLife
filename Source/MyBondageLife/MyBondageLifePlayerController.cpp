@@ -1,0 +1,1452 @@
+// Copyright Epic Games, Inc. All Rights Reserved.
+
+#include "MyBondageLifePlayerController.h"
+
+#include "Core/MyBondageLifeAccountSubsystem.h"
+#include "EnhancedInputComponent.h"
+#include "EnhancedInputSubsystems.h"
+#include "Engine/World.h"
+#include "EngineUtils.h"
+#include "GameFramework/PlayerState.h"
+#include "InputMappingContext.h"
+#include "MyBondageLife.h"
+#include "MyBondageLifeCharacter.h"
+#include "Network/MyBondageLifeSessionSubsystem.h"
+#include "UI/MainSceneWidget.h"
+#include "UI/MyBondageLifeChatWidget.h"
+#include "UI/MyBondageLifeFriendListWidget.h"
+#include "UI/MyBondageLifeGameMenuWidget.h"
+#include "UI/MyBondageLifeHostInfoWidget.h"
+#include "UI/MyBondageLifeLoginWidget.h"
+#include "UI/MyBondageLifeNameplateLayer.h"
+#include "UI/MyBondageLifePlayerInfoWidget.h"
+
+namespace
+{
+	/** Z orders, low to high, so the layers stack predictably. */
+	constexpr int32 NameplateZOrder = 5;
+	constexpr int32 LoginZOrder = 10;
+	constexpr int32 MenuZOrder = 10;
+	constexpr int32 HostInfoZOrder = 40;
+	constexpr int32 ChatZOrder = 45;
+	constexpr int32 PlayerInfoZOrder = 46;
+	constexpr int32 FriendListZOrder = 47;
+	constexpr int32 GameMenuZOrder = 150;
+}
+
+AMyBondageLifePlayerController::AMyBondageLifePlayerController()
+{
+	// The front end is fully C++: no blueprint class is required.
+}
+
+// ---------------------------------------------------------------------------
+// Login screen
+// ---------------------------------------------------------------------------
+
+void AMyBondageLifePlayerController::ShowLogin()
+{
+	if (!IsLocalPlayerController() || LoginWidget)
+	{
+		return;
+	}
+
+	if (!LoginWidgetClass)
+	{
+		LoginWidgetClass = UMyBondageLifeLoginWidget::StaticClass();
+	}
+
+	LoginWidget = CreateWidget<UMyBondageLifeLoginWidget>(this, LoginWidgetClass);
+	if (!LoginWidget)
+	{
+		UE_LOG(LogMyBondageLife, Error, TEXT("Login: could not create the login widget."));
+		return;
+	}
+
+	LoginWidget->OnLoginCompleted.AddDynamic(this, &AMyBondageLifePlayerController::HandleLoginCompleted);
+	LoginWidget->AddToViewport(LoginZOrder);
+
+	// The login screen owns the keyboard.
+	SetMenuInputMode(true);
+}
+
+void AMyBondageLifePlayerController::HideLogin()
+{
+	if (LoginWidget)
+	{
+		LoginWidget->OnLoginCompleted.RemoveDynamic(this, &AMyBondageLifePlayerController::HandleLoginCompleted);
+		LoginWidget->RemoveFromParent();
+		LoginWidget = nullptr;
+	}
+}
+
+bool AMyBondageLifePlayerController::IsLoginVisible() const
+{
+	return LoginWidget != nullptr && LoginWidget->IsInViewport();
+}
+
+// ---------------------------------------------------------------------------
+// Main menu
+// ---------------------------------------------------------------------------
+
+void AMyBondageLifePlayerController::ShowMainScene()
+{
+	if (!IsLocalPlayerController() || MainSceneWidget)
+	{
+		return;
+	}
+
+	if (!MainSceneWidgetClass)
+	{
+		MainSceneWidgetClass = UMainSceneWidget::StaticClass();
+	}
+
+	MainSceneWidget = CreateWidget<UMainSceneWidget>(this, MainSceneWidgetClass);
+	if (!MainSceneWidget)
+	{
+		UE_LOG(LogMyBondageLife, Error, TEXT("MainScene: could not create the menu widget."));
+		return;
+	}
+
+	MainSceneWidget->AddToViewport(MenuZOrder);
+
+	SetMenuInputMode(true);
+}
+
+void AMyBondageLifePlayerController::HideMainScene()
+{
+	if (MainSceneWidget)
+	{
+		MainSceneWidget->RemoveFromParent();
+		MainSceneWidget = nullptr;
+	}
+}
+
+bool AMyBondageLifePlayerController::IsMainSceneVisible() const
+{
+	return MainSceneWidget != nullptr && MainSceneWidget->IsInViewport();
+}
+
+// ---------------------------------------------------------------------------
+// Session overlay
+// ---------------------------------------------------------------------------
+
+void AMyBondageLifePlayerController::ShowHostInfo()
+{
+	if (!IsLocalPlayerController() || HostInfoWidget)
+	{
+		return;
+	}
+
+	if (!HostInfoWidgetClass)
+	{
+		HostInfoWidgetClass = UMyBondageLifeHostInfoWidget::StaticClass();
+	}
+
+	HostInfoWidget = CreateWidget<UMyBondageLifeHostInfoWidget>(this, HostInfoWidgetClass);
+	if (HostInfoWidget)
+	{
+		HostInfoWidget->AddToViewport(HostInfoZOrder);
+	}
+}
+
+void AMyBondageLifePlayerController::HideHostInfo()
+{
+	if (HostInfoWidget)
+	{
+		HostInfoWidget->RemoveFromParent();
+		HostInfoWidget = nullptr;
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Nameplates
+// ---------------------------------------------------------------------------
+
+void AMyBondageLifePlayerController::ShowNameplateLayer()
+{
+	if (!IsLocalPlayerController() || NameplateLayer)
+	{
+		return;
+	}
+
+	if (!NameplateLayerClass)
+	{
+		NameplateLayerClass = UMyBondageLifeNameplateLayer::StaticClass();
+	}
+
+	NameplateLayer = CreateWidget<UMyBondageLifeNameplateLayer>(this, NameplateLayerClass);
+	if (NameplateLayer)
+	{
+		NameplateLayer->AddToViewport(NameplateZOrder);
+	}
+}
+
+void AMyBondageLifePlayerController::HideNameplateLayer()
+{
+	if (NameplateLayer)
+	{
+		NameplateLayer->RemoveFromParent();
+		NameplateLayer = nullptr;
+	}
+}
+
+// ---------------------------------------------------------------------------
+// In-game menu (Escape)
+// ---------------------------------------------------------------------------
+
+void AMyBondageLifePlayerController::ToggleGameMenu()
+{
+	// Escape while typing cancels the chat input instead of opening the menu.
+	if (bChatTextInput)
+	{
+		LeaveChatInputMode(true);
+		return;
+	}
+
+	// Panels are the top-most layers: Escape closes them first.
+	if (bFriendPanelOpen)
+	{
+		ToggleFriendList();
+		return;
+	}
+
+	if (bPlayerInfoOpen)
+	{
+		TogglePlayerInfo();
+		return;
+	}
+
+	// The Escape that just closed the chat must not also open the menu.
+	if (FPlatformTime::Seconds() - LastChatInputEndSeconds < 0.2)
+	{
+		return;
+	}
+
+	if (IsGameMenuOpen())
+	{
+		HideGameMenu();
+	}
+	else
+	{
+		ShowGameMenu();
+	}
+}
+
+void AMyBondageLifePlayerController::ShowGameMenu()
+{
+	if (!IsLocalPlayerController() || GameMenuWidget)
+	{
+		return;
+	}
+
+	// Only meaningful while actually in a room.
+	const UGameInstance* GameInstance = GetGameInstance();
+	const UMyBondageLifeSessionSubsystem* Session = GameInstance
+		? GameInstance->GetSubsystem<UMyBondageLifeSessionSubsystem>()
+		: nullptr;
+	if (!Session || !Session->IsInSession())
+	{
+		return;
+	}
+
+	if (!GameMenuWidgetClass)
+	{
+		GameMenuWidgetClass = UMyBondageLifeGameMenuWidget::StaticClass();
+	}
+
+	GameMenuWidget = CreateWidget<UMyBondageLifeGameMenuWidget>(this, GameMenuWidgetClass);
+	if (!GameMenuWidget)
+	{
+		UE_LOG(LogMyBondageLife, Error, TEXT("GameMenu: could not create the menu widget."));
+		return;
+	}
+
+	GameMenuWidget->AddToViewport(GameMenuZOrder);
+
+	// The pawn stops responding entirely. GameAndUI mode is used instead of UIOnly
+	// so Escape still reaches this controller and can close the menu again.
+	SetGameplayInputBlocked(true);
+
+	FInputModeGameAndUI InputMode;
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	InputMode.SetHideCursorDuringCapture(false);
+	SetInputMode(InputMode);
+	bShowMouseCursor = true;
+}
+
+void AMyBondageLifePlayerController::HideGameMenu()
+{
+	if (GameMenuWidget)
+	{
+		GameMenuWidget->RemoveFromParent();
+		GameMenuWidget = nullptr;
+	}
+
+	SetGameplayInputBlocked(false);
+	RefreshChatInputState();
+}
+
+bool AMyBondageLifePlayerController::IsGameMenuOpen() const
+{
+	return GameMenuWidget != nullptr && GameMenuWidget->IsInViewport();
+}
+
+void AMyBondageLifePlayerController::SetGameplayInputBlocked(bool bBlocked)
+{
+	if (bGameplayInputBlocked == bBlocked)
+	{
+		return;
+	}
+
+	bGameplayInputBlocked = bBlocked;
+
+	if (bBlocked)
+	{
+		SetIgnoreMoveInput(true);
+		SetIgnoreLookInput(true);
+	}
+	else
+	{
+		// SetIgnore*Input are counters, so repeated blocking would leave them above
+		// zero and the pawn would never respond again. Resetting clears them.
+		ResetIgnoreMoveInput();
+		ResetIgnoreLookInput();
+	}
+
+	if (APawn* ControlledPawn = GetPawn())
+	{
+		if (bBlocked)
+		{
+			ControlledPawn->DisableInput(this);
+		}
+		else
+		{
+			ControlledPawn->EnableInput(this);
+		}
+	}
+}
+
+void AMyBondageLifePlayerController::SetMenuInputMode(bool bMenuMode)
+{
+	if (bMenuMode)
+	{
+		FInputModeUIOnly InputMode;
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		SetInputMode(InputMode);
+		bShowMouseCursor = true;
+	}
+	else
+	{
+		SetInputMode(FInputModeGameOnly());
+		bShowMouseCursor = false;
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Chat
+// ---------------------------------------------------------------------------
+
+void AMyBondageLifePlayerController::ShowChat()
+{
+	if (!IsLocalPlayerController() || ChatWidget)
+	{
+		return;
+	}
+
+	if (!ChatWidgetClass)
+	{
+		ChatWidgetClass = UMyBondageLifeChatWidget::StaticClass();
+	}
+
+	ChatWidget = CreateWidget<UMyBondageLifeChatWidget>(this, ChatWidgetClass);
+	if (!ChatWidget)
+	{
+		UE_LOG(LogMyBondageLife, Error, TEXT("Chat: could not create the chat widget."));
+		return;
+	}
+
+	ChatWidget->OnMessageSubmitted.AddDynamic(this, &AMyBondageLifePlayerController::HandleChatMessageSubmitted);
+	ChatWidget->OnInputEnded.AddDynamic(this, &AMyBondageLifePlayerController::HandleChatInputEnded);
+	ChatWidget->AddToViewport(ChatZOrder);
+
+	// Join/leave notices that arrived while the level was still loading.
+	for (const FString& PendingMessage : PendingSystemMessages)
+	{
+		ChatWidget->AddSystemMessage(PendingMessage);
+	}
+	PendingSystemMessages.Reset();
+}
+
+void AMyBondageLifePlayerController::HideChat()
+{
+	if (bChatTextInput)
+	{
+		LeaveChatInputMode(true);
+	}
+
+	if (ChatWidget)
+	{
+		ChatWidget->RemoveFromParent();
+		ChatWidget = nullptr;
+	}
+}
+
+void AMyBondageLifePlayerController::EnterChatInputMode()
+{
+	if (!ChatWidget)
+	{
+		return;
+	}
+
+	bChatTextInput = true;
+	RefreshChatInputState();
+	ChatWidget->BeginTextInput();
+}
+
+void AMyBondageLifePlayerController::LeaveChatInputMode(bool bClearText)
+{
+	if (ChatWidget)
+	{
+		// EndTextInput broadcasts OnInputEnded, which runs HandleChatInputEnded.
+		ChatWidget->EndTextInput(bClearText);
+	}
+
+	if (bChatTextInput)
+	{
+		bChatTextInput = false;
+		RefreshChatInputState();
+	}
+
+	LastChatInputEndSeconds = FPlatformTime::Seconds();
+}
+
+void AMyBondageLifePlayerController::HandleChatEnterPressed()
+{
+	if (bChatTextInput || bAltMouseMode || IsGameMenuOpen())
+	{
+		return;
+	}
+
+	EnterChatInputMode();
+}
+
+void AMyBondageLifePlayerController::HandleAltPressed()
+{
+	if (IsGameMenuOpen() || bChatTextInput || bAltMouseMode || bPlayerInfoOpen || bFriendPanelOpen)
+	{
+		return;
+	}
+
+	bAltMouseMode = true;
+	RefreshChatInputState();
+}
+
+void AMyBondageLifePlayerController::HandleAltReleased()
+{
+	if (!bAltMouseMode)
+	{
+		return;
+	}
+
+	bAltMouseMode = false;
+	RefreshChatInputState();
+}
+
+void AMyBondageLifePlayerController::HandleChatMessageSubmitted(const FString& Message)
+{
+	ServerSendChatMessage(Message);
+}
+
+void AMyBondageLifePlayerController::HandleChatInputEnded()
+{
+	// The widget already left text mode (submitted or cancelled).
+	bChatTextInput = false;
+	LastChatInputEndSeconds = FPlatformTime::Seconds();
+	RefreshChatInputState();
+}
+
+void AMyBondageLifePlayerController::ServerSendChatMessage_Implementation(const FString& Message)
+{
+	const FString TrimmedMessage = Message.TrimStartAndEnd();
+	if (TrimmedMessage.IsEmpty())
+	{
+		return;
+	}
+
+	// Character name only, matching the nameplate.
+	FString RoleName;
+	if (const AMyBondageLifeCharacter* SenderCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		RoleName = SenderCharacter->GetCharacterName().ToString();
+	}
+	if (RoleName.IsEmpty())
+	{
+		RoleName = TEXT("\u89D2\u8272\u540D");
+	}
+
+	const FString SenderName = RoleName;
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	// Deliver to everyone in the room, including the sender.
+	for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
+	{
+		if (AMyBondageLifePlayerController* OtherController = Cast<AMyBondageLifePlayerController>(It->Get()))
+		{
+			OtherController->ClientReceiveChatMessage(SenderName, TrimmedMessage);
+		}
+	}
+}
+
+void AMyBondageLifePlayerController::ClientReceiveChatMessage_Implementation(const FString& SenderName, const FString& Message)
+{
+	UE_LOG(LogMyBondageLife, Log, TEXT("Chat: [%s] %s"), *SenderName, *Message);
+
+	if (ChatWidget)
+	{
+		ChatWidget->AddChatMessage(SenderName, Message);
+	}
+}
+
+void AMyBondageLifePlayerController::ClientReceiveSystemMessage_Implementation(const FString& Message)
+{
+	if (ChatWidget)
+	{
+		ChatWidget->AddSystemMessage(Message);
+		return;
+	}
+
+	// The chat widget is created when the player enters the game; keep early
+	// notices so a freshly joined client still sees them.
+	PendingSystemMessages.Add(Message);
+}
+
+void AMyBondageLifePlayerController::BroadcastSystemMessage(const FString& Message)
+{
+	UWorld* World = GetWorld();
+	if (!World || !HasAuthority())
+	{
+		return;
+	}
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("Chat: %s"), *Message);
+
+	// Everyone in the room sees it, the host included.
+	for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
+	{
+		if (AMyBondageLifePlayerController* OtherController = Cast<AMyBondageLifePlayerController>(It->Get()))
+		{
+			OtherController->ClientReceiveSystemMessage(Message);
+		}
+	}
+}
+
+FString AMyBondageLifePlayerController::GetDisplayCharacterName() const
+{
+	if (const AMyBondageLifeCharacter* PlayerCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		const FString RoleName = PlayerCharacter->GetCharacterName().ToString();
+		if (!RoleName.IsEmpty())
+		{
+			return RoleName;
+		}
+	}
+
+	if (const APlayerState* OwningPlayerState = PlayerState)
+	{
+		const FString AccountName = OwningPlayerState->GetPlayerName();
+		if (!AccountName.IsEmpty())
+		{
+			return AccountName;
+		}
+	}
+
+	// "玩家"
+	return TEXT("\u73A9\u5BB6");
+}
+
+void AMyBondageLifePlayerController::RefreshChatInputState()
+{
+	// While the Escape menu is up it owns the input mode.
+	if (IsGameMenuOpen())
+	{
+		return;
+	}
+
+	const bool bBlocked = bChatTextInput || bAltMouseMode || bPlayerInfoOpen || bFriendPanelOpen || bFriendRequestPending;
+
+	SetGameplayInputBlocked(bBlocked);
+
+	if (bBlocked)
+	{
+		FInputModeGameAndUI InputMode;
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		InputMode.SetHideCursorDuringCapture(false);
+		SetInputMode(InputMode);
+
+		// Alt and the panels free the mouse; typing keeps the cursor hidden.
+		bShowMouseCursor = bAltMouseMode || bPlayerInfoOpen || bFriendPanelOpen || bFriendRequestPending;
+	}
+	else
+	{
+		SetInputMode(FInputModeGameOnly());
+		bShowMouseCursor = false;
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Player info
+// ---------------------------------------------------------------------------
+
+void AMyBondageLifePlayerController::ShowPlayerInfo()
+{
+	if (!IsLocalPlayerController() || PlayerInfoWidget)
+	{
+		return;
+	}
+
+	if (!PlayerInfoWidgetClass)
+	{
+		PlayerInfoWidgetClass = UMyBondageLifePlayerInfoWidget::StaticClass();
+	}
+
+	PlayerInfoWidget = CreateWidget<UMyBondageLifePlayerInfoWidget>(this, PlayerInfoWidgetClass);
+	if (!PlayerInfoWidget)
+	{
+		UE_LOG(LogMyBondageLife, Error, TEXT("PlayerInfo: could not create the widget."));
+		return;
+	}
+
+	PlayerInfoWidget->OnPanelOpenChanged.AddDynamic(this, &AMyBondageLifePlayerController::HandlePlayerInfoOpenChanged);
+	PlayerInfoWidget->OnAddFriendRequested.AddDynamic(this, &AMyBondageLifePlayerController::HandleAddFriendRequested);
+	PlayerInfoWidget->AddToViewport(PlayerInfoZOrder);
+}
+
+void AMyBondageLifePlayerController::HidePlayerInfo()
+{
+	if (PlayerInfoWidget)
+	{
+		PlayerInfoWidget->RemoveFromParent();
+		PlayerInfoWidget = nullptr;
+	}
+
+	bPlayerInfoOpen = false;
+}
+
+bool AMyBondageLifePlayerController::IsPlayerInfoOpen() const
+{
+	return bPlayerInfoOpen;
+}
+
+void AMyBondageLifePlayerController::TogglePlayerInfo()
+{
+	if (!PlayerInfoWidget)
+	{
+		return;
+	}
+
+	PlayerInfoWidget->TogglePanel();
+}
+
+void AMyBondageLifePlayerController::HandlePlayerInfoOpenChanged(bool bIsOpen)
+{
+	bPlayerInfoOpen = bIsOpen;
+
+	// A single place decides the input mode: opening the panel freezes the
+	// character and frees the cursor, closing it hands control back to the game.
+	RefreshChatInputState();
+}
+
+void AMyBondageLifePlayerController::HandlePlayerInfoKeyPressed()
+{
+	// "C" belongs to the chat text while typing.
+	if (bChatTextInput || IsGameMenuOpen())
+	{
+		return;
+	}
+
+	TogglePlayerInfo();
+}
+
+void AMyBondageLifePlayerController::HandleInspectPressed()
+{
+	// The same key closes the panel again.
+	if (bPlayerInfoOpen)
+	{
+		TogglePlayerInfo();
+		return;
+	}
+
+	const AMyBondageLifeCharacter* Target = NearbyCharacter.Get();
+	if (!Target || !PlayerInfoWidget)
+	{
+		return;
+	}
+
+	// F inspects the nearby player rather than the local one.
+	PlayerInfoWidget->ShowCharacterInfo(Target);
+	PlayerInfoWidget->SetPanelOpen(true);
+}
+
+void AMyBondageLifePlayerController::UpdateNearbyCharacter()
+{
+	NearbyCharacter = nullptr;
+
+	if (!PlayerInfoWidget || bPlayerInfoOpen || bChatTextInput || IsGameMenuOpen())
+	{
+		if (PlayerInfoWidget)
+		{
+			PlayerInfoWidget->SetInteractionHintTarget(nullptr);
+		}
+		return;
+	}
+
+	const APawn* OwnPawn = GetPawn();
+	UWorld* World = GetWorld();
+	if (!OwnPawn || !World)
+	{
+		PlayerInfoWidget->SetInteractionHintTarget(nullptr);
+		return;
+	}
+
+	// Nearest other player inside the interaction range.
+	AMyBondageLifeCharacter* Nearest = nullptr;
+	float NearestDistanceSq = FMath::Square(InteractionRange);
+
+	for (TActorIterator<AMyBondageLifeCharacter> It(World); It; ++It)
+	{
+		AMyBondageLifeCharacter* Other = *It;
+		if (!Other || Other == OwnPawn)
+		{
+			continue;
+		}
+
+		const float DistanceSq = FVector::DistSquared(OwnPawn->GetActorLocation(), Other->GetActorLocation());
+		if (DistanceSq <= NearestDistanceSq)
+		{
+			NearestDistanceSq = DistanceSq;
+			Nearest = Other;
+		}
+	}
+
+	NearbyCharacter = Nearest;
+
+	// Nearest wins when several players are in range.
+	PlayerInfoWidget->SetInteractionHintTarget(Nearest);
+}
+
+// ---------------------------------------------------------------------------
+// Friends
+// ---------------------------------------------------------------------------
+
+void AMyBondageLifePlayerController::ShowFriendList()
+{
+	if (!IsLocalPlayerController() || FriendListWidget)
+	{
+		return;
+	}
+
+	if (!FriendListWidgetClass)
+	{
+		FriendListWidgetClass = UMyBondageLifeFriendListWidget::StaticClass();
+	}
+
+	FriendListWidget = CreateWidget<UMyBondageLifeFriendListWidget>(this, FriendListWidgetClass);
+	if (!FriendListWidget)
+	{
+		UE_LOG(LogMyBondageLife, Error, TEXT("Friends: could not create the widget."));
+		return;
+	}
+
+	FriendListWidget->OnPanelOpenChanged.AddDynamic(this, &AMyBondageLifePlayerController::HandleFriendPanelOpenChanged);
+	FriendListWidget->OnRequestAnswered.AddDynamic(this, &AMyBondageLifePlayerController::HandleFriendRequestAnswered);
+
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
+		{
+			Account->OnFriendRequestReceived.AddDynamic(this, &AMyBondageLifePlayerController::HandleFriendRequestReceived);
+			Account->OnFriendRequestAnswered.AddDynamic(this, &AMyBondageLifePlayerController::HandleFriendAnswerFinished);
+			Account->OnFriendRequestSent.AddDynamic(this, &AMyBondageLifePlayerController::HandleFriendRequestSent);
+		}
+	}
+	FriendListWidget->AddToViewport(FriendListZOrder);
+}
+
+void AMyBondageLifePlayerController::HideFriendList()
+{
+	if (FriendListWidget)
+	{
+		FriendListWidget->RemoveFromParent();
+		FriendListWidget = nullptr;
+	}
+
+	bFriendPanelOpen = false;
+}
+
+void AMyBondageLifePlayerController::ToggleFriendList()
+{
+	if (!FriendListWidget)
+	{
+		return;
+	}
+
+	FriendListWidget->TogglePanel();
+}
+
+void AMyBondageLifePlayerController::HandleFriendListKeyPressed()
+{
+	// "V" belongs to the chat text while typing.
+	if (bChatTextInput || IsGameMenuOpen())
+	{
+		return;
+	}
+
+	ToggleFriendList();
+}
+
+void AMyBondageLifePlayerController::HandleFriendPanelOpenChanged(bool bIsOpen)
+{
+	bFriendPanelOpen = bIsOpen;
+
+	if (bIsOpen)
+	{
+		// Opening the list pulls the latest data so a recent friend shows up.
+		if (UGameInstance* GameInstance = GetGameInstance())
+		{
+			if (UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
+			{
+				Account->RefreshFriendsFromServer();
+			}
+		}
+	}
+
+	RefreshChatInputState();
+}
+
+void AMyBondageLifePlayerController::HandleAddFriendRequested(const AMyBondageLifeCharacter* Target)
+{
+	if (!Target)
+	{
+		return;
+	}
+
+	const APlayerState* TargetState = Target->GetPlayerState();
+	if (!TargetState || TargetState->GetPlayerName().IsEmpty())
+	{
+		return;
+	}
+
+	// Server-backed friend request (the P2P prototype RPC is no longer used).
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
+		{
+			PendingAddFriendName = Target->GetCharacterName().IsEmpty()
+				? TargetState->GetPlayerName()
+				: Target->GetCharacterName().ToString();
+			Account->RequestAddFriend(TargetState->GetPlayerName());
+		}
+	}
+
+	// Sender feedback: local system line plus closing the inspected panel.
+	const FString TargetName = Target->GetCharacterName().IsEmpty()
+		? TargetState->GetPlayerName()
+		: Target->GetCharacterName().ToString();
+
+	if (ChatWidget)
+	{
+		// "已向[xxx]发送好友请求"
+		ChatWidget->AddSystemMessage(FString::Printf(
+			TEXT("\u5DF2\u5411[%s]\u53D1\u9001\u597D\u53CB\u8BF7\u6C42"), *TargetName));
+	}
+
+	if (PlayerInfoWidget)
+	{
+		PlayerInfoWidget->SetPanelOpen(false);
+	}
+}
+
+void AMyBondageLifePlayerController::HandleFriendRequestAnswered(bool bAccepted)
+{
+	UE_LOG(LogMyBondageLife, Log, TEXT("Friends: answering request from '%s' (accepted=%d)."),
+		*PendingRequesterAccount, bAccepted ? 1 : 0);
+
+	bFriendRequestPending = false;
+	RefreshChatInputState();
+
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
+		{
+			const FString RequestId = FriendListWidget ? FriendListWidget->GetPendingRequestId() : FString();
+			Account->RespondToFriendRequest(RequestId, bAccepted, PendingRequesterName);
+		}
+	}
+
+	if (bAccepted)
+	{
+		// The requester is added locally straight away; the other side learns about
+		// it through ClientFriendRequestAnswered.
+		if (UGameInstance* GameInstance = GetGameInstance())
+		{
+			if (UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
+			{
+				FMyBondageLifeFriendEntry Entry;
+				Entry.AccountName = PendingRequesterAccount;
+				Entry.CharacterName = PendingRequesterName;
+				Entry.CharacterClass = PendingRequesterClass;
+				Entry.bOnline = true;
+				Account->AddFriend(Entry);
+			}
+		}
+	}
+
+	// PendingRequesterName / Account are cleared by HandleFriendAnswerFinished once
+	// the backend replies.
+}
+
+void AMyBondageLifePlayerController::ServerSendFriendRequest_Implementation(const FString& TargetAccountName)
+{
+	UWorld* World = GetWorld();
+	if (!World || TargetAccountName.IsEmpty())
+	{
+		return;
+	}
+
+	// Identity of the requester, taken from the replicated character.
+	FString RequesterName = TEXT("---");
+	int32 RequesterClass = 1;
+	if (const AMyBondageLifeCharacter* RequesterCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		if (!RequesterCharacter->GetCharacterName().IsEmpty())
+		{
+			RequesterName = RequesterCharacter->GetCharacterName().ToString();
+		}
+		RequesterClass = RequesterCharacter->GetCharacterClass();
+	}
+
+	const FString RequesterAccount = PlayerState ? PlayerState->GetPlayerName() : FString();
+
+	for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
+	{
+		AMyBondageLifePlayerController* OtherController = Cast<AMyBondageLifePlayerController>(It->Get());
+		if (!OtherController || OtherController == this)
+		{
+			continue;
+		}
+
+		if (OtherController->PlayerState && OtherController->PlayerState->GetPlayerName() == TargetAccountName)
+		{
+			OtherController->ClientFriendRequestReceived(RequesterAccount, RequesterName, RequesterClass);
+			return;
+		}
+	}
+
+	UE_LOG(LogMyBondageLife, Warning, TEXT("Friends: target '%s' is not in this session."), *TargetAccountName);
+}
+
+void AMyBondageLifePlayerController::ServerAnswerFriendRequest_Implementation(const FString& RequesterAccountName, bool bAccepted)
+{
+	UWorld* World = GetWorld();
+	if (!World || RequesterAccountName.IsEmpty())
+	{
+		return;
+	}
+
+	// Identity of the player answering.
+	FString AnswererName = TEXT("---");
+	int32 AnswererClass = 1;
+	if (const AMyBondageLifeCharacter* AnswererCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		if (!AnswererCharacter->GetCharacterName().IsEmpty())
+		{
+			AnswererName = AnswererCharacter->GetCharacterName().ToString();
+		}
+		AnswererClass = AnswererCharacter->GetCharacterClass();
+	}
+
+	const FString AnswererAccount = PlayerState ? PlayerState->GetPlayerName() : FString();
+
+	for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
+	{
+		AMyBondageLifePlayerController* OtherController = Cast<AMyBondageLifePlayerController>(It->Get());
+		if (!OtherController || OtherController == this)
+		{
+			continue;
+		}
+
+		if (OtherController->PlayerState && OtherController->PlayerState->GetPlayerName() == RequesterAccountName)
+		{
+			OtherController->ClientFriendRequestAnswered(AnswererAccount, AnswererName, AnswererClass, bAccepted);
+			return;
+		}
+	}
+}
+
+void AMyBondageLifePlayerController::ClientFriendRequestReceived_Implementation(const FString& RequesterAccountName, const FString& RequesterCharacterName, int32 RequesterClass)
+{
+	PendingRequesterAccount = RequesterAccountName;
+	PendingRequesterName = RequesterCharacterName;
+	PendingRequesterClass = RequesterClass;
+
+	if (FriendListWidget)
+	{
+		FriendListWidget->ShowFriendRequest(RequesterAccountName, RequesterCharacterName);
+	}
+
+	// "收到来自[xxx]的好友请求" - only this client sees it.
+	if (ChatWidget)
+	{
+		ChatWidget->AddSystemMessage(FString::Printf(
+			TEXT("\u6536\u5230\u6765\u81EA[%s]\u7684\u597D\u53CB\u8BF7\u6C42"), *RequesterCharacterName));
+	}
+
+	// The dialog takes the mouse and freezes the character until it is answered.
+	bFriendRequestPending = true;
+	RefreshChatInputState();
+}
+
+void AMyBondageLifePlayerController::ClientFriendRequestAnswered_Implementation(const FString& AnswererAccountName, const FString& AnswererCharacterName, int32 AnswererClass, bool bAccepted)
+{
+	if (!bAccepted)
+	{
+		UE_LOG(LogMyBondageLife, Log, TEXT("Friends: '%s' declined the request."), *AnswererCharacterName);
+		return;
+	}
+
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
+		{
+			FMyBondageLifeFriendEntry Entry;
+			Entry.AccountName = AnswererAccountName;
+			Entry.CharacterName = AnswererCharacterName;
+			Entry.CharacterClass = AnswererClass;
+			Entry.bOnline = true;
+			Account->AddFriend(Entry);
+		}
+	}
+}
+
+void AMyBondageLifePlayerController::RefreshFriendPresence()
+{
+	UGameInstance* GameInstance = GetGameInstance();
+	UMyBondageLifeAccountSubsystem* Account = GameInstance
+		? GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+
+	UWorld* World = GetWorld();
+	if (!Account || !World)
+	{
+		return;
+	}
+
+	// Prototype presence: a friend counts as online when a character with that
+	// account name exists in the current session.
+	for (const FMyBondageLifeFriendEntry& Friend : Account->GetFriends())
+	{
+		bool bOnline = false;
+
+		for (TActorIterator<AMyBondageLifeCharacter> It(World); It; ++It)
+		{
+			const AMyBondageLifeCharacter* FriendCharacter = *It;
+			const APlayerState* OwnerState = FriendCharacter ? FriendCharacter->GetPlayerState() : nullptr;
+			if (OwnerState && OwnerState->GetPlayerName() == Friend.AccountName)
+			{
+				bOnline = true;
+				break;
+			}
+		}
+
+		Account->SetFriendOnline(Friend.AccountName, bOnline);
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Login -> session identity
+// ---------------------------------------------------------------------------
+
+void AMyBondageLifePlayerController::HandleLoginCompleted()
+{
+	HideLogin();
+
+	ApplyAccountNameToPlayerState();
+	ShowMainScene();
+}
+
+void AMyBondageLifePlayerController::ApplyAccountNameToPlayerState()
+{
+	UWorld* World = GetWorld();
+	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+	const UMyBondageLifeAccountSubsystem* Account = GameInstance
+		? GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+
+	if (!Account || !Account->IsLoggedIn())
+	{
+		return;
+	}
+
+	// A listen server hosts several players but has a single account subsystem:
+	// only the owning client may push its own name, otherwise the host's identity
+	// would be applied to every other player.
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+
+	// On a client this becomes ServerChangeName, so the name replicates to every
+	// other player's game state and shows up on their nameplates.
+	SetName(Account->GetAccountName());
+
+	ApplyCharacterNameToPawn();
+}
+
+void AMyBondageLifePlayerController::ApplyCharacterNameToPawn()
+{
+	// Same reason as above: only the local player may publish its identity.
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+	const UMyBondageLifeAccountSubsystem* Account = GameInstance
+		? GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+
+	if (!Account || !Account->IsLoggedIn())
+	{
+		return;
+	}
+
+	const FString RoleName = Account->GetCharacterName();
+	if (RoleName.IsEmpty())
+	{
+		return;
+	}
+
+	const int32 RoleClass = FMath::Clamp(Account->GetCharacterClass(), 1, 4);
+
+	// Account creation date, only used once the backend returned a real value.
+	const FDateTime CreatedAt = Account->GetCreatedAt();
+	const int64 CreatedAtUnix = (CreatedAt.GetYear() > 2000) ? CreatedAt.ToUnixTimestamp() : 0;
+
+	// Applied locally right away, then again on the server so it replicates to
+	// every other client's nameplate and inspect panel.
+	if (AMyBondageLifeCharacter* PlayerCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		PlayerCharacter->SetCharacterIdentity(FText::FromString(RoleName), RoleClass, CreatedAtUnix);
+	}
+
+	ServerSetCharacterInfo(RoleName, RoleClass, CreatedAtUnix);
+}
+
+void AMyBondageLifePlayerController::ServerSetCharacterInfo_Implementation(const FString& NewCharacterName, int32 NewCharacterClass, int64 NewCreatedAtUnix)
+{
+	if (AMyBondageLifeCharacter* PlayerCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		PlayerCharacter->SetCharacterIdentity(FText::FromString(NewCharacterName), NewCharacterClass, NewCreatedAtUnix);
+	}
+
+	// The name has just arrived, so this is the first moment the join notice can
+	// show the right name. Only the first call announces, and only while actually
+	// inside a room (the menu level also possesses a pawn).
+	const UMyBondageLifeSessionSubsystem* Session = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeSessionSubsystem>()
+		: nullptr;
+	const bool bInRoom = Session && Session->IsInSession();
+
+	// The host creates the room itself, so it does not announce its own arrival.
+	if (bInRoom && !bJoinNoticeSent && !IsLocalPlayerController())
+	{
+		bJoinNoticeSent = true;
+
+		// Cached for the leave notice: by then the pawn is already destroyed.
+		JoinNoticeName = GetDisplayCharacterName();
+
+		BroadcastSystemMessage(FString::Printf(TEXT("\uFF08%s\u52A0\u5165\u4E86\u623F\u95F4\uFF09"), *JoinNoticeName));
+	}
+}
+
+void AMyBondageLifePlayerController::OnPossess(APawn* InPawn)
+{
+	Super::OnPossess(InPawn);
+
+	ApplyCharacterNameToPawn();
+
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+
+	// Possession also happens after a travel, where the input mode set on the
+	// previous world no longer applies: restore the mapping contexts and hand the
+	// mouse back to the game so the look axis keeps working.
+	EnsureInputSetup();
+
+	// The engine's ignore counters live on the controller and survive a travel, so
+	// clear them before the input mode is applied for the new pawn.
+	bGameplayInputBlocked = false;
+	ResetIgnoreMoveInput();
+	ResetIgnoreLookInput();
+
+	RefreshChatInputState();
+}
+
+void AMyBondageLifePlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	// Best effort: tell the service this account is leaving so friends see it offline
+	// without waiting for the presence window.
+	if (IsLocalPlayerController())
+	{
+		if (UGameInstance* GameInstance = GetGameInstance())
+		{
+			if (UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
+			{
+				Account->SendPresenceOffline();
+			}
+		}
+	}
+
+	// The host announces the departure before this controller goes away, so the
+	// remaining players see who left.
+	if (HasAuthority() && bJoinNoticeSent && !IsLocalPlayerController())
+	{
+		// The pawn and player state are already gone here, so use the cached name.
+		const FString LeaveName = JoinNoticeName.IsEmpty() ? GetDisplayCharacterName() : JoinNoticeName;
+		BroadcastSystemMessage(FString::Printf(TEXT("\uFF08%s\u79BB\u5F00\u4E86\u623F\u95F4\uFF09"), *LeaveName));
+	}
+
+	Super::EndPlay(EndPlayReason);
+}
+
+// ---------------------------------------------------------------------------
+// AActor / APlayerController
+// ---------------------------------------------------------------------------
+
+void AMyBondageLifePlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+
+	// Movement / look / jump mapping contexts must exist in every world (menu and
+	// game), otherwise the pawn ignores the mouse after a travel.
+	EnsureInputSetup();
+
+	const UGameInstance* GameInstance = GetGameInstance();
+	const UMyBondageLifeAccountSubsystem* Account = GameInstance
+		? GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+	const UMyBondageLifeSessionSubsystem* Session = GameInstance
+		? GameInstance->GetSubsystem<UMyBondageLifeSessionSubsystem>()
+		: nullptr;
+
+	const bool bLoggedIn = Account && Account->IsLoggedIn();
+	const bool bInSession = Session && Session->IsInSession();
+
+	// Fresh world: make sure no stale move/look ignore survives the travel.
+	bGameplayInputBlocked = false;
+	ResetIgnoreMoveInput();
+	ResetIgnoreLookInput();
+
+	// Publish the identity before deciding what to show, so the pawn already has
+	// the right name when the world appears.
+	ApplyAccountNameToPlayerState();
+
+	if (bInSession)
+	{
+		// Nameplates and the chat box only exist while in a room.
+		ShowNameplateLayer();
+		ShowChat();
+		ShowPlayerInfo();
+		ShowFriendList();
+		ShowHostInfo();
+
+		RefreshChatInputState();
+	}
+	else if (bLoggedIn)
+	{
+		ShowMainScene();
+	}
+	else
+	{
+		ShowLogin();
+	}
+}
+
+void AMyBondageLifePlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
+
+	if (!InputComponent)
+	{
+		return;
+	}
+
+	// Escape: the in-game menu (or closes whatever is on top).
+	InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &AMyBondageLifePlayerController::ToggleGameMenu);
+
+	// Enter: open the chat input box. The chat widget itself submits on Enter.
+	InputComponent->BindKey(EKeys::Enter, IE_Pressed, this, &AMyBondageLifePlayerController::HandleChatEnterPressed);
+
+	// 个人信息面板：C 键与底部入口同效。
+	InputComponent->BindKey(EKeys::C, IE_Pressed, this, &AMyBondageLifePlayerController::HandlePlayerInfoKeyPressed);
+
+	// 好友列表面板：V 键与底部入口同效（A 是移动键，不占用）。
+	InputComponent->BindKey(EKeys::V, IE_Pressed, this, &AMyBondageLifePlayerController::HandleFriendListKeyPressed);
+
+	// F: inspect the nearby player.
+	InputComponent->BindKey(EKeys::F, IE_Pressed, this, &AMyBondageLifePlayerController::HandleInspectPressed);
+
+	// Alt: temporarily free the mouse so the chat scrollbar can be dragged.
+	InputComponent->BindKey(EKeys::LeftAlt, IE_Pressed, this, &AMyBondageLifePlayerController::HandleAltPressed);
+	InputComponent->BindKey(EKeys::LeftAlt, IE_Released, this, &AMyBondageLifePlayerController::HandleAltReleased);
+	InputComponent->BindKey(EKeys::RightAlt, IE_Pressed, this, &AMyBondageLifePlayerController::HandleAltPressed);
+	InputComponent->BindKey(EKeys::RightAlt, IE_Released, this, &AMyBondageLifePlayerController::HandleAltReleased);
+}
+
+void AMyBondageLifePlayerController::PlayerTick(float DeltaTime)
+{
+	Super::PlayerTick(DeltaTime);
+
+	// Project every character's head each frame: the plate position is derived from
+	// the projection only, so it cannot drift when the camera rotates.
+	if (NameplateLayer)
+	{
+		NameplateLayer->UpdateNameplates();
+	}
+
+	UpdateNearbyCharacter();
+}
+
+bool AMyBondageLifePlayerController::ShouldUseTouchControls() const
+{
+	if (bForceTouchControls)
+	{
+		return true;
+	}
+
+#if PLATFORM_ANDROID || PLATFORM_IOS
+	return true;
+#else
+	return false;
+#endif
+}
+
+void AMyBondageLifePlayerController::EnsureInputSetup()
+{
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+
+	UEnhancedInputLocalPlayerSubsystem* Subsystem =
+		ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
+	if (!Subsystem)
+	{
+		return;
+	}
+
+	int32 AddedContexts = 0;
+	for (UInputMappingContext* Context : DefaultMappingContexts)
+	{
+		if (Context)
+		{
+			Subsystem->AddMappingContext(Context, 0);
+			++AddedContexts;
+		}
+	}
+
+	// Desktop additionally needs the contexts that mobile excludes: the mouse look
+	// (IMC_MouseLook) lives there, so without it the camera cannot be rotated.
+	if (ShouldUseTouchControls())
+	{
+		for (UInputMappingContext* Context : MobileExcludedMappingContexts)
+		{
+			if (Context)
+			{
+				Subsystem->RemoveMappingContext(Context);
+			}
+		}
+	}
+	else
+	{
+		for (UInputMappingContext* Context : MobileExcludedMappingContexts)
+		{
+			if (Context)
+			{
+				Subsystem->AddMappingContext(Context, 0);
+				++AddedContexts;
+			}
+		}
+	}
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("Input: %d mapping context(s) registered."), AddedContexts);
+}
+
+// ---------------------------------------------------------------------------
+// Friends: server callbacks
+// ---------------------------------------------------------------------------
+
+void AMyBondageLifePlayerController::HandleFriendRequestReceived(const FString& RequestId, const FString& RequesterCharacterName)
+{
+	PendingRequesterName = RequesterCharacterName;
+	PendingRequesterAccount.Empty();
+
+	if (FriendListWidget)
+	{
+		FriendListWidget->ShowFriendRequest(RequestId, RequesterCharacterName);
+	}
+
+	// "收到来自[xxx]的好友请求" - only this client sees it.
+	if (ChatWidget)
+	{
+		ChatWidget->AddSystemMessage(FString::Printf(
+			TEXT("\u6536\u5230\u6765\u81EA[%s]\u7684\u597D\u53CB\u8BF7\u6C42"), *RequesterCharacterName));
+	}
+
+	// The dialog takes the mouse and freezes the character until it is answered.
+	bFriendRequestPending = true;
+	RefreshChatInputState();
+}
+
+void AMyBondageLifePlayerController::HandleFriendAnswerFinished(bool bAccepted)
+{
+	bFriendRequestPending = false;
+	RefreshChatInputState();
+
+	if (ChatWidget && !PendingRequesterName.IsEmpty())
+	{
+		ChatWidget->AddSystemMessage(bAccepted
+			? FString::Printf(TEXT("\u5DF2\u6DFB\u52A0[%s]\u4E3A\u597D\u53CB"), *PendingRequesterName)
+			: FString::Printf(TEXT("\u5DF2\u62D2\u7EDD[%s]\u7684\u597D\u53CB\u8BF7\u6C42"), *PendingRequesterName));
+	}
+
+	PendingRequesterName.Reset();
+	PendingRequesterAccount.Reset();
+	PendingRequesterClass = 1;
+}
+
+void AMyBondageLifePlayerController::HandleFriendRequestSent(bool bSucceeded, const FString& TargetAccount)
+{
+	if (ChatWidget)
+	{
+		const FString DisplayName = PendingAddFriendName.IsEmpty() ? TargetAccount : PendingAddFriendName;
+		ChatWidget->AddSystemMessage(bSucceeded
+			? FString::Printf(TEXT("\u5DF2\u5411[%s]\u53D1\u9001\u597D\u53CB\u8BF7\u6C42"), *DisplayName)
+			: FString::Printf(TEXT("\u6DFB\u52A0[%s]\u597D\u53CB\u5931\u8D25"), *DisplayName));
+	}
+
+	PendingAddFriendName.Reset();
+}

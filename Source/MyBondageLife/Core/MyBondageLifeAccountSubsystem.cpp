@@ -1,0 +1,733 @@
+// Copyright Epic Games, Inc. All Rights Reserved.
+
+#include "MyBondageLifeAccountSubsystem.h"
+
+#include "Dom/JsonObject.h"
+#include "GenericPlatform/GenericPlatformHttp.h"
+#include "HttpModule.h"
+#include "Interfaces/IHttpResponse.h"
+#include "MyBondageLife.h"
+#include "MyBondageLifeServerConfig.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
+#include "Serialization/JsonWriter.h"
+
+namespace
+{
+	/** Request timeout; a slower answer is reported as "server not responding". */
+	constexpr float AuthRequestTimeoutSeconds = 8.0f;
+}
+
+FString UMyBondageLifeAccountSubsystem::GetServerUrl()
+{
+	// Endpoint comes from Config/ServerConfig.ini, never hard coded.
+	return FMyBondageLifeServerConfig::GetBaseUrl();
+}
+
+void UMyBondageLifeAccountSubsystem::RequestLogin(const FString& Account, const FString& Password)
+{
+	if (bAuthInFlight)
+	{
+		return;
+	}
+
+	TSharedRef<FJsonObject> Payload = MakeShared<FJsonObject>();
+	Payload->SetStringField(TEXT("account"), Account);
+	Payload->SetStringField(TEXT("password"), Password);
+
+	SendAuthRequest(TEXT("login"), Payload, false);
+}
+
+void UMyBondageLifeAccountSubsystem::RequestRegister(const FString& Account, const FString& Password, const FString& InCharacterName, int32 InCharacterClass)
+{
+	if (bAuthInFlight)
+	{
+		return;
+	}
+
+	TSharedRef<FJsonObject> Payload = MakeShared<FJsonObject>();
+	Payload->SetStringField(TEXT("account"), Account);
+	Payload->SetStringField(TEXT("password"), Password);
+	Payload->SetStringField(TEXT("characterName"), InCharacterName);
+	Payload->SetNumberField(TEXT("characterClass"), InCharacterClass);
+
+	SendAuthRequest(TEXT("register"), Payload, true);
+}
+
+void UMyBondageLifeAccountSubsystem::SendAuthRequest(const FString& Path, const TSharedRef<FJsonObject>& Payload, bool bIsRegistration)
+{
+	FString Body;
+	const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Body);
+	FJsonSerializer::Serialize(Payload, Writer);
+
+	const FString Url = FString::Printf(TEXT("%s/auth/%s"), *GetServerUrl(), *Path);
+
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
+	Request->SetURL(Url);
+	Request->SetVerb(TEXT("POST"));
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+	Request->SetHeader(TEXT("Accept"), TEXT("application/json"));
+	Request->SetContentAsString(Body);
+	Request->SetTimeout(AuthRequestTimeoutSeconds);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	Request->OnProcessRequestComplete().BindLambda(
+		[WeakThis, bIsRegistration](FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bConnectedSuccessfully)
+		{
+			if (UMyBondageLifeAccountSubsystem* Self = WeakThis.Get())
+			{
+				Self->HandleAuthResponse(HttpRequest, HttpResponse, bConnectedSuccessfully, bIsRegistration);
+			}
+		});
+
+	bAuthInFlight = true;
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("Account: POST %s (%s)"), *Url, bIsRegistration ? TEXT("register") : TEXT("login"));
+
+	if (!Request->ProcessRequest())
+	{
+		bAuthInFlight = false;
+		FailAuth(FText::FromString(TEXT("\u65E0\u6CD5\u53D1\u9001\u8BF7\u6C42\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC")));
+	}
+}
+
+void UMyBondageLifeAccountSubsystem::HandleAuthResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnectedSuccessfully, bool bIsRegistration)
+{
+	bAuthInFlight = false;
+
+	if (!bConnectedSuccessfully || !Response.IsValid())
+	{
+		// "服务器无响应"
+		FailAuth(FText::FromString(TEXT("\u670D\u52A1\u5668\u65E0\u54CD\u5E94\uFF0C\u8BF7\u786E\u8BA4\u670D\u52A1\u5668\u5DF2\u542F\u52A8\u6216\u7A0D\u540E\u91CD\u8BD5")));
+		return;
+	}
+
+	const int32 StatusCode = Response->GetResponseCode();
+	const FString Body = Response->GetContentAsString();
+
+	if (StatusCode >= 200 && StatusCode < 300)
+	{
+		TSharedPtr<FJsonObject> Json;
+		const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Body);
+		if (!FJsonSerializer::Deserialize(Reader, Json) || !Json.IsValid() || !ApplyAuthPayload(Json))
+		{
+			FailAuth(FText::FromString(TEXT("\u670D\u52A1\u5668\u8FD4\u56DE\u7684\u6570\u636E\u65E0\u6CD5\u89E3\u6790")));
+			return;
+		}
+
+		UE_LOG(LogMyBondageLife, Log, TEXT("Account: %s succeeded for '%s' (character '%s', class %d)"),
+			bIsRegistration ? TEXT("registration") : TEXT("login"), *AccountName, *CharacterName, CharacterClass);
+
+		OnAuthSucceeded.Broadcast();
+		return;
+	}
+
+	// Error payload: { "error": { "code": "...", "message": "..." } }
+	FString ErrorCode;
+	FString ServerMessage;
+	TSharedPtr<FJsonObject> Json;
+	const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Body);
+	if (FJsonSerializer::Deserialize(Reader, Json) && Json.IsValid())
+	{
+		const TSharedPtr<FJsonObject>* ErrorObject = nullptr;
+		if (Json->TryGetObjectField(TEXT("error"), ErrorObject) && ErrorObject && ErrorObject->IsValid())
+		{
+			(*ErrorObject)->TryGetStringField(TEXT("code"), ErrorCode);
+			(*ErrorObject)->TryGetStringField(TEXT("message"), ServerMessage);
+		}
+	}
+
+	UE_LOG(LogMyBondageLife, Warning, TEXT("Account: request failed (%d) code='%s' message='%s'"),
+		StatusCode, *ErrorCode, *ServerMessage);
+
+	FailAuth(MakeErrorText(StatusCode, ErrorCode, ServerMessage, bIsRegistration));
+}
+
+bool UMyBondageLifeAccountSubsystem::ApplyAuthPayload(const TSharedPtr<FJsonObject>& Payload)
+{
+	if (!Payload->TryGetStringField(TEXT("token"), Token) || Token.IsEmpty())
+	{
+		return false;
+	}
+
+	const TSharedPtr<FJsonObject>* UserObject = nullptr;
+	if (!Payload->TryGetObjectField(TEXT("user"), UserObject) || !UserObject || !UserObject->IsValid())
+	{
+		return false;
+	}
+
+	(*UserObject)->TryGetStringField(TEXT("id"), AccountId);
+	(*UserObject)->TryGetStringField(TEXT("account"), AccountName);
+	(*UserObject)->TryGetStringField(TEXT("characterName"), CharacterName);
+
+	double ClassValue = 1.0;
+	if ((*UserObject)->TryGetNumberField(TEXT("characterClass"), ClassValue))
+	{
+		CharacterClass = FMath::Clamp(static_cast<int32>(ClassValue), 1, 4);
+	}
+
+	// e.g. "2026-10-26T10:39:29.323Z" - the account creation date shown in the
+	// personal info panel.
+	FString CreatedAtString;
+	if ((*UserObject)->TryGetStringField(TEXT("createdAt"), CreatedAtString))
+	{
+		FDateTime ParsedCreatedAt;
+		if (FDateTime::ParseIso8601(*CreatedAtString, ParsedCreatedAt))
+		{
+			CreatedAt = ParsedCreatedAt;
+		}
+		else
+		{
+			UE_LOG(LogMyBondageLife, Warning, TEXT("Account: could not parse createdAt '%s'."), *CreatedAtString);
+		}
+	}
+
+	if (CharacterName.IsEmpty())
+	{
+		CharacterName = TEXT("\u89D2\u8272\u540D");
+	}
+
+	bLoggedIn = true;
+
+
+	// Friends are served by the backend: start polling and load the list.
+
+	StartFriendPolling();
+
+	RefreshFriendsFromServer();
+	return true;
+}
+
+void UMyBondageLifeAccountSubsystem::FailAuth(const FText& Message)
+{
+	OnAuthFailed.Broadcast(Message);
+}
+
+void UMyBondageLifeAccountSubsystem::LogOut()
+{
+	UE_LOG(LogMyBondageLife, Log, TEXT("Account: signed out '%s'."), *AccountName);
+
+	// Tell the service this account is going offline before the token is dropped.
+
+	SendPresenceOffline();
+
+
+	bLoggedIn = false;
+	StopFriendPolling();
+
+	Friends.Reset();
+
+	SeenRequestIds.Reset();
+	AccountName.Reset();
+	AccountId.Reset();
+	Token.Reset();
+	CharacterName.Reset();
+	CharacterClass = 1;
+	CreatedAt = FDateTime();
+}
+
+FString UMyBondageLifeAccountSubsystem::GetDefaultRoomName() const
+{
+	// "<角色名>的房间"; the account name is only a fallback before the
+	// character identity is known.
+	const FString RoomOwnerName = CharacterName.IsEmpty()
+		? (AccountName.IsEmpty() ? FString(TEXT("Player")) : AccountName)
+		: CharacterName;
+
+	return FString::Printf(TEXT("%s\u7684\u623F\u95F4"), *RoomOwnerName);
+}
+
+FText UMyBondageLifeAccountSubsystem::MakeErrorText(int32 StatusCode, const FString& ErrorCode, const FString& ServerMessage, bool bIsRegistration)
+{
+	if (ErrorCode == TEXT("ACCOUNT_TAKEN"))
+	{
+		return FText::FromString(TEXT("\u8BE5\u8D26\u53F7\u5DF2\u88AB\u6CE8\u518C\uFF0C\u8BF7\u66F4\u6362\u8D26\u53F7ID"));
+	}
+
+	if (ErrorCode == TEXT("INVALID_CREDENTIALS"))
+	{
+		// The service deliberately does not say which half was wrong (anti-enumeration).
+		return FText::FromString(TEXT("\u8D26\u53F7\u6216\u5BC6\u7801\u9519\u8BEF"));
+	}
+
+	if (ErrorCode == TEXT("VALIDATION_ERROR"))
+	{
+		if (ServerMessage.Contains(TEXT("password")))
+		{
+			return FText::FromString(TEXT("\u5BC6\u7801\u957F\u5EA6\u4E0D\u7B26\u5408\u670D\u52A1\u5668\u8981\u6C42\uFF08\u81F3\u5C11 8 \u4F4D\uFF09"));
+		}
+		if (ServerMessage.Contains(TEXT("account")))
+		{
+			return FText::FromString(TEXT("\u8D26\u53F7ID \u683C\u5F0F\u4E0D\u5BF9\uFF08\u5B57\u6BCD\u3001\u6570\u5B57\u6216\u4E0B\u5212\u7EBF\uFF09"));
+		}
+		if (ServerMessage.Contains(TEXT("characterName")))
+		{
+			return FText::FromString(TEXT("\u89D2\u8272\u540D\u4E0D\u5408\u6CD5\uFF08\u6700\u591A 8 \u4E2A\u5B57\u7B26\uFF09"));
+		}
+		if (ServerMessage.Contains(TEXT("characterClass")))
+		{
+			return FText::FromString(TEXT("\u89D2\u8272\u7C7B\u522B\u5FC5\u987B\u662F 1\u30012\u30013 \u6216 4"));
+		}
+
+		return FText::FromString(FString::Printf(TEXT("\u63D0\u4EA4\u7684\u6570\u636E\u4E0D\u5408\u6CD5\uFF1A%s"), *ServerMessage));
+	}
+
+	if (StatusCode == 401)
+	{
+		return FText::FromString(TEXT("\u8D26\u53F7\u6216\u5BC6\u7801\u9519\u8BEF"));
+	}
+	if (StatusCode == 409)
+	{
+		return FText::FromString(TEXT("\u8BE5\u8D26\u53F7\u5DF2\u88AB\u6CE8\u518C\uFF0C\u8BF7\u66F4\u6362\u8D26\u53F7ID"));
+	}
+	if (StatusCode == 404)
+	{
+		return FText::FromString(TEXT("\u670D\u52A1\u7AEF\u4E0D\u5B58\u5728\u8BE5\u63A5\u53E3\uFF0C\u8BF7\u786E\u8BA4\u670D\u52A1\u5668\u7248\u672C"));
+	}
+	if (StatusCode >= 500)
+	{
+		return FText::FromString(TEXT("\u670D\u52A1\u5668\u5185\u90E8\u9519\u8BEF\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5"));
+	}
+
+	if (!ServerMessage.IsEmpty())
+	{
+		return FText::FromString(FString::Printf(TEXT("%s\uFF08%s\uFF09"), *ServerMessage, *ErrorCode));
+	}
+
+	return FText::FromString(FString::Printf(
+		TEXT("%s\u5931\u8D25\uFF08HTTP %d\uFF09"),
+		bIsRegistration ? TEXT("\u6CE8\u518C") : TEXT("\u767B\u5F55"), StatusCode));
+}
+
+FString UMyBondageLifeAccountSubsystem::MakeCharacterClassLabel(int32 ClassValue)
+{
+	switch (ClassValue)
+	{
+	case 1: return TEXT("\u652F\u914D\u8005");   // 支配者
+	case 2: return TEXT("\u8F6C\u6362\u8005");   // 转换者
+	case 3: return TEXT("\u81E3\u670D\u8005");   // 臣服者
+	case 4: return TEXT("\u5974\u96B6");         // 奴隶
+	default: return TEXT("---");
+	}
+}
+
+FString UMyBondageLifeAccountSubsystem::GetCharacterClassLabel() const
+{
+	switch (CharacterClass)
+	{
+	case 1: return TEXT("\u652F\u914D\u8005");   // 支配者
+	case 2: return TEXT("\u8F6C\u6362\u8005");   // 转换者
+	case 3: return TEXT("\u81E3\u670D\u8005");   // 臣服者
+	case 4: return TEXT("\u5974\u96B6");         // 奴隶
+	default: return TEXT("---");
+	}
+}
+
+bool UMyBondageLifeAccountSubsystem::IsFriend(const FString& InAccountName) const
+{
+	return Friends.ContainsByPredicate([&InAccountName](const FMyBondageLifeFriendEntry& Entry)
+	{
+		return Entry.AccountName == InAccountName;
+	});
+}
+
+void UMyBondageLifeAccountSubsystem::AddFriend(const FMyBondageLifeFriendEntry& Entry)
+{
+	if (Entry.AccountName.IsEmpty())
+	{
+		return;
+	}
+
+	if (FMyBondageLifeFriendEntry* Existing = Friends.FindByPredicate(
+		[&Entry](const FMyBondageLifeFriendEntry& Candidate)
+		{
+			return Candidate.AccountName == Entry.AccountName;
+		}))
+	{
+		*Existing = Entry;
+	}
+	else
+	{
+		Friends.Add(Entry);
+	}
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("Friends: added '%s' (%s)."), *Entry.CharacterName, *Entry.AccountName);
+	OnFriendsChanged.Broadcast();
+}
+
+void UMyBondageLifeAccountSubsystem::SetFriendOnline(const FString& InAccountName, bool bInOnline)
+{
+	FMyBondageLifeFriendEntry* Existing = Friends.FindByPredicate(
+		[&InAccountName](const FMyBondageLifeFriendEntry& Candidate)
+		{
+			return Candidate.AccountName == InAccountName;
+		});
+
+	if (!Existing || Existing->bOnline == bInOnline)
+	{
+		return;
+	}
+
+	Existing->bOnline = bInOnline;
+	OnFriendsChanged.Broadcast();
+}
+
+// ---------------------------------------------------------------------------
+// Friends (REST: /friends, /friends/requests, /presence/heartbeat)
+// ---------------------------------------------------------------------------
+
+void UMyBondageLifeAccountSubsystem::SendFriendApiRequest(
+	const FString& Verb,
+	const FString& Path,
+	const TSharedPtr<FJsonObject>& Body,
+	TFunction<void(bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)>&& OnDone)
+{
+	if (!bLoggedIn || Token.IsEmpty())
+	{
+		if (OnDone)
+		{
+			OnDone(false, 0, nullptr);
+		}
+		return;
+	}
+
+	FString BodyString;
+	if (Body.IsValid())
+	{
+		const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&BodyString);
+		FJsonSerializer::Serialize(Body.ToSharedRef(), Writer);
+	}
+
+	const FString Url = FString::Printf(TEXT("%s%s"), *GetServerUrl(), *Path);
+
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
+	Request->SetURL(Url);
+	Request->SetVerb(Verb);
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+	Request->SetHeader(TEXT("Accept"), TEXT("application/json"));
+	Request->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *Token));
+	Request->SetTimeout(AuthRequestTimeoutSeconds);
+	if (!BodyString.IsEmpty())
+	{
+		Request->SetContentAsString(BodyString);
+	}
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	Request->OnProcessRequestComplete().BindLambda(
+		[WeakThis, Verb, Path, OnDone](FHttpRequestPtr, FHttpResponsePtr Response, bool bConnectedSuccessfully)
+		{
+			if (!WeakThis.IsValid())
+			{
+				return;
+			}
+
+			if (!bConnectedSuccessfully || !Response.IsValid())
+			{
+				UE_LOG(LogMyBondageLife, Warning, TEXT("Friends: %s %s failed (no response)."), *Verb, *Path);
+				if (OnDone)
+				{
+					OnDone(false, 0, nullptr);
+				}
+				return;
+			}
+
+			const int32 StatusCode = Response->GetResponseCode();
+			const FString BodyText = Response->GetContentAsString();
+
+			TSharedPtr<FJsonObject> Json;
+			const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(BodyText);
+			if (!FJsonSerializer::Deserialize(Reader, Json))
+			{
+				Json = nullptr;
+			}
+
+			if (StatusCode >= 200 && StatusCode < 300)
+			{
+				UE_LOG(LogMyBondageLife, Log, TEXT("Friends: %s %s -> %d"), *Verb, *Path, StatusCode);
+				if (OnDone)
+				{
+					OnDone(true, StatusCode, Json);
+				}
+				return;
+			}
+
+			FString ErrorCode;
+			FString ErrorMessage;
+			if (Json.IsValid())
+			{
+				const TSharedPtr<FJsonObject>* ErrorObject = nullptr;
+				if (Json->TryGetObjectField(TEXT("error"), ErrorObject) && ErrorObject && ErrorObject->IsValid())
+				{
+					(*ErrorObject)->TryGetStringField(TEXT("code"), ErrorCode);
+					(*ErrorObject)->TryGetStringField(TEXT("message"), ErrorMessage);
+				}
+			}
+
+			UE_LOG(LogMyBondageLife, Warning, TEXT("Friends: %s %s -> %d %s %s"),
+				*Verb, *Path, StatusCode, *ErrorCode, *ErrorMessage);
+
+			if (OnDone)
+			{
+				OnDone(false, StatusCode, Json);
+			}
+		});
+
+	Request->ProcessRequest();
+}
+
+void UMyBondageLifeAccountSubsystem::RefreshFriendsFromServer()
+{
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+
+	SendFriendApiRequest(TEXT("GET"), TEXT("/friends"), nullptr,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self || !bOk || !Json.IsValid())
+			{
+				return;
+			}
+
+			const TArray<TSharedPtr<FJsonValue>>* FriendsJson = nullptr;
+			if (!Json->TryGetArrayField(TEXT("friends"), FriendsJson) || !FriendsJson)
+			{
+				return;
+			}
+
+			TArray<FMyBondageLifeFriendEntry> NewFriends;
+			for (const TSharedPtr<FJsonValue>& Value : *FriendsJson)
+			{
+				const TSharedPtr<FJsonObject> Item = Value.IsValid() ? Value->AsObject() : nullptr;
+				if (!Item.IsValid())
+				{
+					continue;
+				}
+
+				FMyBondageLifeFriendEntry Entry;
+				Item->TryGetStringField(TEXT("account"), Entry.AccountName);
+				Item->TryGetStringField(TEXT("characterName"), Entry.CharacterName);
+
+				double ClassValue = 1.0;
+				if (Item->TryGetNumberField(TEXT("characterClass"), ClassValue))
+				{
+					Entry.CharacterClass = FMath::Clamp(static_cast<int32>(ClassValue), 1, 4);
+				}
+
+				Item->TryGetBoolField(TEXT("online"), Entry.bOnline);
+
+				if (!Entry.AccountName.IsEmpty())
+				{
+					NewFriends.Add(Entry);
+				}
+			}
+
+			Self->Friends = NewFriends;
+			Self->OnFriendsChanged.Broadcast();
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::RequestAddFriend(const FString& TargetAccount)
+{
+	if (TargetAccount.IsEmpty())
+	{
+		return;
+	}
+
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("account"), TargetAccount);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+
+	SendFriendApiRequest(TEXT("POST"), TEXT("/friends/requests"), Body,
+		[WeakThis, TargetAccount](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self)
+			{
+				return;
+			}
+
+			Self->OnFriendRequestSent.Broadcast(bOk, TargetAccount);
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::RespondToFriendRequest(const FString& RequestId, bool bAccept, const FString& RequesterCharacterName)
+{
+	if (RequestId.IsEmpty())
+	{
+		return;
+	}
+
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetBoolField(TEXT("accept"), bAccept);
+
+	const FString Path = FString::Printf(TEXT("/friends/requests/%s/respond"), *RequestId);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+
+	SendFriendApiRequest(TEXT("POST"), Path, Body,
+		[WeakThis, bAccept, RequesterCharacterName](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self)
+			{
+				return;
+			}
+
+			UE_LOG(LogMyBondageLife, Log, TEXT("Friends: answered request (%s) -> %s"),
+				bAccept ? TEXT("accept") : TEXT("decline"), bOk ? TEXT("ok") : TEXT("failed"));
+
+			if (bOk)
+			{
+				Self->RefreshFriendsFromServer();
+			}
+
+			Self->OnFriendRequestAnswered.Broadcast(bOk && bAccept);
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::RemoveFriendOnServer(const FString& TargetAccount)
+{
+	if (TargetAccount.IsEmpty())
+	{
+		return;
+	}
+
+	const FString Path = FString::Printf(TEXT("/friends/%s"), *TargetAccount);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+
+	SendFriendApiRequest(TEXT("DELETE"), Path, nullptr,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (Self && bOk)
+			{
+				Self->RefreshFriendsFromServer();
+			}
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::PollFriendRequests()
+{
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+
+	SendFriendApiRequest(TEXT("GET"), TEXT("/friends/requests?direction=incoming&status=pending"), nullptr,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self || !bOk || !Json.IsValid())
+			{
+				return;
+			}
+
+			const TArray<TSharedPtr<FJsonValue>>* Requests = nullptr;
+			if (!Json->TryGetArrayField(TEXT("requests"), Requests) || !Requests)
+			{
+				return;
+			}
+
+			for (const TSharedPtr<FJsonValue>& Value : *Requests)
+			{
+				const TSharedPtr<FJsonObject> Item = Value.IsValid() ? Value->AsObject() : nullptr;
+				if (!Item.IsValid())
+				{
+					continue;
+				}
+
+				FString RequestId;
+				Item->TryGetStringField(TEXT("requestId"), RequestId);
+				if (RequestId.IsEmpty() || Self->SeenRequestIds.Contains(RequestId))
+				{
+					continue;
+				}
+
+				FString FromName = TEXT("---");
+				FString FromAccount;
+				int32 FromClass = 1;
+
+				const TSharedPtr<FJsonObject>* FromObject = nullptr;
+				if (Item->TryGetObjectField(TEXT("from"), FromObject) && FromObject && FromObject->IsValid())
+				{
+					(*FromObject)->TryGetStringField(TEXT("characterName"), FromName);
+					(*FromObject)->TryGetStringField(TEXT("account"), FromAccount);
+
+					double ClassValue = 1.0;
+					if ((*FromObject)->TryGetNumberField(TEXT("characterClass"), ClassValue))
+					{
+						FromClass = FMath::Clamp(static_cast<int32>(ClassValue), 1, 4);
+					}
+				}
+
+				Self->SeenRequestIds.Add(RequestId);
+				Self->OnFriendRequestReceived.Broadcast(RequestId, FromName);
+			}
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::SendPresenceHeartbeat()
+{
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("state"), TEXT("in_game"));
+
+	SendFriendApiRequest(TEXT("POST"), TEXT("/presence/heartbeat"), Body, nullptr);
+}
+
+void UMyBondageLifeAccountSubsystem::StartFriendPolling()
+{
+	if (FriendPollHandle.IsValid())
+	{
+		return;
+	}
+
+	// One ticker covers the three periodic calls: requests, friend list, heartbeat.
+	FriendPollHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateWeakLambda(this,
+		[this](float DeltaTime)
+		{
+			const double Now = FPlatformTime::Seconds();
+
+			if (Now - LastRequestPollSeconds >= 8.0)
+			{
+				LastRequestPollSeconds = Now;
+				PollFriendRequests();
+			}
+
+			if (Now - LastFriendsRefreshSeconds >= 10.0)
+			{
+				LastFriendsRefreshSeconds = Now;
+				RefreshFriendsFromServer();
+			}
+
+			if (Now - LastHeartbeatSeconds >= 20.0)
+			{
+				LastHeartbeatSeconds = Now;
+				SendPresenceHeartbeat();
+			}
+
+			return true;
+		}), 1.0f);
+}
+
+void UMyBondageLifeAccountSubsystem::StopFriendPolling()
+{
+	if (FriendPollHandle.IsValid())
+	{
+		FTSTicker::GetCoreTicker().RemoveTicker(FriendPollHandle);
+		FriendPollHandle.Reset();
+	}
+}
+
+void UMyBondageLifeAccountSubsystem::SendPresenceOffline()
+{
+	if (!bLoggedIn || Token.IsEmpty())
+	{
+		return;
+	}
+
+	// Fire and forget: the service marks lastSeenAt as expired so friends see the
+	// offline state immediately instead of waiting for the presence window.
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	SendFriendApiRequest(TEXT("POST"), TEXT("/presence/offline"), Body, nullptr);
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("Friends: presence offline sent."));
+}
