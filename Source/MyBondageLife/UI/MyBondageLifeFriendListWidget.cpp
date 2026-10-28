@@ -724,8 +724,9 @@ void UMyBondageLifeFriendListWidget::BuildDialogs()
 	MenuDissolveButton->OnClicked.AddDynamic(this, &UMyBondageLifeFriendListWidget::HandleMenuDissolveClicked);
 	MenuDissolveLabel = Cast<UTextBlock>(MenuDissolveButton->GetChildAt(0));
 
-	UButton* DeleteButton = AddMenuButton(TEXT("\u5220\u9664\u597D\u53CB"), true);
-	DeleteButton->OnClicked.AddDynamic(this, &UMyBondageLifeFriendListWidget::HandleMenuDeleteClicked);
+	MenuDeleteButton = AddMenuButton(TEXT("\u5220\u9664\u597D\u53CB"), true);
+	MenuDeleteButton->OnClicked.AddDynamic(this, &UMyBondageLifeFriendListWidget::HandleMenuDeleteClicked);
+	MenuDeleteLabel = Cast<UTextBlock>(MenuDeleteButton->GetChildAt(0));
 
 	UButton* CancelButton = AddMenuButton(TEXT("\u53D6\u6D88"), true);
 	CancelButton->OnClicked.AddDynamic(this, &UMyBondageLifeFriendListWidget::HandleMenuCancelClicked);
@@ -845,6 +846,20 @@ void UMyBondageLifeFriendListWidget::OpenFriendMenu(const FString& InAccountName
 	if (MenuDissolveLabel)
 	{
 		MenuDissolveLabel->SetColorAndOpacity(FSlateColor(bCanDissolve
+			? FLinearColor(0.02f, 0.02f, 0.02f)
+			: FLinearColor(0.62f, 0.62f, 0.65f)));
+	}
+
+	// A formal contract's slave may not break the relation at all, deleting the
+	// friend included.
+	const bool bCanDelete = InRole != EMyBondageLifeContractRole::Slave;
+	if (MenuDeleteButton)
+	{
+		MenuDeleteButton->SetIsEnabled(bCanDelete);
+	}
+	if (MenuDeleteLabel)
+	{
+		MenuDeleteLabel->SetColorAndOpacity(FSlateColor(bCanDelete
 			? FLinearColor(0.02f, 0.02f, 0.02f)
 			: FLinearColor(0.62f, 0.62f, 0.65f)));
 	}

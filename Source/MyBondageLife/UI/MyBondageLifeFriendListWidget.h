@@ -163,6 +163,12 @@ protected:
 	TObjectPtr<UTextBlock> MenuDissolveLabel;
 
 	UPROPERTY(Transient)
+	TObjectPtr<UButton> MenuDeleteButton;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> MenuDeleteLabel;
+
+	UPROPERTY(Transient)
 	TObjectPtr<UBorder> ConfirmBackdrop;
 
 	UPROPERTY(Transient)

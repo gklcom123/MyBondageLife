@@ -218,6 +218,12 @@ protected:
 	UFUNCTION(Client, Reliable)
 	void ClientReceiveSystemMessage(const FString& Message);
 
+	/** The host left the room: this client returns to the main menu. */
+	UFUNCTION(Client, Reliable)
+	void ClientHostLeftRoom();
+
+	friend class UMyBondageLifeSessionSubsystem;
+
 	void BroadcastSystemMessage(const FString& Message);
 
 	FString GetDisplayCharacterName() const;

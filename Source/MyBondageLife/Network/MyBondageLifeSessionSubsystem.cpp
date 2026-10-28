@@ -2,6 +2,7 @@
 
 #include "MyBondageLifeSessionSubsystem.h"
 
+#include "MyBondageLifePlayerController.h"
 #include "CoreGlobals.h"
 #include "Engine/Engine.h"
 #include "Engine/NetDriver.h"
@@ -261,6 +262,22 @@ void UMyBondageLifeSessionSubsystem::LeaveRoom()
 		if (UMyBondageLifeRoomSubsystem* Rooms = GameInstance->GetSubsystem<UMyBondageLifeRoomSubsystem>())
 		{
 			Rooms->LeaveRoom();
+		}
+	}
+
+	// On the host this ends the room for everyone: a client left in a world without a
+	// server cannot play, so it is sent back to the main menu too.
+	if (World && World->GetNetMode() != NM_Client)
+	{
+		for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
+		{
+			if (AMyBondageLifePlayerController* OtherController = Cast<AMyBondageLifePlayerController>(It->Get()))
+			{
+				if (!OtherController->IsLocalController())
+				{
+					OtherController->ClientHostLeftRoom();
+				}
+			}
 		}
 	}
 

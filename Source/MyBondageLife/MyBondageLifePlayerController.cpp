@@ -1727,3 +1727,21 @@ void AMyBondageLifePlayerController::HandleContractsChanged()
 		PlayerInfoWidget->RefreshContents();
 	}
 }
+
+void AMyBondageLifePlayerController::ClientHostLeftRoom_Implementation()
+{
+	UE_LOG(LogMyBondageLife, Log, TEXT("Session: host left the room, returning to the main menu."));
+
+	if (ChatWidget)
+	{
+		ChatWidget->AddSystemMessage(TEXT("\u623F\u4E3B\u5DF2\u9000\u51FA\u623F\u95F4"));   // 房主已退出房间
+	}
+
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UMyBondageLifeSessionSubsystem* Session = GameInstance->GetSubsystem<UMyBondageLifeSessionSubsystem>())
+		{
+			Session->LeaveRoom();
+		}
+	}
+}

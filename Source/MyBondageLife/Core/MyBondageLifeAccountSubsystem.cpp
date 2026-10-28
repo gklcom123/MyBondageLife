@@ -488,8 +488,13 @@ void UMyBondageLifeAccountSubsystem::SendFriendApiRequest(
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
 	Request->SetURL(Url);
 	Request->SetVerb(Verb);
-	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+	// Only announce a JSON body when one is actually sent: Fastify rejects a request
+	// that declares application/json but carries no payload (that broke DELETE).
 	Request->SetHeader(TEXT("Accept"), TEXT("application/json"));
+	if (!BodyString.IsEmpty())
+	{
+		Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+	}
 	Request->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *Token));
 	Request->SetTimeout(AuthRequestTimeoutSeconds);
 	if (!BodyString.IsEmpty())
