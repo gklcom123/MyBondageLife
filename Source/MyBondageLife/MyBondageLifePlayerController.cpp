@@ -678,10 +678,10 @@ void AMyBondageLifePlayerController::ShowPlayerInfo()
 
 void AMyBondageLifePlayerController::HidePlayerInfo()
 {
+	// Closing the panel keeps the bottom entry (and its C binding) available.
 	if (PlayerInfoWidget)
 	{
-		PlayerInfoWidget->RemoveFromParent();
-		PlayerInfoWidget = nullptr;
+		PlayerInfoWidget->SetPanelOpen(false);
 	}
 
 	bPlayerInfoOpen = false;
@@ -1635,8 +1635,12 @@ void AMyBondageLifePlayerController::HandleContractRequested(const AMyBondageLif
 
 	Account->RequestContract(TargetAccount, bFormal);
 
-	// The request was sent: close the panel like the friend request flow does.
-	HidePlayerInfo();
+	// The request was sent: close the panel only. Removing the widget would also
+	// remove the bottom "个人信息（C）" entry for the rest of the session.
+	if (PlayerInfoWidget)
+	{
+		PlayerInfoWidget->SetPanelOpen(false);
+	}
 }
 
 void AMyBondageLifePlayerController::HandleContractActionFinished(bool bSucceeded, const FString& ErrorCode, int32 Action)
