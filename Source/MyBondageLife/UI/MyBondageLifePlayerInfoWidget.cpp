@@ -579,10 +579,10 @@ void UMyBondageLifePlayerInfoWidget::RefreshContractSection()
 		if (!bIsSelf && !TargetAccount.IsEmpty())
 		{
 			bHasProfile = Account->GetUserProfile(TargetAccount, Profile);
-			if (!bHasProfile)
-			{
-				Account->RequestUserProfile(TargetAccount);
-			}
+
+			// Always ask for a refresh (the subsystem throttles it to one call per
+			// 10s): a contract dissolved elsewhere must not stay on screen.
+			Account->RequestUserProfile(TargetAccount);
 		}
 	}
 

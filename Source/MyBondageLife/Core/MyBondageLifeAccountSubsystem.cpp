@@ -915,6 +915,10 @@ void UMyBondageLifeAccountSubsystem::RefreshContractState()
 				}
 			}
 
+			// Any change invalidates the cached public profiles (they carry contract info).
+			Self->UserProfiles.Reset();
+			Self->UserProfileFetchSeconds.Reset();
+
 			Self->OnContractsChanged.Broadcast();
 		});
 }
@@ -1123,12 +1127,13 @@ void UMyBondageLifeAccountSubsystem::RequestUserProfile(const FString& InAccount
 	}
 
 	// Small cache: the info panel is reopened often and the data changes rarely.
+	// A cache hit stays silent on purpose - broadcasting here would re-enter the
+	// panel refresh, which asks again, and so on forever.
 	const double Now = FPlatformTime::Seconds();
 	if (const double* LastFetch = UserProfileFetchSeconds.Find(InAccountName))
 	{
 		if (Now - *LastFetch < 10.0 && UserProfiles.Contains(InAccountName))
 		{
-			OnUserProfileUpdated.Broadcast(InAccountName);
 			return;
 		}
 	}
