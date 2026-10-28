@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Containers/Ticker.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "MyBondageLifeLanTypes.h"
 #include "MyBondageLifeServerRoom.h"
@@ -79,6 +80,17 @@ private:
 
 	/** Runs after the listen-server travel to publish the room to the backend. */
 	void CreatePendingRoom();
+
+	/**
+	 *  Client-side watchdog: when the host disappears without telling us (process
+	 *  killed, crash), the connection dies and this returns us to the main menu.
+	 */
+	void StartClientWatchdog();
+	void StopClientWatchdog();
+
+	FTSTicker::FDelegateHandle ClientWatchdogHandle;
+	bool bClientEverConnected = false;
+	float ClientDisconnectSeconds = 0.0f;
 
 	bool bInSession = false;
 	bool bHosting = false;

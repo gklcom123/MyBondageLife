@@ -115,6 +115,9 @@ bool UMyBondageLifeSessionSubsystem::JoinRoom(const FMyBondageLifeRoomInfo& Room
 	RoomName = Room.RoomName;
 	HostIp = Room.HostAddress;
 	GamePort = Room.Port;
+
+	// Watch the connection: a host that dies without a goodbye leaves us stranded.
+	StartClientWatchdog();
 	MaxPlayers = Room.MaxPlayers > 0 ? Room.MaxPlayers : DefaultMaxPlayers;
 	bInSession = true;
 	bHosting = false;
@@ -221,6 +224,8 @@ bool UMyBondageLifeSessionSubsystem::JoinServerRoom(const FMyBondageLifeServerRo
 	bInSession = true;
 	bHosting = false;
 
+	StartClientWatchdog();
+
 	if (UMyBondageLifeLanDiscoverySubsystem* Discovery = GameInstance->GetSubsystem<UMyBondageLifeLanDiscoverySubsystem>())
 	{
 		Discovery->StopAnnouncing();
@@ -281,6 +286,8 @@ void UMyBondageLifeSessionSubsystem::LeaveRoom()
 		}
 	}
 
+	StopClientWatchdog();
+
 	bInSession = false;
 	bHosting = false;
 	RoomId.Reset();
@@ -324,4 +331,70 @@ FString UMyBondageLifeSessionSubsystem::ResolveLocalIPv4()
 	}
 
 	return TEXT("127.0.0.1");
+}
+
+void UMyBondageLifeSessionSubsystem::StartClientWatchdog()
+{
+	if (ClientWatchdogHandle.IsValid())
+	{
+		return;
+	}
+
+	bClientEverConnected = false;
+	ClientDisconnectSeconds = 0.0f;
+
+	ClientWatchdogHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateWeakLambda(this,
+		[this](float DeltaTime)
+		{
+			if (!bInSession || bHosting)
+			{
+				ClientDisconnectSeconds = 0.0f;
+				return true;
+			}
+
+			const UWorld* World = GetWorld();
+			if (!World || World->GetNetMode() != NM_Client)
+			{
+				// Still loading the level: nothing to watch yet.
+				return true;
+			}
+
+			const UNetDriver* Driver = World->GetNetDriver();
+			const bool bConnected = Driver != nullptr && Driver->ServerConnection != nullptr;
+
+			if (bConnected)
+			{
+				bClientEverConnected = true;
+				ClientDisconnectSeconds = 0.0f;
+				return true;
+			}
+
+			// The host went away (killed process / crash): there is no RPC to receive,
+			// so the missing connection is the only signal.
+			if (bClientEverConnected)
+			{
+				ClientDisconnectSeconds += DeltaTime;
+				if (ClientDisconnectSeconds >= 2.0f)
+				{
+					UE_LOG(LogMyBondageLife, Log, TEXT("Session: lost the host connection, leaving the room."));
+					ClientDisconnectSeconds = 0.0f;
+					bClientEverConnected = false;
+					LeaveRoom();
+				}
+			}
+
+			return true;
+		}), 0.5f);
+}
+
+void UMyBondageLifeSessionSubsystem::StopClientWatchdog()
+{
+	if (ClientWatchdogHandle.IsValid())
+	{
+		FTSTicker::GetCoreTicker().RemoveTicker(ClientWatchdogHandle);
+		ClientWatchdogHandle.Reset();
+	}
+
+	bClientEverConnected = false;
+	ClientDisconnectSeconds = 0.0f;
 }
