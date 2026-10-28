@@ -1408,6 +1408,57 @@ void AMyBondageLifePlayerController::PlayerTick(float DeltaTime)
 	}
 
 	UpdateNearbyCharacter();
+	TickRoomHeartbeat();
+}
+
+void AMyBondageLifePlayerController::TickRoomHeartbeat()
+{
+	// A killed host never sends a "goodbye" and UDP does not report the dead socket
+	// quickly, so the client keeps its own keepalive and leaves when the answers stop.
+	if (!IsLocalPlayerController() || GetNetMode() != NM_Client)
+	{
+		return;
+	}
+
+	UMyBondageLifeSessionSubsystem* Session = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeSessionSubsystem>()
+		: nullptr;
+	if (!Session || !Session->IsInSession())
+	{
+		return;
+	}
+
+	const double Now = FPlatformTime::Seconds();
+
+	// Start the clock the first time this controller ticks inside a room.
+	if (LastHostAckSeconds <= 0.0)
+	{
+		LastHostAckSeconds = Now;
+	}
+
+	if (Now - LastHeartbeatSentSeconds >= 1.0)
+	{
+		LastHeartbeatSentSeconds = Now;
+		ServerRoomHeartbeat();
+	}
+
+	if (Now - LastHostAckSeconds > 4.0)
+	{
+		LastHostAckSeconds = Now;
+		UE_LOG(LogMyBondageLife, Warning, TEXT("Session: no answer from the host for 4s, leaving the room."));
+		Session->LeaveRoom();
+	}
+}
+
+void AMyBondageLifePlayerController::ServerRoomHeartbeat_Implementation()
+{
+	// Answering proves the host is alive, which is all the client needs to know.
+	ClientRoomHeartbeatAck();
+}
+
+void AMyBondageLifePlayerController::ClientRoomHeartbeatAck_Implementation()
+{
+	LastHostAckSeconds = FPlatformTime::Seconds();
 }
 
 bool AMyBondageLifePlayerController::ShouldUseTouchControls() const

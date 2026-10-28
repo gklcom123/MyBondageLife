@@ -352,13 +352,22 @@ void UMyBondageLifeSessionSubsystem::StartClientWatchdog()
 				return true;
 			}
 
-			const UWorld* World = GetWorld();
-			if (!World || World->GetNetMode() != NM_Client)
+			// A pending engine notification wins immediately.
+			if (bLeavePending)
 			{
-				// Still loading the level: nothing to watch yet.
+				bLeavePending = false;
+				LeaveRoom();
 				return true;
 			}
 
+			const UWorld* World = GetWorld();
+			if (!World)
+			{
+				return true;
+			}
+
+			// No NetMode test on purpose: once the connection drops the world can fall
+			// back to standalone and we still have to leave.
 			const UNetDriver* Driver = World->GetNetDriver();
 			const bool bConnected = Driver != nullptr && Driver->ServerConnection != nullptr;
 
@@ -374,7 +383,7 @@ void UMyBondageLifeSessionSubsystem::StartClientWatchdog()
 			if (bClientEverConnected)
 			{
 				ClientDisconnectSeconds += DeltaTime;
-				if (ClientDisconnectSeconds >= 2.0f)
+				if (ClientDisconnectSeconds >= 1.5f)
 				{
 					UE_LOG(LogMyBondageLife, Log, TEXT("Session: lost the host connection, leaving the room."));
 					ClientDisconnectSeconds = 0.0f;
@@ -397,4 +406,43 @@ void UMyBondageLifeSessionSubsystem::StopClientWatchdog()
 
 	bClientEverConnected = false;
 	ClientDisconnectSeconds = 0.0f;
+}
+
+void UMyBondageLifeSessionSubsystem::Initialize(FSubsystemCollectionBase& Collection)
+{
+	Super::Initialize(Collection);
+
+	if (GEngine)
+	{
+		NetworkFailureHandle = GEngine->OnNetworkFailure().AddUObject(
+			this, &UMyBondageLifeSessionSubsystem::HandleNetworkFailure);
+	}
+}
+
+void UMyBondageLifeSessionSubsystem::Deinitialize()
+{
+	if (GEngine && NetworkFailureHandle.IsValid())
+	{
+		GEngine->OnNetworkFailure().Remove(NetworkFailureHandle);
+		NetworkFailureHandle.Reset();
+	}
+
+	StopClientWatchdog();
+
+	Super::Deinitialize();
+}
+
+void UMyBondageLifeSessionSubsystem::HandleNetworkFailure(UWorld* World, UNetDriver* NetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString)
+{
+	if (!bInSession || bHosting)
+	{
+		return;
+	}
+
+	UE_LOG(LogMyBondageLife, Warning, TEXT("Session: network failure (%d) '%s' - leaving the room."),
+		static_cast<int32>(FailureType), *ErrorString);
+
+	// Leaving from inside the engine's failure handling is unsafe; the watchdog does
+	// it on the next tick.
+	bLeavePending = true;
 }

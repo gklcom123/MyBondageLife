@@ -222,6 +222,20 @@ protected:
 	UFUNCTION(Client, Reliable)
 	void ClientHostLeftRoom();
 
+	/** Client -> host keepalive; the host answers with ClientRoomHeartbeatAck. */
+	UFUNCTION(Server, Unreliable)
+	void ServerRoomHeartbeat();
+
+	UFUNCTION(Client, Unreliable)
+	void ClientRoomHeartbeatAck();
+
+	/** Client-side keepalive bookkeeping (see TickRoomHeartbeat). */
+	void TickRoomHeartbeat();
+
+	/** Seconds (FPlatformTime) of the last ack from the host; 0 = never. */
+	double LastHostAckSeconds = 0.0;
+	double LastHeartbeatSentSeconds = 0.0;
+
 	friend class UMyBondageLifeSessionSubsystem;
 
 	void BroadcastSystemMessage(const FString& Message);

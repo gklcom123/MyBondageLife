@@ -26,6 +26,9 @@ class MYBONDAGELIFE_API UMyBondageLifeSessionSubsystem : public UGameInstanceSub
 
 public:
 
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	virtual void Deinitialize() override;
+
 	static constexpr int32 DefaultGamePort = 7777;
 	static constexpr int32 DefaultMaxPlayers = 8;
 
@@ -87,6 +90,14 @@ private:
 	 */
 	void StartClientWatchdog();
 	void StopClientWatchdog();
+
+	/** Engine-level "connection lost" notifications (host killed, timeout, ...). */
+	void HandleNetworkFailure(UWorld* World, UNetDriver* NetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString);
+
+	FDelegateHandle NetworkFailureHandle;
+
+	/** Set by HandleNetworkFailure; the watchdog performs the actual leave. */
+	bool bLeavePending = false;
 
 	FTSTicker::FDelegateHandle ClientWatchdogHandle;
 	bool bClientEverConnected = false;
