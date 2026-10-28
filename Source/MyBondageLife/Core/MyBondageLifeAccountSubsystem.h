@@ -107,6 +107,46 @@ struct FMyBondageLifeFriendRequest
 	int32 CharacterClass = 1;
 };
 
+/** Public profile of any account (GET /users/{account}). */
+USTRUCT(BlueprintType)
+struct FMyBondageLifeUserProfile
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Contract")
+	FString Account;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Contract")
+	FString CharacterName;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Contract")
+	int32 CharacterClass = 1;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Contract")
+	FDateTime CreatedAt;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Contract")
+	bool bOnline = false;
+
+	/** True when this character is somebody's slave (trial or formal). */
+	UPROPERTY(BlueprintReadOnly, Category = "Contract")
+	bool bHasMaster = false;
+
+	/** True when that relation is already formal. */
+	UPROPERTY(BlueprintReadOnly, Category = "Contract")
+	bool bMasterIsFormal = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Contract")
+	FString MasterAccount;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Contract")
+	FString MasterCharacterName;
+
+	/** trialStartedAt, or formalStartedAt for a formal contract. */
+	UPROPERTY(BlueprintReadOnly, Category = "Contract")
+	FDateTime ContractSince;
+};
+
 /** Raised whenever the local friend list changes. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeFriendsChanged);
 
@@ -126,10 +166,13 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeContractsChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FMyBondageLifeContractRequestReceived, const FString&, RequestId, const FString&, RequesterCharacterName, bool, bFormal);
 
 /** Raised after a contract action (request / respond / dissolve). */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FMyBondageLifeContractActionResult, bool, bSucceeded, const FString&, ErrorCode);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FMyBondageLifeContractActionResult, bool, bSucceeded, const FString&, ErrorCode, int32, Action);
 
 /** Raised when the stored body height changed (0.9 / 1.0 / 1.1). */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeHeightChanged, float, NewHeightScale);
+
+/** Raised when a public profile was fetched or refreshed. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeUserProfileUpdated, const FString&, Account);
 
 /**
  *  Talks to the account service (register / login), keeps the signed-in state and
@@ -288,6 +331,17 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Contract")
 	bool IsAccountKnownOwned(const FString& InAccountName) const;
 
+	/** GET /users/{account}: public profile, including who owns this character. */
+	UFUNCTION(BlueprintCallable, Category = "Contract")
+	void RequestUserProfile(const FString& InAccountName);
+
+	/** Cached public profile; false when it was never fetched. */
+	UFUNCTION(BlueprintPure, Category = "Contract")
+	bool GetUserProfile(const FString& InAccountName, FMyBondageLifeUserProfile& OutProfile) const;
+
+	UPROPERTY(BlueprintAssignable, Category = "Contract")
+	FMyBondageLifeUserProfileUpdated OnUserProfileUpdated;
+
 	/** My master, if any. */
 	UFUNCTION(BlueprintPure, Category = "Contract")
 	FMyBondageLifeContractInfo GetContractAsSlave() const { return ContractAsSlave; }
@@ -367,6 +421,12 @@ private:
 
 	/** Friend list, refreshed from GET /friends. */
 	TArray<FMyBondageLifeFriendEntry> Friends;
+
+	/** Public profiles fetched through GET /users/{account}. */
+	TMap<FString, FMyBondageLifeUserProfile> UserProfiles;
+
+	/** When each profile was fetched (FPlatformTime seconds), for cache expiry. */
+	TMap<FString, double> UserProfileFetchSeconds;
 
 	/** Pending requests already surfaced to the UI. */
 	TArray<FString> SeenRequestIds;

@@ -321,6 +321,16 @@ void UMyBondageLifePlayerInfoWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	// A late profile answer has to repaint the panel (contract line + button state).
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
+		{
+			Account->OnUserProfileUpdated.AddDynamic(this, &UMyBondageLifePlayerInfoWidget::HandleUserProfileUpdated);
+			Account->OnContractsChanged.AddDynamic(this, &UMyBondageLifePlayerInfoWidget::HandleContractsChanged);
+		}
+	}
+
 	// Default to the local player so the panel is never empty.
 	if (!DisplayedCharacter.IsValid())
 	{
@@ -556,34 +566,46 @@ void UMyBondageLifePlayerInfoWidget::RefreshContractSection()
 		: nullptr;
 
 	// ------------------------------------------------------- "已成为…" line
+	// The public profile says whether the shown character is somebody's slave, which
+	// makes the line visible to every viewer (not just the two contract partners).
+	FMyBondageLifeUserProfile Profile;
+	bool bHasProfile = false;
+
+	if (Account && Account->IsLoggedIn() && Target)
+	{
+		const APlayerState* TargetState = Target->GetPlayerState();
+		const FString TargetAccount = TargetState ? TargetState->GetPlayerName() : FString();
+
+		if (!bIsSelf && !TargetAccount.IsEmpty())
+		{
+			bHasProfile = Account->GetUserProfile(TargetAccount, Profile);
+			if (!bHasProfile)
+			{
+				Account->RequestUserProfile(TargetAccount);
+			}
+		}
+	}
+
 	FString StatusText;
 	if (Account && Account->IsLoggedIn() && Target)
 	{
-		const FDateTime Now = FDateTime::Now();
-		const TCHAR* RoleWord = TEXT("\u4E34\u65F6");   // 临时
+		// Contract stamps are UTC (ISO-8601): compare against UtcNow, not local time.
+		const FDateTime Now = FDateTime::UtcNow();
 
 		if (bIsSelf && Account->HasMaster())
 		{
 			const FMyBondageLifeContractInfo Info = Account->GetContractAsSlave();
-			RoleWord = Info.Role == EMyBondageLifeContractRole::Slave ? TEXT("\u6B63\u5F0F") : TEXT("\u4E34\u65F6");
+			const TCHAR* RoleWord = Info.Role == EMyBondageLifeContractRole::Slave ? TEXT("\u6B63\u5F0F") : TEXT("\u4E34\u65F6");
 			const int32 Days = Info.Since.GetTicks() ? FMath::Max(0, static_cast<int32>(FMath::FloorToInt((Now - Info.Since).GetTotalHours() / 24.0))) : 0;
 			StatusText = FString::Printf(
 				TEXT("\u5DF2\u6210\u4E3A[%s]\u7684%s\u5974\u96B6\u957F\u8FBE%d\u5929"), *Info.PeerCharacterName, RoleWord, Days);
 		}
-		else if (!bIsSelf)
+		else if (!bIsSelf && bHasProfile && Profile.bHasMaster)
 		{
-			const FString TargetAccount = Target->GetPlayerState() ? Target->GetPlayerState()->GetPlayerName() : FString();
-			const EMyBondageLifeContractRole Role = Account->GetContractRoleWith(TargetAccount);
-
-			if (Role == EMyBondageLifeContractRole::TemporaryMaster || Role == EMyBondageLifeContractRole::Master)
-			{
-				FMyBondageLifeFriendEntry Entry;
-				Account->GetFriendEntry(TargetAccount, Entry);
-				RoleWord = Role == EMyBondageLifeContractRole::Master ? TEXT("\u6B63\u5F0F") : TEXT("\u4E34\u65F6");
-				const int32 Days = Entry.ContractSince.GetTicks() ? FMath::Max(0, static_cast<int32>(FMath::FloorToInt((Now - Entry.ContractSince).GetTotalHours() / 24.0))) : 0;
-				StatusText = FString::Printf(
-					TEXT("\u5DF2\u6210\u4E3A[%s]\u7684%s\u5974\u96B6\u957F\u8FBE%d\u5929"), *Account->GetCharacterName(), RoleWord, Days);
-			}
+			const TCHAR* RoleWord = Profile.bMasterIsFormal ? TEXT("\u6B63\u5F0F") : TEXT("\u4E34\u65F6");
+			const int32 Days = Profile.ContractSince.GetTicks() ? FMath::Max(0, static_cast<int32>(FMath::FloorToInt((Now - Profile.ContractSince).GetTotalHours() / 24.0))) : 0;
+			StatusText = FString::Printf(
+				TEXT("\u5DF2\u6210\u4E3A[%s]\u7684%s\u5974\u96B6\u957F\u8FBE%d\u5929"), *Profile.MasterCharacterName, RoleWord, Days);
 		}
 	}
 
@@ -610,7 +632,8 @@ void UMyBondageLifePlayerInfoWidget::RefreshContractSection()
 	const EMyBondageLifeContractRole Role = Account->GetContractRoleWith(TargetAccount);
 	const int32 MyClass = Account->GetCharacterClass();
 	const int32 TargetClass = Target->GetCharacterClass();
-	const FDateTime Now = FDateTime::Now();
+	// Contract stamps are UTC (ISO-8601): compare against UtcNow, not local time.
+	const FDateTime Now = FDateTime::UtcNow();
 
 	// "签订契约"
 	FString LabelText = TEXT("\u7B7E\u8BA2\u5951\u7EA6");
@@ -646,8 +669,9 @@ void UMyBondageLifePlayerInfoWidget::RefreshContractSection()
 		// The shown character is my master: a mutual contract is not allowed.
 		LabelText = TEXT("\u65E0\u6CD5\u53D1\u8D77\u5951\u7EA6");
 	}
-	else if (Account->IsAccountKnownOwned(TargetAccount))
+	else if ((bHasProfile && Profile.bHasMaster) || Account->IsAccountKnownOwned(TargetAccount))
 	{
+		// Somebody else owns the shown character.
 		LabelText = TEXT("\u5DF2\u62E5\u6709\u4E3B\u4EBA");
 	}
 	else if (!Account->IsFriend(TargetAccount))
@@ -670,4 +694,24 @@ void UMyBondageLifePlayerInfoWidget::RefreshContractSection()
 	ContractLabel->SetColorAndOpacity(FSlateColor(bEnabled
 		? FLinearColor(0.02f, 0.02f, 0.02f)
 		: FLinearColor(0.55f, 0.55f, 0.58f)));
+}
+
+void UMyBondageLifePlayerInfoWidget::HandleUserProfileUpdated(const FString& Account)
+{
+	const AMyBondageLifeCharacter* Target = DisplayedCharacter.Get();
+	const APlayerState* TargetState = Target ? Target->GetPlayerState() : nullptr;
+	const FString ShownAccount = TargetState ? TargetState->GetPlayerName() : FString();
+
+	if (!ShownAccount.IsEmpty() && ShownAccount == Account)
+	{
+		RefreshContents();
+	}
+}
+
+void UMyBondageLifePlayerInfoWidget::HandleContractsChanged()
+{
+	if (IsPanelOpen())
+	{
+		RefreshContents();
+	}
 }

@@ -1634,27 +1634,48 @@ void AMyBondageLifePlayerController::HandleContractRequested(const AMyBondageLif
 		: Target->GetCharacterName().ToString();
 
 	Account->RequestContract(TargetAccount, bFormal);
+
+	// The request was sent: close the panel like the friend request flow does.
+	HidePlayerInfo();
 }
 
-void AMyBondageLifePlayerController::HandleContractActionFinished(bool bSucceeded, const FString& ErrorCode)
+void AMyBondageLifePlayerController::HandleContractActionFinished(bool bSucceeded, const FString& ErrorCode, int32 Action)
 {
 	if (ChatWidget)
 	{
-		const FString DisplayName = PendingAddFriendName.IsEmpty() ? TEXT("---") : PendingAddFriendName;
+		// Action: 1 request sent, 2 accepted, 3 dissolved, 4 declined.
+		if (Action == 1)
+		{
+			const FString DisplayName = PendingAddFriendName.IsEmpty() ? TEXT("---") : PendingAddFriendName;
 
-		if (bSucceeded)
+			if (bSucceeded)
+			{
+				ChatWidget->AddSystemMessage(FString::Printf(
+					TEXT("\u5DF2\u5411[%s]\u53D1\u8D77\u5951\u7EA6\u7533\u8BF7"), *DisplayName));
+			}
+			else if (ErrorCode == TEXT("TARGET_ALREADY_OWNED"))
+			{
+				ChatWidget->AddSystemMessage(FString::Printf(
+					TEXT("[%s]\u5DF2\u7ECF\u62E5\u6709\u4E3B\u4EBA"), *DisplayName));
+			}
+			else
+			{
+				ChatWidget->AddSystemMessage(TEXT("\u5951\u7EA6\u7533\u8BF7\u5931\u8D25"));
+			}
+		}
+		else if (Action == 2)
 		{
 			ChatWidget->AddSystemMessage(FString::Printf(
-				TEXT("\u5DF2\u5411[%s]\u53D1\u8D77\u5951\u7EA6\u7533\u8BF7"), *DisplayName));
+				TEXT("\u5DF2\u540C\u610F[%s]\u7684\u5951\u7EA6\u8BF7\u6C42"), *PendingRequesterName));   // 已同意[x]的契约请求
 		}
-		else if (ErrorCode == TEXT("TARGET_ALREADY_OWNED"))
+		else if (Action == 4)
 		{
 			ChatWidget->AddSystemMessage(FString::Printf(
-				TEXT("[%s]\u5DF2\u7ECF\u62E5\u6709\u4E3B\u4EBA"), *DisplayName));
+				TEXT("\u5DF2\u62D2\u7EDD[%s]\u7684\u5951\u7EA6\u8BF7\u6C42"), *PendingRequesterName));   // 已拒绝[x]的契约请求
 		}
-		else
+		else if (Action == 3 && bSucceeded)
 		{
-			ChatWidget->AddSystemMessage(TEXT("\u5951\u7EA6\u64CD\u4F5C\u5931\u8D25"));
+			ChatWidget->AddSystemMessage(TEXT("\u5DF2\u89E3\u9664\u4E3B\u5974\u5951\u7EA6"));              // 已解除主奴契约
 		}
 	}
 
@@ -1669,6 +1690,8 @@ void AMyBondageLifePlayerController::HandleContractActionFinished(bool bSucceede
 		}
 	}
 
+	PendingAddFriendName.Reset();
+
 	if (PlayerInfoWidget && IsPlayerInfoOpen())
 	{
 		PlayerInfoWidget->RefreshContents();
@@ -1677,6 +1700,9 @@ void AMyBondageLifePlayerController::HandleContractActionFinished(bool bSucceede
 
 void AMyBondageLifePlayerController::HandleContractRequestReceived(const FString& RequestId, const FString& RequesterCharacterName, bool bFormal)
 {
+	// Remember who asked: the answer message names them.
+	PendingRequesterName = RequesterCharacterName;
+
 	if (FriendListWidget)
 	{
 		FriendListWidget->ShowContractRequest(RequestId, RequesterCharacterName, bFormal);

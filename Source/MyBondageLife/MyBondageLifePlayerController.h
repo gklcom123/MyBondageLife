@@ -312,7 +312,7 @@ protected:
 
 	/** Result of a contract request / respond / dissolve call. */
 	UFUNCTION()
-	void HandleContractActionFinished(bool bSucceeded, const FString& ErrorCode);
+	void HandleContractActionFinished(bool bSucceeded, const FString& ErrorCode, int32 Action);
 
 	/** An incoming contract request arrived (polling). */
 	UFUNCTION()

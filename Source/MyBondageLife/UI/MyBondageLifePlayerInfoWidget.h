@@ -128,6 +128,14 @@ protected:
 	UFUNCTION()
 	void HandleContractClicked();
 
+	/** A public profile arrived: repaint if it belongs to the shown character. */
+	UFUNCTION()
+	void HandleUserProfileUpdated(const FString& Account);
+
+	/** The local contract state changed (accepted / dissolved). */
+	UFUNCTION()
+	void HandleContractsChanged();
+
 	/** Head icon used by the bottom entry (Content/2DAssest/UI/UI_HeadIcon). */
 	UPROPERTY(Transient)
 	TObjectPtr<UTexture2D> HeadIconTexture;

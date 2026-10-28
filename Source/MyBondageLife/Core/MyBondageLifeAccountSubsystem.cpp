@@ -489,18 +489,20 @@ void UMyBondageLifeAccountSubsystem::SendFriendApiRequest(
 	Request->SetURL(Url);
 	Request->SetVerb(Verb);
 	// Only announce a JSON body when one is actually sent: Fastify rejects a request
-	// that declares application/json but carries no payload (that broke DELETE).
-	Request->SetHeader(TEXT("Accept"), TEXT("application/json"));
+	// Fastify needs a JSON parser for every body-carrying verb: a DELETE without a
+	// body is rejected (415), so verbs other than GET always send "{}".
+	if (BodyString.IsEmpty() && !Verb.Equals(TEXT("GET"), ESearchCase::IgnoreCase))
+	{
+		BodyString = TEXT("{}");
+	}
+
 	if (!BodyString.IsEmpty())
 	{
 		Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+		Request->SetContentAsString(BodyString);
 	}
 	Request->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *Token));
 	Request->SetTimeout(AuthRequestTimeoutSeconds);
-	if (!BodyString.IsEmpty())
-	{
-		Request->SetContentAsString(BodyString);
-	}
 
 	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
 	Request->OnProcessRequestComplete().BindLambda(
@@ -943,7 +945,7 @@ void UMyBondageLifeAccountSubsystem::RequestContract(const FString& TargetAccoun
 			UE_LOG(LogMyBondageLife, Log, TEXT("Contract: request sent (%s%s)."),
 				bOk ? TEXT("ok") : TEXT("failed"), bOk ? TEXT("") : *FString::Printf(TEXT(", %s"), *ErrorCode));
 
-			Self->OnContractActionFinished.Broadcast(bOk, ErrorCode);
+			Self->OnContractActionFinished.Broadcast(bOk, ErrorCode, 1);
 
 			if (bOk)
 			{
@@ -980,7 +982,7 @@ void UMyBondageLifeAccountSubsystem::RespondToContractRequest(const FString& Req
 				bOk ? TEXT("ok") : TEXT("failed"),
 				bOk ? TEXT("") : *FString::Printf(TEXT(", %s"), *ErrorCode));
 
-			Self->OnContractActionFinished.Broadcast(bOk && bAccept, ErrorCode);
+			Self->OnContractActionFinished.Broadcast(bOk, ErrorCode, bAccept ? 2 : 4);
 
 			if (bOk)
 			{
@@ -1014,7 +1016,7 @@ void UMyBondageLifeAccountSubsystem::DissolveContract(const FString& ContractId)
 				bOk ? TEXT("ok") : TEXT("failed"),
 				bOk ? TEXT("") : *FString::Printf(TEXT(", %s"), *ErrorCode));
 
-			Self->OnContractActionFinished.Broadcast(bOk, ErrorCode);
+			Self->OnContractActionFinished.Broadcast(bOk, ErrorCode, 3);
 
 			if (bOk)
 			{
@@ -1111,4 +1113,80 @@ void UMyBondageLifeAccountSubsystem::MarkAccountOwned(const FString& InAccountNa
 bool UMyBondageLifeAccountSubsystem::IsAccountKnownOwned(const FString& InAccountName) const
 {
 	return KnownOwnedAccounts.Contains(InAccountName);
+}
+
+void UMyBondageLifeAccountSubsystem::RequestUserProfile(const FString& InAccountName)
+{
+	if (InAccountName.IsEmpty())
+	{
+		return;
+	}
+
+	// Small cache: the info panel is reopened often and the data changes rarely.
+	const double Now = FPlatformTime::Seconds();
+	if (const double* LastFetch = UserProfileFetchSeconds.Find(InAccountName))
+	{
+		if (Now - *LastFetch < 10.0 && UserProfiles.Contains(InAccountName))
+		{
+			OnUserProfileUpdated.Broadcast(InAccountName);
+			return;
+		}
+	}
+
+	const FString Path = FString::Printf(TEXT("/users/%s"), *InAccountName);
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+
+	SendFriendApiRequest(TEXT("GET"), Path, nullptr,
+		[WeakThis, InAccountName](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self || !bOk || !Json.IsValid())
+			{
+				return;
+			}
+
+			FMyBondageLifeUserProfile Profile;
+			Json->TryGetStringField(TEXT("account"), Profile.Account);
+			Json->TryGetStringField(TEXT("characterName"), Profile.CharacterName);
+
+			double ClassValue = 1.0;
+			if (Json->TryGetNumberField(TEXT("characterClass"), ClassValue))
+			{
+				Profile.CharacterClass = FMath::Clamp(static_cast<int32>(ClassValue), 1, 4);
+			}
+
+			Json->TryGetBoolField(TEXT("online"), Profile.bOnline);
+			Profile.CreatedAt = ParseIsoField(Json, TEXT("createdAt"));
+
+			const TSharedPtr<FJsonObject>* ContractObject = nullptr;
+			if (Json->TryGetObjectField(TEXT("contract"), ContractObject) && ContractObject && ContractObject->IsValid())
+			{
+				FString RoleText;
+				(*ContractObject)->TryGetStringField(TEXT("role"), RoleText);
+				Profile.bHasMaster = true;
+				Profile.bMasterIsFormal = RoleText == TEXT("slave");
+				Profile.ContractSince = ParseIsoField(*ContractObject, TEXT("since"));
+
+				const TSharedPtr<FJsonObject>* MasterObject = nullptr;
+				if ((*ContractObject)->TryGetObjectField(TEXT("master"), MasterObject) && MasterObject && MasterObject->IsValid())
+				{
+					(*MasterObject)->TryGetStringField(TEXT("account"), Profile.MasterAccount);
+					(*MasterObject)->TryGetStringField(TEXT("characterName"), Profile.MasterCharacterName);
+				}
+			}
+
+			Self->UserProfiles.Add(InAccountName, Profile);
+			Self->UserProfileFetchSeconds.Add(InAccountName, FPlatformTime::Seconds());
+			Self->OnUserProfileUpdated.Broadcast(InAccountName);
+		});
+}
+
+bool UMyBondageLifeAccountSubsystem::GetUserProfile(const FString& InAccountName, FMyBondageLifeUserProfile& OutProfile) const
+{
+	if (const FMyBondageLifeUserProfile* Found = UserProfiles.Find(InAccountName))
+	{
+		OutProfile = *Found;
+		return true;
+	}
+	return false;
 }
