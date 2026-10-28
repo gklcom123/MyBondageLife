@@ -611,8 +611,14 @@ void UMyBondageLifePlayerInfoWidget::RefreshContractSection()
 
 	if (ContractStatusLine)
 	{
+		if (StatusText.IsEmpty())
+		{
+			// The row is always shown: without a master it says so instead of hiding.
+			StatusText = TEXT("\u672A\u62E5\u6709\u4E3B\u4EBA\u6216\u81EA\u5DF1\u662F\u652F\u914D\u8005");   // 未拥有主人或自己是支配者
+		}
+
 		ContractStatusLine->SetText(FText::FromString(StatusText));
-		ContractStatusLine->SetVisibility(StatusText.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+		ContractStatusLine->SetVisibility(ESlateVisibility::Visible);
 	}
 
 	// ------------------------------------------------------------ the button
