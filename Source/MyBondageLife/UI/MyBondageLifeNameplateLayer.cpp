@@ -6,6 +6,9 @@
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/TextBlock.h"
+#include "Engine/GameInstance.h"
+#include "GameFramework/PlayerState.h"
+#include "Core/MyBondageLifeAccountSubsystem.h"
 #include "EngineUtils.h"
 #include "HAL/PlatformTime.h"
 #include "GameFramework/PlayerController.h"
@@ -122,13 +125,35 @@ void UMyBondageLifeNameplateLayer::UpdateNameplates()
 
 		AliveCharacters.Add(Character);
 
-		// Text: only rewritten when it actually changed.
-		const FString Text = Character->GetNameplateText();
+		// Text: a contract partner gets a coloured [奴隶] / [主人] prefix, and the
+		// prefix is only shown to the two players involved.
+		FString Prefix;
+		FLinearColor PrefixColor(1.0f, 1.0f, 1.0f);
+		if (const UMyBondageLifeAccountSubsystem* Account = GetAccountSubsystem())
+		{
+			const APlayerState* CharacterState = Character->GetPlayerState();
+			const FString CharacterAccount = CharacterState ? CharacterState->GetPlayerName() : FString();
+			const EMyBondageLifeContractRole Role = Account->GetContractRoleWith(CharacterAccount);
+
+			if (Role == EMyBondageLifeContractRole::TemporaryMaster || Role == EMyBondageLifeContractRole::Master)
+			{
+				Prefix = TEXT("[\u5974\u96B6] ");   // [奴隶]，紫色
+				PrefixColor = FLinearColor(0.72f, 0.42f, 1.0f);
+			}
+			else if (Role == EMyBondageLifeContractRole::TemporarySlave || Role == EMyBondageLifeContractRole::Slave)
+			{
+				Prefix = TEXT("[\u4E3B\u4EBA] ");   // [主人]，红色
+				PrefixColor = FLinearColor(1.0f, 0.28f, 0.28f);
+			}
+		}
+
+		const FString Text = Prefix + Character->GetNameplateText();
 		FString& CachedText = LabelTexts.FindOrAdd(Character);
 		if (CachedText != Text)
 		{
 			CachedText = Text;
 			Label->SetText(FText::FromString(Text));
+			Label->SetColorAndOpacity(FSlateColor(Prefix.IsEmpty() ? FLinearColor::White : PrefixColor));
 		}
 
 		// Position: straight from the world-to-screen projection of the head, so it
@@ -180,4 +205,11 @@ void UMyBondageLifeNameplateLayer::UpdateNameplates()
 		Labels.Remove(StaleCharacter);
 		LabelTexts.Remove(StaleCharacter);
 	}
+}
+
+UMyBondageLifeAccountSubsystem* UMyBondageLifeNameplateLayer::GetAccountSubsystem() const
+{
+	const APlayerController* OwningController = GetOwningPlayer();
+	const UGameInstance* GameInstance = OwningController ? OwningController->GetGameInstance() : nullptr;
+	return GameInstance ? GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
 }

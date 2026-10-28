@@ -14,6 +14,82 @@
 
 namespace
 {
+	/** Maps the service role string to the enum used by the UI. */
+	EMyBondageLifeContractRole ParseContractRole(const FString& RoleText)
+	{
+		if (RoleText == TEXT("temporary_master")) { return EMyBondageLifeContractRole::TemporaryMaster; }
+		if (RoleText == TEXT("temporary_slave")) { return EMyBondageLifeContractRole::TemporarySlave; }
+		if (RoleText == TEXT("master")) { return EMyBondageLifeContractRole::Master; }
+		if (RoleText == TEXT("slave")) { return EMyBondageLifeContractRole::Slave; }
+		return EMyBondageLifeContractRole::None;
+	}
+
+	/** Reads an ISO-8601 timestamp field; a null time when absent. */
+	FDateTime ParseIsoField(const TSharedPtr<FJsonObject>& Object, const TCHAR* Field)
+	{
+		FString Text;
+		FDateTime Value;
+		if (Object.IsValid() && Object->TryGetStringField(Field, Text) && FDateTime::ParseIso8601(*Text, Value))
+		{
+			return Value;
+		}
+		return FDateTime();
+	}
+
+	/** Reads one entry of /contracts/me (asSlave object or one asMaster item). */
+	FMyBondageLifeContractInfo ParseContractEntry(const TSharedPtr<FJsonObject>& Object, bool bAsMaster)
+	{
+		FMyBondageLifeContractInfo Info;
+		if (!Object.IsValid())
+		{
+			return Info;
+		}
+
+		Object->TryGetStringField(TEXT("contractId"), Info.ContractId);
+
+		FString StatusText;
+		Object->TryGetStringField(TEXT("status"), StatusText);
+		const bool bFormal = StatusText == TEXT("formal");
+
+		const TSharedPtr<FJsonObject>* PeerObject = nullptr;
+		if (Object->TryGetObjectField(bAsMaster ? TEXT("slave") : TEXT("master"), PeerObject) && PeerObject && PeerObject->IsValid())
+		{
+			(*PeerObject)->TryGetStringField(TEXT("account"), Info.PeerAccount);
+			(*PeerObject)->TryGetStringField(TEXT("characterName"), Info.PeerCharacterName);
+
+			double ClassValue = 1.0;
+			if ((*PeerObject)->TryGetNumberField(TEXT("characterClass"), ClassValue))
+			{
+				Info.PeerClass = FMath::Clamp(static_cast<int32>(ClassValue), 1, 4);
+			}
+		}
+
+		Info.Role = bFormal
+			? (bAsMaster ? EMyBondageLifeContractRole::Master : EMyBondageLifeContractRole::Slave)
+			: (bAsMaster ? EMyBondageLifeContractRole::TemporaryMaster : EMyBondageLifeContractRole::TemporarySlave);
+
+		const FDateTime TrialStartedAt = ParseIsoField(Object, TEXT("trialStartedAt"));
+		const FDateTime FormalStartedAt = ParseIsoField(Object, TEXT("formalStartedAt"));
+		Info.Since = bFormal ? FormalStartedAt : TrialStartedAt;
+		Info.TrialEndsAt = ParseIsoField(Object, TEXT("trialEndsAt"));
+
+		return Info;
+	}
+
+	/** Extracts the error code of a failed backend call. */
+	FString ContractErrorCode(const TSharedPtr<FJsonObject>& Json)
+	{
+		FString Code;
+		if (Json.IsValid())
+		{
+			const TSharedPtr<FJsonObject>* ErrorObject = nullptr;
+			if (Json->TryGetObjectField(TEXT("error"), ErrorObject) && ErrorObject && ErrorObject->IsValid())
+			{
+				(*ErrorObject)->TryGetStringField(TEXT("code"), Code);
+			}
+		}
+		return Code;
+	}
 	/** Request timeout; a slower answer is reported as "server not responding". */
 	constexpr float AuthRequestTimeoutSeconds = 8.0f;
 }
@@ -202,6 +278,8 @@ bool UMyBondageLifeAccountSubsystem::ApplyAuthPayload(const TSharedPtr<FJsonObje
 	StartFriendPolling();
 
 	RefreshFriendsFromServer();
+
+	RefreshContractState();
 	return true;
 }
 
@@ -520,7 +598,19 @@ void UMyBondageLifeAccountSubsystem::RefreshFriendsFromServer()
 					Entry.CharacterClass = FMath::Clamp(static_cast<int32>(ClassValue), 1, 4);
 				}
 
-				Item->TryGetBoolField(TEXT("online"), Entry.bOnline);
+								Item->TryGetBoolField(TEXT("online"), Entry.bOnline);
+
+				// Optional contract block: role is relative to the signed-in player.
+				const TSharedPtr<FJsonObject>* ContractObject = nullptr;
+				if (Item->TryGetObjectField(TEXT("contract"), ContractObject) && ContractObject && ContractObject->IsValid())
+				{
+					FString RoleText;
+					(*ContractObject)->TryGetStringField(TEXT("role"), RoleText);
+					Entry.ContractRole = ParseContractRole(RoleText);
+					(*ContractObject)->TryGetStringField(TEXT("contractId"), Entry.ContractId);
+					Entry.ContractSince = ParseIsoField(*ContractObject, TEXT("since"));
+					Entry.ContractTrialEndsAt = ParseIsoField(*ContractObject, TEXT("trialEndsAt"));
+				}
 
 				if (!Entry.AccountName.IsEmpty())
 				{
@@ -697,6 +787,13 @@ void UMyBondageLifeAccountSubsystem::StartFriendPolling()
 			{
 				LastRequestPollSeconds = Now;
 				PollFriendRequests();
+				PollContractRequests();
+
+			if (Now - LastContractRefreshSeconds >= 20.0)
+			{
+				LastContractRefreshSeconds = Now;
+				RefreshContractState();
+			}
 			}
 
 			if (Now - LastFriendsRefreshSeconds >= 10.0)
@@ -768,4 +865,245 @@ void UMyBondageLifeAccountSubsystem::RequestUpdateHeight(float NewHeightScale)
 
 			UE_LOG(LogMyBondageLife, Log, TEXT("Height: stored %.2f."), Self->HeightScale);
 		});
+}
+
+// ---------------------------------------------------------------------------
+// Contracts (REST: /contracts/me, /contracts/requests, /contracts/{id})
+// ---------------------------------------------------------------------------
+
+void UMyBondageLifeAccountSubsystem::RefreshContractState()
+{
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+
+	SendFriendApiRequest(TEXT("GET"), TEXT("/contracts/me"), nullptr,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self || !bOk || !Json.IsValid())
+			{
+				return;
+			}
+
+			Self->bHasMaster = false;
+			Self->ContractAsSlave = FMyBondageLifeContractInfo();
+			Self->ContractsAsMaster.Reset();
+
+			const TSharedPtr<FJsonObject>* SlaveObject = nullptr;
+			if (Json->TryGetObjectField(TEXT("asSlave"), SlaveObject) && SlaveObject && SlaveObject->IsValid())
+			{
+				Self->ContractAsSlave = ParseContractEntry(*SlaveObject, false);
+				Self->bHasMaster = !Self->ContractAsSlave.ContractId.IsEmpty();
+			}
+
+			const TArray<TSharedPtr<FJsonValue>>* MasterArray = nullptr;
+			if (Json->TryGetArrayField(TEXT("asMaster"), MasterArray) && MasterArray)
+			{
+				for (const TSharedPtr<FJsonValue>& Value : *MasterArray)
+				{
+					const TSharedPtr<FJsonObject> Item = Value.IsValid() ? Value->AsObject() : nullptr;
+					if (Item.IsValid())
+					{
+						Self->ContractsAsMaster.Add(ParseContractEntry(Item, true));
+					}
+				}
+			}
+
+			Self->OnContractsChanged.Broadcast();
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::RequestContract(const FString& TargetAccount, bool bFormal)
+{
+	if (TargetAccount.IsEmpty())
+	{
+		return;
+	}
+
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("account"), TargetAccount);
+	Body->SetStringField(TEXT("kind"), bFormal ? TEXT("formal") : TEXT("trial"));
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+
+	SendFriendApiRequest(TEXT("POST"), TEXT("/contracts/requests"), Body,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self)
+			{
+				return;
+			}
+
+			const FString ErrorCode = bOk ? FString() : ContractErrorCode(Json);
+			UE_LOG(LogMyBondageLife, Log, TEXT("Contract: request sent (%s%s)."),
+				bOk ? TEXT("ok") : TEXT("failed"), bOk ? TEXT("") : *FString::Printf(TEXT(", %s"), *ErrorCode));
+
+			Self->OnContractActionFinished.Broadcast(bOk, ErrorCode);
+
+			if (bOk)
+			{
+				Self->RefreshContractState();
+			}
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::RespondToContractRequest(const FString& RequestId, bool bAccept)
+{
+	if (RequestId.IsEmpty())
+	{
+		return;
+	}
+
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetBoolField(TEXT("accept"), bAccept);
+
+	const FString Path = FString::Printf(TEXT("/contracts/requests/%s/respond"), *RequestId);
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+
+	SendFriendApiRequest(TEXT("POST"), Path, Body,
+		[WeakThis, bAccept](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self)
+			{
+				return;
+			}
+
+			const FString ErrorCode = bOk ? FString() : ContractErrorCode(Json);
+			UE_LOG(LogMyBondageLife, Log, TEXT("Contract: respond %s (%s%s)."),
+				bAccept ? TEXT("accept") : TEXT("decline"),
+				bOk ? TEXT("ok") : TEXT("failed"),
+				bOk ? TEXT("") : *FString::Printf(TEXT(", %s"), *ErrorCode));
+
+			Self->OnContractActionFinished.Broadcast(bOk && bAccept, ErrorCode);
+
+			if (bOk)
+			{
+				Self->RefreshContractState();
+				Self->RefreshFriendsFromServer();
+			}
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::DissolveContract(const FString& ContractId)
+{
+	if (ContractId.IsEmpty())
+	{
+		return;
+	}
+
+	const FString Path = FString::Printf(TEXT("/contracts/%s"), *ContractId);
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+
+	SendFriendApiRequest(TEXT("DELETE"), Path, nullptr,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self)
+			{
+				return;
+			}
+
+			const FString ErrorCode = bOk ? FString() : ContractErrorCode(Json);
+			UE_LOG(LogMyBondageLife, Log, TEXT("Contract: dissolve (%s%s)."),
+				bOk ? TEXT("ok") : TEXT("failed"),
+				bOk ? TEXT("") : *FString::Printf(TEXT(", %s"), *ErrorCode));
+
+			Self->OnContractActionFinished.Broadcast(bOk, ErrorCode);
+
+			if (bOk)
+			{
+				Self->RefreshContractState();
+				Self->RefreshFriendsFromServer();
+			}
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::PollContractRequests()
+{
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+
+	SendFriendApiRequest(TEXT("GET"), TEXT("/contracts/requests?direction=incoming&status=pending"), nullptr,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self || !bOk || !Json.IsValid())
+			{
+				return;
+			}
+
+			const TArray<TSharedPtr<FJsonValue>>* Requests = nullptr;
+			if (!Json->TryGetArrayField(TEXT("requests"), Requests) || !Requests)
+			{
+				return;
+			}
+
+			for (const TSharedPtr<FJsonValue>& Value : *Requests)
+			{
+				const TSharedPtr<FJsonObject> Item = Value.IsValid() ? Value->AsObject() : nullptr;
+				if (!Item.IsValid())
+				{
+					continue;
+				}
+
+				FString RequestId;
+				Item->TryGetStringField(TEXT("requestId"), RequestId);
+				if (RequestId.IsEmpty() || Self->SeenContractRequestIds.Contains(RequestId))
+				{
+					continue;
+				}
+
+				FString KindText;
+				Item->TryGetStringField(TEXT("kind"), KindText);
+
+				FString FromName = TEXT("---");
+				const TSharedPtr<FJsonObject>* FromObject = nullptr;
+				if (Item->TryGetObjectField(TEXT("from"), FromObject) && FromObject && FromObject->IsValid())
+				{
+					(*FromObject)->TryGetStringField(TEXT("characterName"), FromName);
+				}
+
+				Self->SeenContractRequestIds.Add(RequestId);
+				Self->OnContractRequestReceived.Broadcast(RequestId, FromName, KindText == TEXT("formal"));
+			}
+		});
+}
+
+EMyBondageLifeContractRole UMyBondageLifeAccountSubsystem::GetContractRoleWith(const FString& InAccountName) const
+{
+	for (const FMyBondageLifeFriendEntry& Entry : Friends)
+	{
+		if (Entry.AccountName == InAccountName)
+		{
+			return Entry.ContractRole;
+		}
+	}
+
+	return EMyBondageLifeContractRole::None;
+}
+
+bool UMyBondageLifeAccountSubsystem::GetFriendEntry(const FString& InAccountName, FMyBondageLifeFriendEntry& OutEntry) const
+{
+	for (const FMyBondageLifeFriendEntry& Entry : Friends)
+	{
+		if (Entry.AccountName == InAccountName)
+		{
+			OutEntry = Entry;
+			return true;
+		}
+	}
+	return false;
+}
+
+void UMyBondageLifeAccountSubsystem::MarkAccountOwned(const FString& InAccountName)
+{
+	if (!InAccountName.IsEmpty() && !KnownOwnedAccounts.Contains(InAccountName))
+	{
+		KnownOwnedAccounts.Add(InAccountName);
+	}
+}
+
+bool UMyBondageLifeAccountSubsystem::IsAccountKnownOwned(const FString& InAccountName) const
+{
+	return KnownOwnedAccounts.Contains(InAccountName);
 }

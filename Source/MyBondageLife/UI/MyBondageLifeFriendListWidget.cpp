@@ -33,12 +33,14 @@ namespace
 	constexpr float FriendCloseButtonSize = 52.0f;
 	constexpr float FriendRowHeight = 56.0f;
 
-	constexpr float FriendNameColumnWidth = 520.0f;
-	constexpr float FriendClassColumnWidth = 360.0f;
-	constexpr float FriendStatusColumnWidth = 200.0f;
+	constexpr float FriendNameColumnWidth = 400.0f;
+	constexpr float FriendContractColumnWidth = 320.0f;
+	constexpr float FriendClassColumnWidth = 300.0f;
+	constexpr float FriendStatusColumnWidth = 180.0f;
 
 	/** Row box size and inner text placement (canvas units). */
-	constexpr float FriendRowWidth = 16.0f + FriendNameColumnWidth + FriendClassColumnWidth + FriendStatusColumnWidth;
+	constexpr float FriendRowWidth =
+		32.0f + FriendNameColumnWidth + FriendClassColumnWidth + FriendContractColumnWidth + FriendStatusColumnWidth;
 	constexpr float FriendRowTextOffsetY = 12.0f;
 	constexpr float FriendRowTextHeight = 34.0f;
 	constexpr float FriendRowPaddingX = 16.0f;
@@ -80,6 +82,7 @@ TSharedRef<SWidget> UMyBondageLifeFriendListWidget::RebuildWidget()
 	if (WidgetTree && !WidgetTree->RootWidget)
 	{
 		BuildLayout();
+		BuildDialogs();
 	}
 
 	return Super::RebuildWidget();
@@ -239,6 +242,7 @@ void UMyBondageLifeFriendListWidget::BuildLayout()
 	// 角色名 / 角色类别 / 状态
 	AddHeaderCell(TEXT("\u89D2\u8272\u540D"), FriendNameColumnWidth);
 	AddHeaderCell(TEXT("\u89D2\u8272\u7C7B\u522B"), FriendClassColumnWidth);
+	AddHeaderCell(TEXT("\u4E3B\u5974\u5173\u7CFB"), FriendContractColumnWidth);
 	AddHeaderCell(TEXT("\u72B6\u6001"), 200.0f);
 
 	// Scrollable list
@@ -408,6 +412,7 @@ void UMyBondageLifeFriendListWidget::RefreshFriends()
 	}
 
 	FriendListBox->ClearChildren();
+	RowProxies.Reset();
 
 	const UGameInstance* GameInstance = GetGameInstance();
 	const UMyBondageLifeAccountSubsystem* Account = GameInstance
@@ -430,7 +435,13 @@ void UMyBondageLifeFriendListWidget::RefreshFriends()
 
 		// Clickable on purpose; per-friend actions come with the backend.
 		UButton* RowButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
-		RowButton->OnClicked.AddDynamic(this, &UMyBondageLifeFriendListWidget::HandleFriendRowClicked);
+		UMyBondageLifeFriendRowProxy* RowProxy = NewObject<UMyBondageLifeFriendRowProxy>(this);
+		RowProxy->Owner = this;
+		RowProxy->Account = Friend.AccountName;
+		RowProxy->ContractId = Friend.ContractId;
+		RowProxy->Role = Friend.ContractRole;
+		RowProxies.Add(RowProxy);
+		RowButton->OnClicked.AddDynamic(RowProxy, &UMyBondageLifeFriendRowProxy::HandleClicked);
 		RowSize->AddChild(RowButton);
 
 		UBorder* RowBackground = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
@@ -469,6 +480,12 @@ void UMyBondageLifeFriendListWidget::RefreshFriends()
 		AddCell(FriendRowPaddingX + FriendNameColumnWidth,
 			UMyBondageLifeAccountSubsystem::MakeCharacterClassLabel(Friend.CharacterClass), TextColor);
 		AddCell(FriendRowPaddingX + FriendNameColumnWidth + FriendClassColumnWidth,
+			GetContractRoleText(Friend.ContractRole),
+			Friend.ContractRole == EMyBondageLifeContractRole::None
+				? FLinearColor(0.35f, 0.35f, 0.38f)
+				: FLinearColor(0.45f, 0.2f, 0.6f));
+
+		AddCell(FriendRowPaddingX + FriendNameColumnWidth + FriendClassColumnWidth + FriendContractColumnWidth,
 			Friend.bOnline ? FriendOnlineText : FriendOfflineText,
 			Friend.bOnline ? FLinearColor(0.10f, 0.55f, 0.15f) : FLinearColor(0.5f, 0.5f, 0.5f));
 
@@ -521,7 +538,10 @@ void UMyBondageLifeFriendListWidget::ShowFriendRequest(const FString& RequestId,
 		TEXT("[%s]\u8BF7\u6C42\u6DFB\u52A0\u4E3A\u597D\u53CB\uFF0C\u662F\u5426\u540C\u610F\uFF1F"),
 		*RequesterCharacterName)));
 
+	bRequestDialogIsContract = false;
+	RequestText->SetWrapTextAt(0.0f);
 	RequestBackdrop->SetVisibility(ESlateVisibility::Visible);
+	UpdateModalState();
 }
 
 bool UMyBondageLifeFriendListWidget::IsRequestDialogOpen() const
@@ -556,7 +576,20 @@ void UMyBondageLifeFriendListWidget::HandleAcceptClicked()
 	}
 
 	RequestBackdrop->SetVisibility(ESlateVisibility::Collapsed);
-	OnRequestAnswered.Broadcast(true);
+
+	if (bRequestDialogIsContract)
+	{
+		const FString RequestId = PendingContractRequestId;
+		bRequestDialogIsContract = false;
+		PendingContractRequestId.Empty();
+		OnContractRequestAnswered.Broadcast(RequestId, true);
+	}
+	else
+	{
+		OnRequestAnswered.Broadcast(true);
+	}
+
+	UpdateModalState();
 }
 
 void UMyBondageLifeFriendListWidget::HandleDeclineClicked()
@@ -567,7 +600,20 @@ void UMyBondageLifeFriendListWidget::HandleDeclineClicked()
 	}
 
 	RequestBackdrop->SetVisibility(ESlateVisibility::Collapsed);
-	OnRequestAnswered.Broadcast(false);
+
+	if (bRequestDialogIsContract)
+	{
+		const FString RequestId = PendingContractRequestId;
+		bRequestDialogIsContract = false;
+		PendingContractRequestId.Empty();
+		OnContractRequestAnswered.Broadcast(RequestId, false);
+	}
+	else
+	{
+		OnRequestAnswered.Broadcast(false);
+	}
+
+	UpdateModalState();
 }
 
 void UMyBondageLifeFriendListWidget::HandleFriendsChanged()
@@ -575,5 +621,369 @@ void UMyBondageLifeFriendListWidget::HandleFriendsChanged()
 	if (IsPanelOpen())
 	{
 		RefreshFriends();
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Friend action menu, confirmation dialog, contract request dialog
+// ---------------------------------------------------------------------------
+
+FString UMyBondageLifeFriendListWidget::GetContractRoleText(EMyBondageLifeContractRole Role)
+{
+	switch (Role)
+	{
+	case EMyBondageLifeContractRole::TemporaryMaster: return TEXT("\u4E34\u65F6\u5974\u96B6");   // 临时奴隶
+	case EMyBondageLifeContractRole::TemporarySlave:  return TEXT("\u4E34\u65F6\u4E3B\u4EBA");   // 临时主人
+	case EMyBondageLifeContractRole::Master:          return TEXT("\u5974\u96B6");               // 奴隶
+	case EMyBondageLifeContractRole::Slave:           return TEXT("\u4E3B\u4EBA");               // 主人
+	default:                                          return TEXT("\u597D\u53CB");               // 好友
+	}
+}
+
+void UMyBondageLifeFriendListWidget::UpdateModalState()
+{
+	const bool bMenuOpen = MenuBackdrop && MenuBackdrop->GetVisibility() == ESlateVisibility::Visible;
+	const bool bConfirmOpen = ConfirmBackdrop && ConfirmBackdrop->GetVisibility() == ESlateVisibility::Visible;
+	const bool bRequestOpen = IsRequestDialogOpen();
+
+	OnModalChanged.Broadcast(bMenuOpen || bConfirmOpen || bRequestOpen);
+}
+
+void UMyBondageLifeFriendListWidget::BuildDialogs()
+{
+	// ------------------------------------------------------- friend action menu
+	MenuBackdrop = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("FriendMenuBackdrop"));
+	MenuBackdrop->SetBrushColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.55f));
+	MenuBackdrop->SetHorizontalAlignment(HAlign_Center);
+	MenuBackdrop->SetVerticalAlignment(VAlign_Center);
+	if (UCanvasPanelSlot* MenuSlot = RootCanvas->AddChildToCanvas(MenuBackdrop))
+	{
+		MenuSlot->SetAnchors(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
+		MenuSlot->SetOffsets(FMargin(0.0f));
+		MenuSlot->SetZOrder(50);
+	}
+	MenuBackdrop->SetVisibility(ESlateVisibility::Collapsed);
+
+	UBorder* MenuBox = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("FriendMenuBox"));
+	MenuBox->SetBrushColor(FLinearColor(1.0f, 1.0f, 1.0f, 1.0f));
+	MenuBox->SetPadding(FMargin(32.0f, 26.0f));
+	MenuBackdrop->AddChild(MenuBox);
+
+	UVerticalBox* MenuColumn = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("FriendMenuColumn"));
+	MenuBox->AddChild(MenuColumn);
+
+	MenuTitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("FriendMenuTitle"));
+	MenuTitle->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
+	MenuTitle->SetJustification(ETextJustify::Center);
+	{
+		FSlateFontInfo TitleFont = MenuTitle->GetFont();
+		TitleFont.Size = 26;
+		MenuTitle->SetFont(TitleFont);
+	}
+	if (UVerticalBoxSlot* TitleSlot = MenuColumn->AddChildToVerticalBox(MenuTitle))
+	{
+		TitleSlot->SetHorizontalAlignment(HAlign_Center);
+		TitleSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 18.0f));
+	}
+
+	auto AddMenuButton = [this, MenuColumn](const TCHAR* LabelText, bool bPrimary)
+	{
+		USizeBox* Size = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		Size->SetWidthOverride(340.0f);
+		Size->SetHeightOverride(56.0f);
+		if (UVerticalBoxSlot* SizeSlot = MenuColumn->AddChildToVerticalBox(Size))
+		{
+			SizeSlot->SetHorizontalAlignment(HAlign_Center);
+			SizeSlot->SetPadding(FMargin(0.0f, 5.0f));
+		}
+
+		UButton* Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
+		Size->AddChild(Button);
+
+		UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		Label->SetText(FText::FromString(LabelText));
+		Label->SetJustification(ETextJustify::Center);
+		Label->SetColorAndOpacity(FSlateColor(bPrimary
+			? FLinearColor(0.02f, 0.02f, 0.02f)
+			: FLinearColor(0.55f, 0.55f, 0.58f)));
+		{
+			FSlateFontInfo LabelFont = Label->GetFont();
+			LabelFont.Size = 22;
+			Label->SetFont(LabelFont);
+		}
+		Button->AddChild(Label);
+
+		return Button;
+	};
+
+	// "发送私聊" is not implemented yet: shown but disabled.
+	UButton* ChatButton = AddMenuButton(TEXT("\u53D1\u9001\u79C1\u804A"), false);
+	ChatButton->SetIsEnabled(false);
+
+	MenuDissolveButton = AddMenuButton(TEXT("\u89E3\u9664\u5173\u7CFB"), true);
+	MenuDissolveButton->OnClicked.AddDynamic(this, &UMyBondageLifeFriendListWidget::HandleMenuDissolveClicked);
+	MenuDissolveLabel = Cast<UTextBlock>(MenuDissolveButton->GetChildAt(0));
+
+	UButton* DeleteButton = AddMenuButton(TEXT("\u5220\u9664\u597D\u53CB"), true);
+	DeleteButton->OnClicked.AddDynamic(this, &UMyBondageLifeFriendListWidget::HandleMenuDeleteClicked);
+
+	UButton* CancelButton = AddMenuButton(TEXT("\u53D6\u6D88"), true);
+	CancelButton->OnClicked.AddDynamic(this, &UMyBondageLifeFriendListWidget::HandleMenuCancelClicked);
+
+	// --------------------------------------------------------- confirm dialog
+	ConfirmBackdrop = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("FriendConfirmBackdrop"));
+	ConfirmBackdrop->SetBrushColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.55f));
+	ConfirmBackdrop->SetHorizontalAlignment(HAlign_Center);
+	ConfirmBackdrop->SetVerticalAlignment(VAlign_Center);
+	if (UCanvasPanelSlot* ConfirmSlot = RootCanvas->AddChildToCanvas(ConfirmBackdrop))
+	{
+		ConfirmSlot->SetAnchors(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
+		ConfirmSlot->SetOffsets(FMargin(0.0f));
+		ConfirmSlot->SetZOrder(60);
+	}
+	ConfirmBackdrop->SetVisibility(ESlateVisibility::Collapsed);
+
+	UBorder* ConfirmBox = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("FriendConfirmBox"));
+	ConfirmBox->SetBrushColor(FLinearColor(1.0f, 1.0f, 1.0f, 1.0f));
+	ConfirmBox->SetPadding(FMargin(40.0f, 32.0f));
+	ConfirmBackdrop->AddChild(ConfirmBox);
+
+	UVerticalBox* ConfirmColumn = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("FriendConfirmColumn"));
+	ConfirmBox->AddChild(ConfirmColumn);
+
+	ConfirmText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("FriendConfirmText"));
+	ConfirmText->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
+	ConfirmText->SetJustification(ETextJustify::Center);
+	ConfirmText->SetAutoWrapText(true);
+	ConfirmText->SetWrapTextAt(760.0f);
+	{
+		FSlateFontInfo ConfirmFont = ConfirmText->GetFont();
+		ConfirmFont.Size = 26;
+		ConfirmText->SetFont(ConfirmFont);
+	}
+	if (UVerticalBoxSlot* ConfirmTextSlot = ConfirmColumn->AddChildToVerticalBox(ConfirmText))
+	{
+		ConfirmTextSlot->SetHorizontalAlignment(HAlign_Center);
+		ConfirmTextSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 26.0f));
+	}
+
+	UHorizontalBox* ConfirmButtons = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	if (UVerticalBoxSlot* ConfirmRowSlot = ConfirmColumn->AddChildToVerticalBox(ConfirmButtons))
+	{
+		ConfirmRowSlot->SetHorizontalAlignment(HAlign_Center);
+	}
+
+	auto AddConfirmButton = [this, ConfirmButtons](const TCHAR* LabelText)
+	{
+		USizeBox* Size = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		Size->SetWidthOverride(160.0f);
+		Size->SetHeightOverride(56.0f);
+		if (UHorizontalBoxSlot* SizeSlot = ConfirmButtons->AddChildToHorizontalBox(Size))
+		{
+			SizeSlot->SetPadding(FMargin(12.0f, 0.0f));
+		}
+
+		UButton* Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
+		Size->AddChild(Button);
+
+		UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		Label->SetText(FText::FromString(LabelText));
+		Label->SetJustification(ETextJustify::Center);
+		Label->SetColorAndOpacity(FSlateColor(FLinearColor(0.02f, 0.02f, 0.02f)));
+		{
+			FSlateFontInfo LabelFont = Label->GetFont();
+			LabelFont.Size = 22;
+			Label->SetFont(LabelFont);
+		}
+		Button->AddChild(Label);
+
+		return Button;
+	};
+
+	AddConfirmButton(TEXT("\u662F"))->OnClicked.AddDynamic(this, &UMyBondageLifeFriendListWidget::HandleConfirmYesClicked);
+	AddConfirmButton(TEXT("\u5426"))->OnClicked.AddDynamic(this, &UMyBondageLifeFriendListWidget::HandleConfirmNoClicked);
+}
+
+void UMyBondageLifeFriendListWidget::OpenFriendMenu(const FString& InAccountName, const FString& InContractId, EMyBondageLifeContractRole InRole)
+{
+	if (!MenuBackdrop)
+	{
+		return;
+	}
+
+	SelectedFriendAccount = InAccountName;
+	SelectedFriendContractId = InContractId;
+	SelectedFriendRole = InRole;
+
+	FString DisplayName = InAccountName;
+	if (const UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (const UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
+		{
+			FMyBondageLifeFriendEntry Entry;
+			if (Account->GetFriendEntry(InAccountName, Entry) && !Entry.CharacterName.IsEmpty())
+			{
+				DisplayName = Entry.CharacterName;
+			}
+		}
+	}
+
+	if (MenuTitle)
+	{
+		MenuTitle->SetText(FText::FromString(DisplayName));
+	}
+
+	// A formal contract can only be dissolved by the master.
+	const bool bHasContract = InRole != EMyBondageLifeContractRole::None;
+	const bool bCanDissolve = bHasContract
+		&& InRole != EMyBondageLifeContractRole::Slave;
+
+	if (MenuDissolveButton)
+	{
+		MenuDissolveButton->SetIsEnabled(bCanDissolve);
+	}
+	if (MenuDissolveLabel)
+	{
+		MenuDissolveLabel->SetColorAndOpacity(FSlateColor(bCanDissolve
+			? FLinearColor(0.02f, 0.02f, 0.02f)
+			: FLinearColor(0.62f, 0.62f, 0.65f)));
+	}
+
+	MenuBackdrop->SetVisibility(ESlateVisibility::Visible);
+	UpdateModalState();
+}
+
+void UMyBondageLifeFriendListWidget::HandleMenuChatClicked()
+{
+	// Private chat is not implemented yet.
+}
+
+void UMyBondageLifeFriendListWidget::HandleMenuDissolveClicked()
+{
+	if (!ConfirmBackdrop || !ConfirmText)
+	{
+		return;
+	}
+
+	PendingConfirmAction = 1;
+	const bool bTrial = SelectedFriendRole == EMyBondageLifeContractRole::TemporaryMaster
+		|| SelectedFriendRole == EMyBondageLifeContractRole::TemporarySlave;
+
+	ConfirmText->SetText(FText::FromString(bTrial
+		? TEXT("\u662F\u5426\u786E\u8BA4\u89E3\u9664\u53CC\u65B9\u7684\u4E34\u65F6\u4E3B\u5974\u5951\u7EA6")   // 是否确认解除双方的临时主奴契约
+		: TEXT("\u662F\u5426\u786E\u8BA4\u89E3\u9664\u53CC\u65B9\u7684\u4E3B\u5974\u5951\u7EA6")));        // 是否确认解除双方的主奴契约
+
+	ConfirmBackdrop->SetVisibility(ESlateVisibility::Visible);
+	UpdateModalState();
+}
+
+void UMyBondageLifeFriendListWidget::HandleMenuDeleteClicked()
+{
+	if (!ConfirmBackdrop || !ConfirmText)
+	{
+		return;
+	}
+
+	PendingConfirmAction = 2;
+	ConfirmText->SetText(FText::FromString(FString::Printf(
+		TEXT("\u662F\u5426\u786E\u8BA4\u5220\u9664\u597D\u53CB[%s]\uFF1F\u53CC\u65B9\u7684\u4E3B\u5974\u5951\u7EA6\u5C06\u4E00\u5E76\u89E3\u9664"),
+		*SelectedFriendAccount)));
+
+	ConfirmBackdrop->SetVisibility(ESlateVisibility::Visible);
+	UpdateModalState();
+}
+
+void UMyBondageLifeFriendListWidget::HandleMenuCancelClicked()
+{
+	if (MenuBackdrop)
+	{
+		MenuBackdrop->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	UpdateModalState();
+}
+
+void UMyBondageLifeFriendListWidget::HandleConfirmYesClicked()
+{
+	const int32 Action = PendingConfirmAction;
+	PendingConfirmAction = 0;
+
+	if (ConfirmBackdrop)
+	{
+		ConfirmBackdrop->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	UGameInstance* GameInstance = GetGameInstance();
+	UMyBondageLifeAccountSubsystem* Account = GameInstance
+		? GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+
+	if (Account)
+	{
+		if (Action == 1)
+		{
+			Account->DissolveContract(SelectedFriendContractId);
+		}
+		else if (Action == 2)
+		{
+			Account->RemoveFriendOnServer(SelectedFriendAccount);
+		}
+	}
+
+	if (MenuBackdrop)
+	{
+		MenuBackdrop->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	RefreshFriends();
+	UpdateModalState();
+}
+
+void UMyBondageLifeFriendListWidget::HandleConfirmNoClicked()
+{
+	PendingConfirmAction = 0;
+	if (ConfirmBackdrop)
+	{
+		ConfirmBackdrop->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	UpdateModalState();
+}
+
+void UMyBondageLifeFriendListWidget::ShowContractRequest(const FString& RequestId, const FString& RequesterCharacterName, bool bFormal)
+{
+	if (!RequestBackdrop || !RequestText)
+	{
+		return;
+	}
+
+	PendingContractRequestId = RequestId;
+	bPendingContractFormal = bFormal;
+	bRequestDialogIsContract = true;
+
+	RequestText->SetWrapTextAt(860.0f);
+
+	if (bFormal)
+	{
+		// "[x]邀请你正式成为其永久奴隶，若答应该契约，则只能由对方主动解除该主奴契约，是否同意？"
+		RequestText->SetText(FText::FromString(FString::Printf(
+			TEXT("[%s]\u9080\u8BF7\u4F60\u6B63\u5F0F\u6210\u4E3A\u5176\u6C38\u4E45\u5974\u96B6\uFF0C\u82E5\u7B54\u5E94\u8BE5\u5951\u7EA6\uFF0C\u5219\u53EA\u80FD\u7531\u5BF9\u65B9\u4E3B\u52A8\u89E3\u9664\u8BE5\u4E3B\u5974\u5951\u7EA6\uFF0C\u662F\u5426\u540C\u610F\uFF1F"),
+			*RequesterCharacterName)));
+	}
+	else
+	{
+		// "[x]申请你尝试成为它的奴隶。试用期为期三日……是否同意？"
+		RequestText->SetText(FText::FromString(FString::Printf(
+			TEXT("[%s]\u7533\u8BF7\u4F60\u5C1D\u8BD5\u6210\u4E3A\u5B83\u7684\u5974\u96B6\u3002\u8BD5\u7528\u671F\u4E3A\u671F\u4E09\u65E5\uFF0C\u8BD5\u7528\u671F\u5185\u53EF\u4EE5\u968F\u65F6\u89E3\u9664\u5173\u7CFB\uFF0C\u4E09\u65E5\u540E\u53CC\u65B9\u53EF\u518D\u6B21\u534F\u5546\u7B7E\u8BA2\u6C38\u4E45\u7684\u5974\u96B6\u5951\u7EA6\uFF0C\u662F\u5426\u540C\u610F\uFF1F"),
+			*RequesterCharacterName)));
+	}
+
+	RequestBackdrop->SetVisibility(ESlateVisibility::Visible);
+	UpdateModalState();
+}
+
+void UMyBondageLifeFriendRowProxy::HandleClicked()
+{
+	if (Owner)
+	{
+		Owner->OpenFriendMenu(Account, ContractId, Role);
 	}
 }

@@ -213,7 +213,7 @@ protected:
 	void ServerSendChatMessage(const FString& Message);
 
 	UFUNCTION(Client, Reliable)
-	void ClientReceiveChatMessage(const FString& SenderName, const FString& Message);
+	void ClientReceiveChatMessage(const FString& SenderAccount, const FString& SenderName, const FString& Message);
 
 	UFUNCTION(Client, Reliable)
 	void ClientReceiveSystemMessage(const FString& Message);
@@ -297,6 +297,35 @@ protected:
 	/** The stored body height changed: push it to the pawn. */
 	UFUNCTION()
 	void HandleHeightChanged(float NewHeightScale);
+
+	//~ Contracts -----------------------------------------------------------
+
+	/** The info panel asked to start (or formalise) a contract. */
+	UFUNCTION()
+	void HandleContractRequested(const AMyBondageLifeCharacter* Target, bool bFormal);
+
+	/** Result of a contract request / respond / dissolve call. */
+	UFUNCTION()
+	void HandleContractActionFinished(bool bSucceeded, const FString& ErrorCode);
+
+	/** An incoming contract request arrived (polling). */
+	UFUNCTION()
+	void HandleContractRequestReceived(const FString& RequestId, const FString& RequesterCharacterName, bool bFormal);
+
+	/** The player answered the contract request dialog. */
+	UFUNCTION()
+	void HandleContractRequestAnswered(const FString& RequestId, bool bAccepted);
+
+	/** A social dialog (menu / confirm / request) opened or closed. */
+	UFUNCTION()
+	void HandleSocialModalChanged(bool bIsOpen);
+
+	/** Contract state changed: refresh the panels that show it. */
+	UFUNCTION()
+	void HandleContractsChanged();
+
+	/** True while a friend menu / confirm / request dialog owns the mouse. */
+	bool bSocialModalOpen = false;
 
 	UFUNCTION()
 	void HandleFriendPanelOpenChanged(bool bIsOpen);

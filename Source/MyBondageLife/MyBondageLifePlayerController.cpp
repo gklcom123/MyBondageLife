@@ -504,18 +504,49 @@ void AMyBondageLifePlayerController::ServerSendChatMessage_Implementation(const 
 	{
 		if (AMyBondageLifePlayerController* OtherController = Cast<AMyBondageLifePlayerController>(It->Get()))
 		{
-			OtherController->ClientReceiveChatMessage(SenderName, TrimmedMessage);
+			const APlayerState* SenderState = GetPlayerState<APlayerState>();
+			const FString SenderAccount = SenderState ? SenderState->GetPlayerName() : FString();
+			OtherController->ClientReceiveChatMessage(SenderAccount, SenderName, TrimmedMessage);
 		}
 	}
 }
 
-void AMyBondageLifePlayerController::ClientReceiveChatMessage_Implementation(const FString& SenderName, const FString& Message)
+void AMyBondageLifePlayerController::ClientReceiveChatMessage_Implementation(const FString& SenderAccount, const FString& SenderName, const FString& Message)
 {
 	UE_LOG(LogMyBondageLife, Log, TEXT("Chat: [%s] %s"), *SenderName, *Message);
 
-	if (ChatWidget)
 	{
-		ChatWidget->AddChatMessage(SenderName, Message);
+		// Contract partners are labelled: [奴隶] (purple) for my slaves, [主人] (red)
+		// for my master; third parties never see the prefix.
+		FString Prefix;
+		FLinearColor PrefixColor(1.0f, 1.0f, 1.0f);
+
+		if (UGameInstance* GameInstance = GetGameInstance())
+		{
+			if (const UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
+			{
+				const EMyBondageLifeContractRole ContractRole = Account->GetContractRoleWith(SenderAccount);
+				if (ContractRole == EMyBondageLifeContractRole::TemporaryMaster || ContractRole == EMyBondageLifeContractRole::Master)
+				{
+					Prefix = TEXT("[\u5974\u96B6]");
+					PrefixColor = FLinearColor(0.72f, 0.42f, 1.0f);
+				}
+				else if (ContractRole == EMyBondageLifeContractRole::TemporarySlave || ContractRole == EMyBondageLifeContractRole::Slave)
+				{
+					Prefix = TEXT("[\u4E3B\u4EBA]");
+					PrefixColor = FLinearColor(1.0f, 0.28f, 0.28f);
+				}
+			}
+		}
+
+		if (Prefix.IsEmpty())
+		{
+			ChatWidget->AddChatMessage(SenderName, Message);
+		}
+		else
+		{
+			ChatWidget->AddChatMessageWithPrefix(Prefix, PrefixColor, SenderName, Message);
+		}
 	}
 }
 
@@ -584,7 +615,8 @@ void AMyBondageLifePlayerController::RefreshChatInputState()
 		return;
 	}
 
-	const bool bBlocked = bChatTextInput || bAltMouseMode || bPlayerInfoOpen || bFriendPanelOpen || bFriendRequestPending || bWardrobeOpen;
+	const bool bBlocked = bChatTextInput || bAltMouseMode || bPlayerInfoOpen || bFriendPanelOpen
+		|| bFriendRequestPending || bWardrobeOpen || bSocialModalOpen;
 
 	SetGameplayInputBlocked(bBlocked);
 
@@ -596,7 +628,8 @@ void AMyBondageLifePlayerController::RefreshChatInputState()
 		SetInputMode(InputMode);
 
 		// Alt and the panels free the mouse; typing keeps the cursor hidden.
-		bShowMouseCursor = bAltMouseMode || bPlayerInfoOpen || bFriendPanelOpen || bFriendRequestPending || bWardrobeOpen;
+		bShowMouseCursor = bAltMouseMode || bPlayerInfoOpen || bFriendPanelOpen
+			|| bFriendRequestPending || bWardrobeOpen || bSocialModalOpen;
 	}
 	else
 	{
@@ -630,6 +663,7 @@ void AMyBondageLifePlayerController::ShowPlayerInfo()
 
 	PlayerInfoWidget->OnPanelOpenChanged.AddDynamic(this, &AMyBondageLifePlayerController::HandlePlayerInfoOpenChanged);
 	PlayerInfoWidget->OnAddFriendRequested.AddDynamic(this, &AMyBondageLifePlayerController::HandleAddFriendRequested);
+	PlayerInfoWidget->OnContractRequested.AddDynamic(this, &AMyBondageLifePlayerController::HandleContractRequested);
 
 	// A new body height has to reach this pawn (and replicate to everyone else).
 	if (UGameInstance* GameInstance = GetGameInstance())
@@ -801,6 +835,8 @@ void AMyBondageLifePlayerController::ShowFriendList()
 
 	FriendListWidget->OnPanelOpenChanged.AddDynamic(this, &AMyBondageLifePlayerController::HandleFriendPanelOpenChanged);
 	FriendListWidget->OnRequestAnswered.AddDynamic(this, &AMyBondageLifePlayerController::HandleFriendRequestAnswered);
+	FriendListWidget->OnContractRequestAnswered.AddDynamic(this, &AMyBondageLifePlayerController::HandleContractRequestAnswered);
+	FriendListWidget->OnModalChanged.AddDynamic(this, &AMyBondageLifePlayerController::HandleSocialModalChanged);
 
 	if (UGameInstance* GameInstance = GetGameInstance())
 	{
@@ -809,6 +845,9 @@ void AMyBondageLifePlayerController::ShowFriendList()
 			Account->OnFriendRequestReceived.AddDynamic(this, &AMyBondageLifePlayerController::HandleFriendRequestReceived);
 			Account->OnFriendRequestAnswered.AddDynamic(this, &AMyBondageLifePlayerController::HandleFriendAnswerFinished);
 			Account->OnFriendRequestSent.AddDynamic(this, &AMyBondageLifePlayerController::HandleFriendRequestSent);
+			Account->OnContractRequestReceived.AddDynamic(this, &AMyBondageLifePlayerController::HandleContractRequestReceived);
+			Account->OnContractActionFinished.AddDynamic(this, &AMyBondageLifePlayerController::HandleContractActionFinished);
+			Account->OnContractsChanged.AddDynamic(this, &AMyBondageLifePlayerController::HandleContractsChanged);
 		}
 	}
 	FriendListWidget->AddToViewport(FriendListZOrder);
@@ -1561,4 +1600,130 @@ void AMyBondageLifePlayerController::HandleHeightChanged(float NewHeightScale)
 {
 	// Re-publish the identity so the pawn (and every other client) picks the new size.
 	ApplyCharacterNameToPawn();
+}
+
+// ---------------------------------------------------------------------------
+// Contracts
+// ---------------------------------------------------------------------------
+
+void AMyBondageLifePlayerController::HandleContractRequested(const AMyBondageLifeCharacter* Target, bool bFormal)
+{
+	if (!Target)
+	{
+		return;
+	}
+
+	const APlayerState* TargetState = Target->GetPlayerState();
+	const FString TargetAccount = TargetState ? TargetState->GetPlayerName() : FString();
+	if (TargetAccount.IsEmpty())
+	{
+		return;
+	}
+
+	UGameInstance* GameInstance = GetGameInstance();
+	UMyBondageLifeAccountSubsystem* Account = GameInstance
+		? GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+	if (!Account)
+	{
+		return;
+	}
+
+	PendingAddFriendName = Target->GetCharacterName().IsEmpty()
+		? TargetAccount
+		: Target->GetCharacterName().ToString();
+
+	Account->RequestContract(TargetAccount, bFormal);
+}
+
+void AMyBondageLifePlayerController::HandleContractActionFinished(bool bSucceeded, const FString& ErrorCode)
+{
+	if (ChatWidget)
+	{
+		const FString DisplayName = PendingAddFriendName.IsEmpty() ? TEXT("---") : PendingAddFriendName;
+
+		if (bSucceeded)
+		{
+			ChatWidget->AddSystemMessage(FString::Printf(
+				TEXT("\u5DF2\u5411[%s]\u53D1\u8D77\u5951\u7EA6\u7533\u8BF7"), *DisplayName));
+		}
+		else if (ErrorCode == TEXT("TARGET_ALREADY_OWNED"))
+		{
+			ChatWidget->AddSystemMessage(FString::Printf(
+				TEXT("[%s]\u5DF2\u7ECF\u62E5\u6709\u4E3B\u4EBA"), *DisplayName));
+		}
+		else
+		{
+			ChatWidget->AddSystemMessage(TEXT("\u5951\u7EA6\u64CD\u4F5C\u5931\u8D25"));
+		}
+	}
+
+	if (!bSucceeded && ErrorCode == TEXT("TARGET_ALREADY_OWNED"))
+	{
+		if (UGameInstance* GameInstance = GetGameInstance())
+		{
+			if (UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
+			{
+				Account->MarkAccountOwned(PendingAddFriendName);
+			}
+		}
+	}
+
+	if (PlayerInfoWidget && IsPlayerInfoOpen())
+	{
+		PlayerInfoWidget->RefreshContents();
+	}
+}
+
+void AMyBondageLifePlayerController::HandleContractRequestReceived(const FString& RequestId, const FString& RequesterCharacterName, bool bFormal)
+{
+	if (FriendListWidget)
+	{
+		FriendListWidget->ShowContractRequest(RequestId, RequesterCharacterName, bFormal);
+	}
+
+	if (ChatWidget)
+	{
+		if (bFormal)
+		{
+			ChatWidget->AddSystemMessage(FString::Printf(
+				TEXT("\u6536\u5230\u6765\u81EA[%s]\u7684\u6B63\u5F0F\u5951\u7EA6\u9080\u8BF7"), *RequesterCharacterName));
+		}
+		else
+		{
+			ChatWidget->AddSystemMessage(FString::Printf(
+				TEXT("\u6536\u5230\u6765\u81EA[%s]\u7684\u5951\u7EA6\u7533\u8BF7"), *RequesterCharacterName));
+		}
+	}
+}
+
+void AMyBondageLifePlayerController::HandleContractRequestAnswered(const FString& RequestId, bool bAccepted)
+{
+	UGameInstance* GameInstance = GetGameInstance();
+	if (UMyBondageLifeAccountSubsystem* Account = GameInstance ? GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		Account->RespondToContractRequest(RequestId, bAccepted);
+	}
+
+	bFriendRequestPending = false;
+	RefreshChatInputState();
+}
+
+void AMyBondageLifePlayerController::HandleSocialModalChanged(bool bIsOpen)
+{
+	bSocialModalOpen = bIsOpen;
+	RefreshChatInputState();
+}
+
+void AMyBondageLifePlayerController::HandleContractsChanged()
+{
+	// The friend list carries the contract column, the info panel the button state.
+	if (FriendListWidget && IsFriendListOpen())
+	{
+		FriendListWidget->RefreshFriends();
+	}
+	if (PlayerInfoWidget && IsPlayerInfoOpen())
+	{
+		PlayerInfoWidget->RefreshContents();
+	}
 }

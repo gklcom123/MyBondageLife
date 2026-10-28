@@ -14,6 +14,48 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeAuthSucceeded);
 /** Raised when login/registration failed; carries a player-facing message. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeAuthFailed, const FText&, ErrorMessage);
 
+/** Master/slave relation of one contract, seen from the signed-in player. */
+UENUM(BlueprintType)
+enum class EMyBondageLifeContractRole : uint8
+{
+	None,
+	TemporaryMaster,
+	TemporarySlave,
+	Master,
+	Slave
+};
+
+/** One contract (trial or formal) that the signed-in player takes part in. */
+USTRUCT(BlueprintType)
+struct FMyBondageLifeContractInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Contract")
+	FString ContractId;
+
+	/** The other party: my master when Role is *Slave, my slave when it is *Master. */
+	UPROPERTY(BlueprintReadOnly, Category = "Contract")
+	FString PeerAccount;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Contract")
+	FString PeerCharacterName;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Contract")
+	int32 PeerClass = 1;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Contract")
+	EMyBondageLifeContractRole Role = EMyBondageLifeContractRole::None;
+
+	/** trialStartedAt for a trial, formalStartedAt once formal. */
+	UPROPERTY(BlueprintReadOnly, Category = "Contract")
+	FDateTime Since;
+
+	/** trialStartedAt + 72h. */
+	UPROPERTY(BlueprintReadOnly, Category = "Contract")
+	FDateTime TrialEndsAt;
+};
+
 /** One entry of the friend list, as returned by GET /friends. */
 USTRUCT(BlueprintType)
 struct FMyBondageLifeFriendEntry
@@ -31,6 +73,19 @@ struct FMyBondageLifeFriendEntry
 
 	UPROPERTY(BlueprintReadOnly, Category = "Friends")
 	bool bOnline = false;
+
+	/** Contract relation with this friend, as seen by the signed-in player. */
+	UPROPERTY(BlueprintReadOnly, Category = "Friends")
+	EMyBondageLifeContractRole ContractRole = EMyBondageLifeContractRole::None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Friends")
+	FDateTime ContractSince;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Friends")
+	FDateTime ContractTrialEndsAt;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Friends")
+	FString ContractId;
 };
 
 /** A pending incoming friend request, as reported by the service. */
@@ -63,6 +118,15 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeFriendAnswerEvent, boo
 
 /** Raised after we sent a friend request. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FMyBondageLifeFriendRequestSent, bool, bSucceeded, const FString&, TargetAccount);
+
+/** Raised when the local contract state changed (after refresh or after an action). */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeContractsChanged);
+
+/** Raised when an incoming contract request arrives (polling). */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FMyBondageLifeContractRequestReceived, const FString&, RequestId, const FString&, RequesterCharacterName, bool, bFormal);
+
+/** Raised after a contract action (request / respond / dissolve). */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FMyBondageLifeContractActionResult, bool, bSucceeded, const FString&, ErrorCode);
 
 /** Raised when the stored body height changed (0.9 / 1.0 / 1.1). */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeHeightChanged, float, NewHeightScale);
@@ -188,6 +252,62 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Friends")
 	void SendPresenceOffline();
 
+	//~ Contracts ---------------------------------------------------------
+
+	/** GET /contracts/me */
+	UFUNCTION(BlueprintCallable, Category = "Contract")
+	void RefreshContractState();
+
+	/** POST /contracts/requests (kind=formal needs a matured trial). */
+	UFUNCTION(BlueprintCallable, Category = "Contract")
+	void RequestContract(const FString& TargetAccount, bool bFormal);
+
+	/** POST /contracts/requests/{id}/respond */
+	UFUNCTION(BlueprintCallable, Category = "Contract")
+	void RespondToContractRequest(const FString& RequestId, bool bAccept);
+
+	/** DELETE /contracts/{id} */
+	UFUNCTION(BlueprintCallable, Category = "Contract")
+	void DissolveContract(const FString& ContractId);
+
+	/** GET /contracts/requests?direction=incoming&status=pending */
+	UFUNCTION(BlueprintCallable, Category = "Contract")
+	void PollContractRequests();
+
+	/** Contract with a specific account, as seen from this player. */
+	UFUNCTION(BlueprintPure, Category = "Contract")
+	EMyBondageLifeContractRole GetContractRoleWith(const FString& InAccountName) const;
+
+	/** Looks up the cached friend entry of an account. */
+	UFUNCTION(BlueprintPure, Category = "Friends")
+	bool GetFriendEntry(const FString& InAccountName, FMyBondageLifeFriendEntry& OutEntry) const;
+
+	/** Remembers that an account already has a master (known after a failed request). */
+	void MarkAccountOwned(const FString& InAccountName);
+
+	UFUNCTION(BlueprintPure, Category = "Contract")
+	bool IsAccountKnownOwned(const FString& InAccountName) const;
+
+	/** My master, if any. */
+	UFUNCTION(BlueprintPure, Category = "Contract")
+	FMyBondageLifeContractInfo GetContractAsSlave() const { return ContractAsSlave; }
+
+	UFUNCTION(BlueprintPure, Category = "Contract")
+	bool HasMaster() const { return bHasMaster; }
+
+	/** Contracts where this player is the master. */
+	UFUNCTION(BlueprintPure, Category = "Contract")
+	TArray<FMyBondageLifeContractInfo> GetContractsAsMaster() const { return ContractsAsMaster; }
+
+	UPROPERTY(BlueprintAssignable, Category = "Contract")
+	FMyBondageLifeContractsChanged OnContractsChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Contract")
+	FMyBondageLifeContractRequestReceived OnContractRequestReceived;
+
+	UPROPERTY(BlueprintAssignable, Category = "Contract")
+	FMyBondageLifeContractActionResult OnContractActionFinished;
+
 	UPROPERTY(BlueprintAssignable, Category = "Friends")
 	FMyBondageLifeFriendsChanged OnFriendsChanged;
 
@@ -251,8 +371,22 @@ private:
 	/** Pending requests already surfaced to the UI. */
 	TArray<FString> SeenRequestIds;
 
+	/** My master, if any (GET /contracts/me -> asSlave). */
+	FMyBondageLifeContractInfo ContractAsSlave;
+	bool bHasMaster = false;
+
+	/** Contracts where I am the master. */
+	TArray<FMyBondageLifeContractInfo> ContractsAsMaster;
+
+	/** Contract requests already surfaced to the UI. */
+	TArray<FString> SeenContractRequestIds;
+
+	/** Accounts reported as already owned by the service (TARGET_ALREADY_OWNED). */
+	TArray<FString> KnownOwnedAccounts;
+
 	FTSTicker::FDelegateHandle FriendPollHandle;
 	double LastRequestPollSeconds = 0.0;
 	double LastFriendsRefreshSeconds = 0.0;
 	double LastHeartbeatSeconds = 0.0;
+	double LastContractRefreshSeconds = 0.0;
 };

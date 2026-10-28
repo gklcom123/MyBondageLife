@@ -10,6 +10,7 @@ class AActor;
 class AMyBondageLifeCharacter;
 class UCanvasPanel;
 class UTextBlock;
+class UMyBondageLifeAccountSubsystem;
 
 /**
  *  Screen-space nameplate layer.
@@ -34,6 +35,9 @@ public:
 	void UpdateNameplates();
 
 protected:
+
+	/** Account state used for the contract name prefix. */
+	UMyBondageLifeAccountSubsystem* GetAccountSubsystem() const;
 
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 

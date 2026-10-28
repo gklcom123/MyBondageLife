@@ -22,6 +22,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifePlayerInfoOpenChanged,
 /** Raised when the player asks to add the displayed character as a friend. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeAddFriendRequested, const AMyBondageLifeCharacter*, Target);
 
+/** Raised when the player asks to start (or formalise) a contract with the shown character. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FMyBondageLifeContractRequested, const AMyBondageLifeCharacter*, Target, bool, bFormal);
+
 /**
  *  Personal info: the bottom "个人信息(C)" entry, the panel it opens, and the
  *  "按F打开信息以交互" hint shown when another player is close by.
@@ -55,6 +58,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PlayerInfo")
 	void ShowCharacterInfo(const AMyBondageLifeCharacter* Character);
 
+	/** Re-reads the shown character and the local contract state. */
+	UFUNCTION(BlueprintCallable, Category = "PlayerInfo")
+	void RefreshContents();
+
 	/** Shows the "按[F]与[xxx]进行交互" hint for a character (null hides it). */
 	UFUNCTION(BlueprintCallable, Category = "PlayerInfo")
 	void SetInteractionHintTarget(const AMyBondageLifeCharacter* Character);
@@ -68,6 +75,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "PlayerInfo")
 	FMyBondageLifeAddFriendRequested OnAddFriendRequested;
 
+	UPROPERTY(BlueprintAssignable, Category = "PlayerInfo")
+	FMyBondageLifeContractRequested OnContractRequested;
+
 protected:
 
 	virtual TSharedRef<SWidget> RebuildWidget() override;
@@ -76,7 +86,6 @@ protected:
 	void BuildLayout();
 
 	/** Rewrites the three lines from the cached character. */
-	void RefreshContents();
 
 	UFUNCTION()
 	void HandleOpenButtonClicked();
@@ -99,6 +108,25 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UTextBlock> AddFriendLabel;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UButton> ContractButton;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> ContractLabel;
+
+	/** "已成为[xxx]的临时奴隶长达X天" line; hidden when the character is not a slave. */
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> ContractStatusLine;
+
+	/** True when the pending contract action is the formal invitation. */
+	bool bContractActionIsFormal = false;
+
+	/** Recomputes the contract button state and the slave line. */
+	void RefreshContractSection();
+
+	UFUNCTION()
+	void HandleContractClicked();
 
 	/** Head icon used by the bottom entry (Content/2DAssest/UI/UI_HeadIcon). */
 	UPROPERTY(Transient)

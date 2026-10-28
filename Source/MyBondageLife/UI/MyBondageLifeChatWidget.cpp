@@ -2,6 +2,9 @@
 
 #include "MyBondageLifeChatWidget.h"
 
+#include "Components/HorizontalBox.h"
+#include "Components/HorizontalBoxSlot.h"
+
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
 #include "Components/CanvasPanel.h"
@@ -241,4 +244,47 @@ FReply UMyBondageLifeChatWidget::NativeOnPreviewKeyDown(const FGeometry& InGeome
 	}
 
 	return Super::NativeOnPreviewKeyDown(InGeometry, InKeyEvent);
+}
+void UMyBondageLifeChatWidget::AddChatMessageWithPrefix(const FString& Prefix, const FLinearColor& PrefixColor, const FString& SenderName, const FString& Message)
+{
+	if (!ChatLog)
+	{
+		return;
+	}
+
+	while (ChatLog->GetChildrenCount() >= MaxChatLines)
+	{
+		ChatLog->RemoveChildAt(0);
+	}
+
+	UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	Line->SetVisibility(ESlateVisibility::HitTestInvisible);
+
+	auto AddPiece = [this, Line](const FString& Text, const FLinearColor& Color)
+	{
+		UTextBlock* Block = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		Block->SetText(FText::FromString(Text));
+		Block->SetColorAndOpacity(FSlateColor(Color));
+		Block->SetShadowOffset(FVector2D(1.0f, 1.0f));
+		Block->SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.8f));
+		{
+			FSlateFontInfo BlockFont = Block->GetFont();
+			BlockFont.Size = 16;
+			Block->SetFont(BlockFont);
+		}
+		if (UHorizontalBoxSlot* PieceSlot = Line->AddChildToHorizontalBox(Block))
+		{
+			PieceSlot->SetVerticalAlignment(VAlign_Center);
+		}
+	};
+
+	AddPiece(Prefix + TEXT(" "), PrefixColor);
+	AddPiece(SenderName + TEXT("\uFF1A") + Message, FLinearColor::White);
+
+	if (UScrollBoxSlot* LineSlot = Cast<UScrollBoxSlot>(ChatLog->AddChild(Line)))
+	{
+		LineSlot->SetPadding(FMargin(0.0f, 1.0f));
+	}
+
+	ChatLog->ScrollToEnd();
 }

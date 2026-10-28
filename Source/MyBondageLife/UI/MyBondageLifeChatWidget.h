@@ -36,6 +36,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Chat")
 	void AddChatMessage(const FString& SenderName, const FString& Message);
 
+	/** Chat line whose sender label carries a coloured contract prefix. */
+	UFUNCTION(BlueprintCallable, Category = "Chat")
+	void AddChatMessageWithPrefix(const FString& Prefix, const FLinearColor& PrefixColor, const FString& SenderName, const FString& Message);
+
 	/** Appends a system line (join/leave notice) without a sender prefix. */
 	UFUNCTION(BlueprintCallable, Category = "Chat")
 	void AddSystemMessage(const FString& Message);

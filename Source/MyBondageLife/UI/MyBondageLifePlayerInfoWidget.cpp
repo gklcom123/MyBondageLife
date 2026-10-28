@@ -251,6 +251,8 @@ void UMyBondageLifePlayerInfoWidget::BuildLayout()
 	NameValue = AddInfoLine(TEXT("\u59D3\u540D\uFF1A---"));
 	ClassValue = AddInfoLine(TEXT("\u89D2\u8272\uFF1A---"));
 	JoinedValue = AddInfoLine(TEXT("\u52A0\u5165\u65F6\u95F4\uFF1A---"));
+	ContractStatusLine = AddInfoLine(TEXT(""));
+	ContractStatusLine->SetVisibility(ESlateVisibility::Collapsed);
 
 	// "添加好友" sits at the panel's bottom-left and only shows for other players.
 	USizeBox* AddFriendSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("AddFriendSize"));
@@ -285,6 +287,34 @@ void UMyBondageLifePlayerInfoWidget::BuildLayout()
 	// The size box stays visible; only the button itself is toggled (it is the
 	// only thing that should appear or disappear).
 	AddFriendButton->SetVisibility(ESlateVisibility::Collapsed);
+
+	// "签订契约" sits to the right of the add-friend button.
+	USizeBox* ContractSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("ContractSize"));
+	ContractSize->SetWidthOverride(360.0f);
+	ContractSize->SetHeightOverride(88.0f);
+	if (UCanvasPanelSlot* ContractSlot = PanelCanvas->AddChildToCanvas(ContractSize))
+	{
+		ContractSlot->SetAnchors(FAnchors(0.0f, 1.0f, 0.0f, 1.0f));
+		ContractSlot->SetAlignment(FVector2D(0.0f, 1.0f));
+		ContractSlot->SetPosition(FVector2D(436.0f, -56.0f));
+		ContractSlot->SetAutoSize(true);
+	}
+
+	ContractButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("ContractButton"));
+	ContractButton->OnClicked.AddDynamic(this, &UMyBondageLifePlayerInfoWidget::HandleContractClicked);
+	ContractSize->AddChild(ContractButton);
+
+	ContractLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("ContractLabel"));
+	ContractLabel->SetText(FText::FromString(TEXT("\u7B7E\u8BA2\u5951\u7EA6")));
+	ContractLabel->SetJustification(ETextJustify::Center);
+	ContractLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.02f, 0.02f, 0.02f)));
+	{
+		FSlateFontInfo ContractFont = ContractLabel->GetFont();
+		ContractFont.Size = 20;
+		ContractLabel->SetFont(ContractFont);
+	}
+	ContractButton->AddChild(ContractLabel);
+	ContractButton->SetVisibility(ESlateVisibility::Collapsed);
 }
 
 void UMyBondageLifePlayerInfoWidget::NativeConstruct()
@@ -352,6 +382,8 @@ void UMyBondageLifePlayerInfoWidget::RefreshContents()
 	}
 
 	// Bottom-left "添加好友" button: only for other players, label flips for friends.
+	RefreshContractSection();
+
 	if (AddFriendButton && AddFriendLabel)
 	{
 		if (!IsDisplayingOtherPlayer())
@@ -500,4 +532,142 @@ void UMyBondageLifePlayerInfoWidget::HandleOpenButtonClicked()
 void UMyBondageLifePlayerInfoWidget::HandleCloseButtonClicked()
 {
 	SetPanelOpen(false);
+}
+
+void UMyBondageLifePlayerInfoWidget::HandleContractClicked()
+{
+	const AMyBondageLifeCharacter* Target = DisplayedCharacter.Get();
+	if (!Target)
+	{
+		return;
+	}
+
+	OnContractRequested.Broadcast(Target, bContractActionIsFormal);
+}
+
+void UMyBondageLifePlayerInfoWidget::RefreshContractSection()
+{
+	const AMyBondageLifeCharacter* Target = DisplayedCharacter.Get();
+	const bool bIsSelf = Target != nullptr && Target == GetOwningPlayerPawn();
+
+	UGameInstance* GameInstance = GetGameInstance();
+	UMyBondageLifeAccountSubsystem* Account = GameInstance
+		? GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+
+	// ------------------------------------------------------- "已成为…" line
+	FString StatusText;
+	if (Account && Account->IsLoggedIn() && Target)
+	{
+		const FDateTime Now = FDateTime::Now();
+		const TCHAR* RoleWord = TEXT("\u4E34\u65F6");   // 临时
+
+		if (bIsSelf && Account->HasMaster())
+		{
+			const FMyBondageLifeContractInfo Info = Account->GetContractAsSlave();
+			RoleWord = Info.Role == EMyBondageLifeContractRole::Slave ? TEXT("\u6B63\u5F0F") : TEXT("\u4E34\u65F6");
+			const int32 Days = Info.Since.GetTicks() ? FMath::Max(0, static_cast<int32>(FMath::FloorToInt((Now - Info.Since).GetTotalHours() / 24.0))) : 0;
+			StatusText = FString::Printf(
+				TEXT("\u5DF2\u6210\u4E3A[%s]\u7684%s\u5974\u96B6\u957F\u8FBE%d\u5929"), *Info.PeerCharacterName, RoleWord, Days);
+		}
+		else if (!bIsSelf)
+		{
+			const FString TargetAccount = Target->GetPlayerState() ? Target->GetPlayerState()->GetPlayerName() : FString();
+			const EMyBondageLifeContractRole Role = Account->GetContractRoleWith(TargetAccount);
+
+			if (Role == EMyBondageLifeContractRole::TemporaryMaster || Role == EMyBondageLifeContractRole::Master)
+			{
+				FMyBondageLifeFriendEntry Entry;
+				Account->GetFriendEntry(TargetAccount, Entry);
+				RoleWord = Role == EMyBondageLifeContractRole::Master ? TEXT("\u6B63\u5F0F") : TEXT("\u4E34\u65F6");
+				const int32 Days = Entry.ContractSince.GetTicks() ? FMath::Max(0, static_cast<int32>(FMath::FloorToInt((Now - Entry.ContractSince).GetTotalHours() / 24.0))) : 0;
+				StatusText = FString::Printf(
+					TEXT("\u5DF2\u6210\u4E3A[%s]\u7684%s\u5974\u96B6\u957F\u8FBE%d\u5929"), *Account->GetCharacterName(), RoleWord, Days);
+			}
+		}
+	}
+
+	if (ContractStatusLine)
+	{
+		ContractStatusLine->SetText(FText::FromString(StatusText));
+		ContractStatusLine->SetVisibility(StatusText.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+	}
+
+	// ------------------------------------------------------------ the button
+	if (!ContractButton || !ContractLabel)
+	{
+		return;
+	}
+
+	const bool bShowButton = !bIsSelf && Target && Account && Account->IsLoggedIn();
+	if (!bShowButton)
+	{
+		ContractButton->SetVisibility(ESlateVisibility::Collapsed);
+		return;
+	}
+
+	const FString TargetAccount = Target->GetPlayerState() ? Target->GetPlayerState()->GetPlayerName() : FString();
+	const EMyBondageLifeContractRole Role = Account->GetContractRoleWith(TargetAccount);
+	const int32 MyClass = Account->GetCharacterClass();
+	const int32 TargetClass = Target->GetCharacterClass();
+	const FDateTime Now = FDateTime::Now();
+
+	// "签订契约"
+	FString LabelText = TEXT("\u7B7E\u8BA2\u5951\u7EA6");
+	bool bEnabled = false;
+	bContractActionIsFormal = false;
+
+	if (Role == EMyBondageLifeContractRole::TemporaryMaster)
+	{
+		FMyBondageLifeFriendEntry Entry;
+		Account->GetFriendEntry(TargetAccount, Entry);
+
+		if (Entry.ContractTrialEndsAt.GetTicks() != 0 && Now >= Entry.ContractTrialEndsAt)
+		{
+			// 72h trained: the master may invite the slave to the formal contract.
+			LabelText = TEXT("\u6B63\u5F0F\u7B7E\u8BA2\u5951\u7EA6");
+			bEnabled = true;
+			bContractActionIsFormal = true;
+		}
+		else
+		{
+			const int32 Hours = Entry.ContractSince.GetTicks()
+				? FMath::Clamp(static_cast<int32>(FMath::FloorToInt((Now - Entry.ContractSince).GetTotalHours())), 0, 72)
+				: 0;
+			LabelText = FString::Printf(TEXT("\u5DF2\u8BAD\u7EC3%d\u5C0F\u65F6"), Hours);
+		}
+	}
+	else if (Role == EMyBondageLifeContractRole::Master)
+	{
+		LabelText = TEXT("\u5DF2\u7B7E\u8BA2\u5951\u7EA6");
+	}
+	else if (Role == EMyBondageLifeContractRole::TemporarySlave || Role == EMyBondageLifeContractRole::Slave)
+	{
+		// The shown character is my master: a mutual contract is not allowed.
+		LabelText = TEXT("\u65E0\u6CD5\u53D1\u8D77\u5951\u7EA6");
+	}
+	else if (Account->IsAccountKnownOwned(TargetAccount))
+	{
+		LabelText = TEXT("\u5DF2\u62E5\u6709\u4E3B\u4EBA");
+	}
+	else if (!Account->IsFriend(TargetAccount))
+	{
+		LabelText = TEXT("\u7B7E\u8BA2\u5951\u7EA6");
+	}
+	else if (MyClass > 2 || TargetClass < 2)
+	{
+		LabelText = TEXT("\u65E0\u6CD5\u53D1\u8D77\u5951\u7EA6");
+	}
+	else
+	{
+		LabelText = TEXT("\u7B7E\u8BA2\u5951\u7EA6");
+		bEnabled = true;
+	}
+
+	ContractButton->SetVisibility(ESlateVisibility::Visible);
+	ContractButton->SetIsEnabled(bEnabled);
+	ContractLabel->SetText(FText::FromString(LabelText));
+	ContractLabel->SetColorAndOpacity(FSlateColor(bEnabled
+		? FLinearColor(0.02f, 0.02f, 0.02f)
+		: FLinearColor(0.55f, 0.55f, 0.58f)));
 }
