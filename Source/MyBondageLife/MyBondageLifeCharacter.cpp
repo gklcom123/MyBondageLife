@@ -38,9 +38,9 @@ AMyBondageLifeCharacter::AMyBondageLifeCharacter()
 	// Animation assets used by the temporary restraint pose. The AnimBP is a copy of
 	// ABP_Unarmed so the pose graph can be extended without touching the original.
 	AnimBlueprintOverridePath = FSoftClassPath(
-		TEXT("/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed_Restraint.ABP_Unarmed_Restraint_C"));
+		TEXT("/Game/Characters/MainCharc/MainCharc_final_Skeleton_AnimBlueprint.MainCharc_final_Skeleton_AnimBlueprint_C"));
 	RestraintMontagePath = FSoftObjectPath(
-		TEXT("/Game/Characters/Animation/Restraint/Anmi_Restraint_HandBack_F.Anmi_Restraint_HandBack_F"));
+		TEXT("/Game/Characters/Animation/Restraint/AM_Restraint_HandBack_F.AM_Restraint_HandBack_F"));
 	IdleSequencePath = FSoftObjectPath(TEXT("/Game/Characters/Animation/Normal/Idle.Idle"));
 	WalkSequencePath = FSoftObjectPath(TEXT("/Game/Characters/Animation/Normal/Walk.Walk"));
 	RunSequencePath = FSoftObjectPath(TEXT("/Game/Characters/Animation/Normal/Run.Run"));
@@ -297,8 +297,11 @@ void AMyBondageLifeCharacter::Tick(float DeltaSeconds)
 		Boom->TargetArmLength = FMath::FInterpTo(Boom->TargetArmLength, TargetArmLength, DeltaSeconds, 8.0f);
 	}
 
-	// Locomotion is code driven: pick idle / walk / run from the current speed.
-	UpdateLocomotionAnimation();
+	// The AnimBP owns locomotion; only the restraint montage state is tracked here.
+	if (bRestraintPoseActive)
+	{
+		RefreshRestraintPose();
+	}
 }
 
 void AMyBondageLifeCharacter::OnRep_HeightScale()
@@ -434,15 +437,24 @@ void AMyBondageLifeCharacter::ApplyAnimBlueprintOverride()
 		return;
 	}
 
-	// The project moved to its own skeleton, so the old mannequin AnimBP can no longer
-	// drive this mesh. Locomotion is played back in single-node mode instead.
-	MeshComponent->SetAnimInstanceClass(nullptr);
-	MeshComponent->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+	// The project authored an AnimBP for its own skeleton; use it for everything.
+	UClass* AnimClass = AnimBlueprintOverridePath.TryLoadClass<UAnimInstance>();
+	if (!AnimClass)
+	{
+		UE_LOG(LogMyBondageLife, Warning, TEXT("Animation: '%s' not found."),
+			*AnimBlueprintOverridePath.ToString());
+		return;
+	}
 
-	CurrentLocomotionSequence = nullptr;
-	UpdateLocomotionAnimation();
+	MeshComponent->SetAnimationMode(EAnimationMode::AnimationBlueprint);
 
-	UE_LOG(LogMyBondageLife, Log, TEXT("Animation: code-driven locomotion enabled."));
+	if (MeshComponent->GetAnimInstance() && MeshComponent->GetAnimInstance()->GetClass() == AnimClass)
+	{
+		return;
+	}
+
+	MeshComponent->SetAnimInstanceClass(AnimClass);
+	UE_LOG(LogMyBondageLife, Log, TEXT("Animation: using %s."), *AnimClass->GetName());
 }
 
 void AMyBondageLifeCharacter::UpdateLocomotionAnimation()
@@ -489,26 +501,31 @@ void AMyBondageLifeCharacter::RefreshRestraintPose()
 		return;
 	}
 
+	UAnimInstance* AnimInstance = MeshComponent->GetAnimInstance();
+	if (!AnimInstance)
+	{
+		return;
+	}
+
+	UAnimMontage* Montage = Cast<UAnimMontage>(RestraintMontagePath.TryLoad());
+	if (!Montage)
+	{
+		UE_LOG(LogMyBondageLife, Warning, TEXT("Animation: montage not found."));
+		return;
+	}
+
 	if (bRestraintPoseActive)
 	{
-		UAnimSequence* PoseSequence = Cast<UAnimSequence>(RestraintMontagePath.TryLoad());
-		if (!PoseSequence)
+		if (!AnimInstance->Montage_IsPlaying(Montage))
 		{
-			UE_LOG(LogMyBondageLife, Warning, TEXT("Animation: '%s' not found."), *RestraintMontagePath.ToString());
-			return;
+			// Played through the AnimBP slot, so locomotion keeps running underneath.
+			AnimInstance->Montage_Play(Montage, 1.0f);
+			UE_LOG(LogMyBondageLife, Log, TEXT("Animation: restraint pose on."));
 		}
-
-		CurrentLocomotionSequence = PoseSequence;
-		MeshComponent->PlayAnimation(PoseSequence, true);
-
-		UE_LOG(LogMyBondageLife, Log, TEXT("Animation: restraint pose on (%s)."), *PoseSequence->GetName());
 	}
-	else
+	else if (AnimInstance->Montage_IsPlaying(Montage))
 	{
-		// Hand the mesh back to the locomotion clips.
-		CurrentLocomotionSequence = nullptr;
-		UpdateLocomotionAnimation();
-
+		AnimInstance->Montage_Stop(0.15f, Montage);
 		UE_LOG(LogMyBondageLife, Log, TEXT("Animation: restraint pose off."));
 	}
 }
