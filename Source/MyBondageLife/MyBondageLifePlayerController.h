@@ -149,6 +149,18 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Wardrobe")
 	bool IsWardrobeOpen() const { return bWardrobeOpen; }
 
+	//~ Animation test -------------------------------------------------------
+
+	/** Toggles the temporary restraint pose on the local character. */
+	UFUNCTION(BlueprintCallable, Category = "Animation")
+	void ToggleRestraintPose();
+
+	UFUNCTION(Server, Reliable)
+	void ServerSetRestraintPose(bool bActive);
+
+	/** True when the menu asked for the pose before a pawn existed. */
+	bool bRestraintPosePending = false;
+
 protected:
 
 	/** Widget class used for the login screen. */
@@ -321,6 +333,8 @@ protected:
 	/** The stored hair style changed: push it to the pawn. */
 	UFUNCTION()
 	void HandleHairChanged(int32 NewHairIndex);
+
+
 
 	//~ Contracts -----------------------------------------------------------
 

@@ -4,6 +4,8 @@
 
 #include "Core/MyBondageLifeHairCatalog.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimSequence.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -32,6 +34,14 @@ AMyBondageLifeCharacter::AMyBondageLifeCharacter()
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
+
+	// Animation assets used by the temporary restraint pose. The AnimBP is a copy of
+	// ABP_Unarmed so the pose graph can be extended without touching the original.
+	AnimBlueprintOverridePath = FSoftClassPath(
+		TEXT("/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed_Restraint.ABP_Unarmed_Restraint_C"));
+	RestraintSequencePath = FSoftObjectPath(
+		TEXT("/Game/Characters/Animation/Restraint/Anmi_Restraint_HandBack_F.Anmi_Restraint_HandBack_F"));
+
 		
 	// Don't rotate when the controller rotates. Let that just affect the camera.
 	bUseControllerRotationPitch = false;
@@ -115,6 +125,7 @@ void AMyBondageLifeCharacter::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(AMyBondageLifeCharacter, CreatedAtUnix);
 	DOREPLIFETIME(AMyBondageLifeCharacter, HeightScale);
 	DOREPLIFETIME(AMyBondageLifeCharacter, HairIndex);
+	DOREPLIFETIME(AMyBondageLifeCharacter, bRestraintPoseActive);
 }
 void AMyBondageLifeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -224,6 +235,10 @@ void AMyBondageLifeCharacter::BeginPlay()
 	}
 	ApplyHeightScale();
 	ApplyHairStyle();
+
+	// Use the copied AnimBP from now on, then restore the replicated pose state.
+	ApplyAnimBlueprintOverride();
+	RefreshRestraintPose();
 
 	// Remember the designed camera distance: the wheel zoom keeps the range at
 	// 0.5x - 1.5x of it.
@@ -375,4 +390,80 @@ void AMyBondageLifeCharacter::ApplyHairStyle()
 		HairIndex, *GetNameSafe(HairAsset), bSameSkeleton ? 1 : 0,
 		BodyMesh->DoesSocketExist(TEXT("head")) ? 1 : 0,
 		*HairAsset->GetBounds().BoxExtent.ToString());
+}
+
+void AMyBondageLifeCharacter::SetRestraintPose(bool bActive)
+{
+	if (bRestraintPoseActive == bActive)
+	{
+		return;
+	}
+
+	bRestraintPoseActive = bActive;
+	RefreshRestraintPose();
+}
+
+void AMyBondageLifeCharacter::OnRep_RestraintPose()
+{
+	RefreshRestraintPose();
+}
+
+void AMyBondageLifeCharacter::ApplyAnimBlueprintOverride()
+{
+	USkeletalMeshComponent* MeshComponent = GetMesh();
+	if (!MeshComponent)
+	{
+		return;
+	}
+
+	UClass* AnimClass = AnimBlueprintOverridePath.TryLoadClass<UAnimInstance>();
+	if (!AnimClass)
+	{
+		UE_LOG(LogMyBondageLife, Warning,
+			TEXT("Animation: '%s' not found, keeping the blueprint AnimBP."),
+			*AnimBlueprintOverridePath.ToString());
+		return;
+	}
+
+	if (MeshComponent->GetAnimInstance() && MeshComponent->GetAnimInstance()->GetClass() == AnimClass)
+	{
+		return;
+	}
+
+	MeshComponent->SetAnimInstanceClass(AnimClass);
+	UE_LOG(LogMyBondageLife, Log, TEXT("Animation: using %s."), *AnimClass->GetName());
+}
+
+void AMyBondageLifeCharacter::RefreshRestraintPose()
+{
+	USkeletalMeshComponent* MeshComponent = GetMesh();
+	if (!MeshComponent)
+	{
+		return;
+	}
+
+	if (bRestraintPoseActive)
+	{
+		UAnimSequence* Sequence = Cast<UAnimSequence>(RestraintSequencePath.TryLoad());
+		if (!Sequence)
+		{
+			UE_LOG(LogMyBondageLife, Warning, TEXT("Animation: '%s' not found."),
+				*RestraintSequencePath.ToString());
+			return;
+		}
+
+		// The single node player keeps the sequence looping (the pose is held) and
+		// applies its clavicle tracks on top of the skeleton.
+		MeshComponent->PlayAnimation(Sequence, true);
+
+		UE_LOG(LogMyBondageLife, Log, TEXT("Animation: restraint pose on (%s)."), *Sequence->GetName());
+	}
+	else
+	{
+		// Hand control back to the AnimBP so locomotion resumes.
+		MeshComponent->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+		MeshComponent->InitAnim(true);
+
+		UE_LOG(LogMyBondageLife, Log, TEXT("Animation: restraint pose off."));
+	}
 }

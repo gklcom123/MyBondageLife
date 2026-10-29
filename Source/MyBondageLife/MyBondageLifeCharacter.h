@@ -58,6 +58,13 @@ class AMyBondageLifeCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_HairIndex, Category = "Identity", meta = (AllowPrivateAccess = "true"))
 	int32 HairIndex = 1;
 
+	/**
+	 *  Temporary test pose: while true the character plays the restraint sequence
+	 *  instead of the locomotion AnimBP, so the shoulders (clavicles) follow it.
+	 */
+	UPROPERTY(ReplicatedUsing = OnRep_RestraintPose, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+	bool bRestraintPoseActive = false;
+
 protected:
 
 	/** Jump Input Action */
@@ -118,6 +125,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Identity")
 	void ApplyHairStyle();
 
+	//~ Animation -----------------------------------------------------------
+
+	/** Enables or disables the temporary restraint pose. */
+	UFUNCTION(BlueprintCallable, Category="Animation")
+	void SetRestraintPose(bool bActive);
+
+	UFUNCTION(BlueprintPure, Category="Animation")
+	bool IsRestraintPoseActive() const { return bRestraintPoseActive; }
+
+	/** Switches the mesh to the copied AnimBP (ABP_Unarmed_Restraint). */
+	UFUNCTION(BlueprintCallable, Category="Animation")
+	void ApplyAnimBlueprintOverride();
+
+	/** Runs the pose animation, or hands control back to the AnimBP. */
+	void RefreshRestraintPose();
+
 	/** Rescales the mesh and capsule to match HeightScale. */
 	UFUNCTION(BlueprintCallable, Category="Identity")
 	void ApplyHeightScale();
@@ -135,6 +158,18 @@ protected:
 	/** Extra skeletal mesh worn on the head, created on demand. */
 	UPROPERTY(Transient)
 	TObjectPtr<USkeletalMeshComponent> HairComponent;
+
+	/** Re-applied on clients whenever the replicated pose state flips. */
+	UFUNCTION()
+	void OnRep_RestraintPose();
+
+	/** AnimBP used instead of the one assigned on the blueprint mesh. */
+	UPROPERTY(EditDefaultsOnly, Category="Animation")
+	FSoftClassPath AnimBlueprintOverridePath;
+
+	/** Sequence played while the restraint pose is active. */
+	UPROPERTY(EditDefaultsOnly, Category="Animation")
+	FSoftObjectPath RestraintSequencePath;
 
 	/** Unscaled reference sizes captured on BeginPlay. */
 	float BaseCapsuleHalfHeight = 0.0f;

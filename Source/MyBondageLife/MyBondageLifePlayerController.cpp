@@ -1274,6 +1274,24 @@ void AMyBondageLifePlayerController::OnPossess(APawn* InPawn)
 	ResetIgnoreMoveInput();
 	ResetIgnoreLookInput();
 
+	// A pose requested from the main menu applies as soon as we have a character.
+	if (bRestraintPosePending)
+	{
+		bRestraintPosePending = false;
+
+		if (AMyBondageLifeCharacter* PossessedCharacter = Cast<AMyBondageLifeCharacter>(InPawn))
+		{
+			if (HasAuthority())
+			{
+				PossessedCharacter->SetRestraintPose(true);
+			}
+			else
+			{
+				ServerSetRestraintPose(true);
+			}
+		}
+	}
+
 	RefreshChatInputState();
 }
 
@@ -1832,4 +1850,40 @@ void AMyBondageLifePlayerController::HandleHairChanged(int32 NewHairIndex)
 {
 	// Re-publish the identity so the pawn (and everyone else) wears the new hair.
 	ApplyCharacterNameToPawn();
+}
+
+// ---------------------------------------------------------------------------
+// Animation test
+// ---------------------------------------------------------------------------
+
+void AMyBondageLifePlayerController::ToggleRestraintPose()
+{
+	if (AMyBondageLifeCharacter* TargetCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		const bool bNewState = !TargetCharacter->IsRestraintPoseActive();
+
+		if (HasAuthority())
+		{
+			TargetCharacter->SetRestraintPose(bNewState);
+		}
+		else
+		{
+			ServerSetRestraintPose(bNewState);
+		}
+
+		return;
+	}
+
+	// No pawn yet (main menu): remember the request and apply it on possession.
+	bRestraintPosePending = !bRestraintPosePending;
+	UE_LOG(LogMyBondageLife, Log, TEXT("Animation: no pawn yet, restraint pose requested=%d."),
+		bRestraintPosePending ? 1 : 0);
+}
+
+void AMyBondageLifePlayerController::ServerSetRestraintPose_Implementation(bool bActive)
+{
+	if (AMyBondageLifeCharacter* TargetCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		TargetCharacter->SetRestraintPose(bActive);
+	}
 }
