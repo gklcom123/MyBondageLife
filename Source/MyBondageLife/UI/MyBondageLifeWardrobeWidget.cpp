@@ -838,12 +838,15 @@ void UMyBondageLifeWardrobeWidget::RefreshRestraintSlots()
 
 		if (SlotIcons.IsValidIndex(SlotIndex) && SlotIcons[SlotIndex])
 		{
-			if (bWorn)
+			// Clearing matters: an unequipped slot must drop the previous icon.
+			UTexture2D* Icon = bWorn ? FMyBondageLifeRestraintCatalog::LoadIcon(FName(*ItemId)) : nullptr;
+			if (Icon)
 			{
-				if (UTexture2D* Icon = FMyBondageLifeRestraintCatalog::LoadIcon(FName(*ItemId)))
-				{
-					SlotIcons[SlotIndex]->SetBrushFromTexture(Icon, true);
-				}
+				SlotIcons[SlotIndex]->SetBrushFromTexture(Icon, true);
+			}
+			else
+			{
+				SlotIcons[SlotIndex]->SetBrush(FSlateBrush());
 			}
 		}
 	}
