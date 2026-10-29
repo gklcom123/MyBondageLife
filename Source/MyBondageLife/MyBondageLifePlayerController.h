@@ -158,6 +158,10 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerSetRestraintPose(bool bActive);
 
+	/** F9: in-game shortcut for the same toggle (the menu button is only in the menu). */
+	UFUNCTION()
+	void HandleRestraintTestKeyPressed();
+
 	/** True when the menu asked for the pose before a pawn existed. */
 	bool bRestraintPosePending = false;
 

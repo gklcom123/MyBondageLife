@@ -1405,6 +1405,9 @@ void AMyBondageLifePlayerController::SetupInputComponent()
 	// 衣柜面板：B 键与底部入口同效。
 	InputComponent->BindKey(EKeys::B, IE_Pressed, this, &AMyBondageLifePlayerController::HandleWardrobeKeyPressed);
 
+	// 临时：F9 切换束缚姿势动画测试。
+	InputComponent->BindKey(EKeys::F9, IE_Pressed, this, &AMyBondageLifePlayerController::HandleRestraintTestKeyPressed);
+
 	// F: inspect the nearby player.
 	InputComponent->BindKey(EKeys::F, IE_Pressed, this, &AMyBondageLifePlayerController::HandleInspectPressed);
 
@@ -1855,6 +1858,11 @@ void AMyBondageLifePlayerController::HandleHairChanged(int32 NewHairIndex)
 // ---------------------------------------------------------------------------
 // Animation test
 // ---------------------------------------------------------------------------
+
+void AMyBondageLifePlayerController::HandleRestraintTestKeyPressed()
+{
+	ToggleRestraintPose();
+}
 
 void AMyBondageLifePlayerController::ToggleRestraintPose()
 {
