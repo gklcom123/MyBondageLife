@@ -1982,10 +1982,19 @@ void AMyBondageLifePlayerController::OpenFriendWardrobe(const FString& InAccount
 		Account->RefreshRestraintsFor(InAccount);
 	}
 
-	ShowWardrobe();
-
+	// ShowWardrobe() early-returns when the widget already exists, so handle both cases.
 	if (WardrobeWidget)
 	{
 		WardrobeWidget->EnterFriendMode(InAccount);
+		WardrobeWidget->SetPanelOpen(true);
+	}
+	else
+	{
+		ShowWardrobe();
+		if (WardrobeWidget)
+		{
+			WardrobeWidget->EnterFriendMode(InAccount);
+			WardrobeWidget->SetPanelOpen(true);
+		}
 	}
 }
