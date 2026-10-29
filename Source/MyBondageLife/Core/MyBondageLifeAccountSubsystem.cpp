@@ -288,6 +288,9 @@ bool UMyBondageLifeAccountSubsystem::ApplyAuthPayload(const TSharedPtr<FJsonObje
 
 	RefreshContractState();
 	RefreshRestraints();
+
+	// Realtime channel: pushes from the service replace the polling fallback.
+	ConnectRealtime();
 	return true;
 }
 
@@ -809,6 +812,9 @@ void UMyBondageLifeAccountSubsystem::StartFriendPolling()
 				LastContractRefreshSeconds = Now;
 				RefreshContractState();
 	RefreshRestraints();
+
+	// Realtime channel: pushes from the service replace the polling fallback.
+	ConnectRealtime();
 			}
 			}
 

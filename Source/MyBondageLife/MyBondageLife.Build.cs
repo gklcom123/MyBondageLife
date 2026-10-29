@@ -27,6 +27,7 @@ public class MyBondageLife : ModuleRules
 			"SlateCore",
 			"Sockets",
 			"HTTP",
+			"WebSockets",
 			"Json",
 			"EOSSDK",
 			"EOSShared",

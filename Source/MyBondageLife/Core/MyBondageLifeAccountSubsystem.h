@@ -265,6 +265,23 @@ public:
 	/** JWT returned by the service, also used for the friend endpoints. */
 	UFUNCTION(BlueprintPure, Category = "Account")
 	FString GetToken() const { return Token; }
+	//~ Realtime (WebSocket) -------------------------------------------------
+
+	/** Opens ws://.../realtime; called after login. */
+	void ConnectRealtime();
+	void DisconnectRealtime();
+
+	UFUNCTION(BlueprintPure, Category = "Realtime")
+	bool IsRealtimeConnected() const { return bRealtimeConnected; }
+
+	/** True while the socket is up, i.e. polling can be skipped. */
+	TSharedPtr<class IWebSocket> RealtimeSocket;
+	bool bRealtimeConnected = false;
+	int32 RealtimeRetryIndex = 0;
+	FTimerHandle RealtimeReconnectTimer;
+
+	void HandleRealtimeMessage(const FString& InMessage);
+	void ScheduleRealtimeReconnect();
 
 	/** Account creation time reported by the service (UTC). */
 	UFUNCTION(BlueprintPure, Category = "Account")

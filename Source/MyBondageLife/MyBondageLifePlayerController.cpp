@@ -1188,7 +1188,7 @@ void AMyBondageLifePlayerController::ApplyAccountNameToPlayerState()
 	if (UWorld* SyncWorld = GetWorld())
 	{
 		SyncWorld->GetTimerManager().SetTimer(RestraintSyncTimer, this,
-			&AMyBondageLifePlayerController::SyncRestraintsFromServer, 1.0f, true);
+			&AMyBondageLifePlayerController::SyncRestraintsFromServer, 5.0f, true);
 	}
 
 	// Restore the worn restraints on the freshly possessed pawn.
@@ -1273,7 +1273,7 @@ void AMyBondageLifePlayerController::OnPossess(APawn* InPawn)
 	if (UWorld* SyncWorld = GetWorld())
 	{
 		SyncWorld->GetTimerManager().SetTimer(RestraintSyncTimer, this,
-			&AMyBondageLifePlayerController::SyncRestraintsFromServer, 1.0f, true);
+			&AMyBondageLifePlayerController::SyncRestraintsFromServer, 5.0f, true);
 	}
 
 	// Restore the worn restraints on the freshly possessed pawn.
@@ -1710,7 +1710,7 @@ void AMyBondageLifePlayerController::HandleHeightChanged(float NewHeightScale)
 	if (UWorld* SyncWorld = GetWorld())
 	{
 		SyncWorld->GetTimerManager().SetTimer(RestraintSyncTimer, this,
-			&AMyBondageLifePlayerController::SyncRestraintsFromServer, 1.0f, true);
+			&AMyBondageLifePlayerController::SyncRestraintsFromServer, 5.0f, true);
 	}
 
 	// Restore the worn restraints on the freshly possessed pawn.
@@ -1900,7 +1900,7 @@ void AMyBondageLifePlayerController::HandleHairChanged(int32 NewHairIndex)
 	if (UWorld* SyncWorld = GetWorld())
 	{
 		SyncWorld->GetTimerManager().SetTimer(RestraintSyncTimer, this,
-			&AMyBondageLifePlayerController::SyncRestraintsFromServer, 1.0f, true);
+			&AMyBondageLifePlayerController::SyncRestraintsFromServer, 5.0f, true);
 	}
 
 	// Restore the worn restraints on the freshly possessed pawn.
@@ -2046,7 +2046,8 @@ void AMyBondageLifePlayerController::SyncRestraintsFromServer()
 	{
 		// Nobody else can push to this client, so poll: another player may have
 		// equipped / removed / locked something on us.
-		if (!Account->GetAccountName().IsEmpty())
+		// Polling is only the fallback: the realtime socket pushes changes.
+		if (!Account->GetAccountName().IsEmpty() && !Account->IsRealtimeConnected())
 		{
 			Account->RefreshRestraints();
 		}
