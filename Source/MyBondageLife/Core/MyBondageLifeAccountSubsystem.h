@@ -354,6 +354,45 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Friends")
 	bool IsFriend(const FString& InAccountName) const;
 
+	//~ Other people's wardrobe ---------------------------------------------
+
+	/** Class of a friend (1 dominant .. 4 slave); 0 when unknown. */
+	UFUNCTION(BlueprintPure, Category = "Restraint")
+	int32 GetFriendClass(const FString& InAccountName) const;
+
+	/** May the local player equip / remove restraints on that account? */
+	UFUNCTION(BlueprintPure, Category = "Restraint")
+	bool CanEditRestraintsOf(const FString& InAccountName) const;
+
+	/** GET /users/{account}/restraints into the "other" cache. */
+	UFUNCTION(BlueprintCallable, Category = "Restraint")
+	void RefreshRestraintsFor(const FString& InAccountName);
+
+	/** Account whose wardrobe is currently cached (empty = own). */
+	UFUNCTION(BlueprintPure, Category = "Restraint")
+	FString GetViewedAccount() const { return ViewedAccount; }
+
+	/** Item worn by that account in a slot, from the cached response. */
+	UFUNCTION(BlueprintPure, Category = "Restraint")
+	FString GetViewedRestraint(int32 Slot) const;
+
+	/** Lock state of that account's slot, from the cached response. */
+	UFUNCTION(BlueprintPure, Category = "Restraint")
+	FMyBondageLifeRestraintLock GetViewedLock(int32 Slot) const;
+
+	/** Writes into another account's wardrobe (PUT /users/{account}/restraints/{slot}). */
+	UFUNCTION(BlueprintCallable, Category = "Restraint")
+	void EquipRestraintFor(const FString& InAccountName, int32 Slot, const FString& ItemId);
+
+	UFUNCTION(BlueprintCallable, Category = "Restraint")
+	void UnequipRestraintFor(const FString& InAccountName, int32 Slot);
+
+	UFUNCTION(BlueprintCallable, Category = "Restraint")
+	void LockRestraintFor(const FString& InAccountName, int32 Slot, int32 LockType, int32 DurationSeconds, const FString& Password);
+
+	UFUNCTION(BlueprintCallable, Category = "Restraint")
+	void UnlockRestraintFor(const FString& InAccountName, int32 Slot, const FString& Password);
+
 	/** Updates the cached entry and broadcasts the change. */
 	UFUNCTION(BlueprintCallable, Category = "Friends")
 	void AddFriend(const FMyBondageLifeFriendEntry& Entry);
@@ -522,6 +561,10 @@ private:
 
 	/** Slot -> active lock (absent when the slot is unlocked). */
 	TMap<int32, FMyBondageLifeRestraintLock> RestraintLocks;
+
+	FString ViewedAccount;
+	TMap<int32, FString> ViewedRestraints;
+	TMap<int32, FMyBondageLifeRestraintLock> ViewedLocks;
 
 	/** Friend list, refreshed from GET /friends. */
 	TArray<FMyBondageLifeFriendEntry> Friends;
