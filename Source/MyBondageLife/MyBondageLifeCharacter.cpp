@@ -543,9 +543,11 @@ void AMyBondageLifeCharacter::RefreshRestraintPose()
 			UE_LOG(LogMyBondageLife, Log, TEXT("Animation: restraint pose on."));
 		}
 	}
-	else if (AnimInstance->Montage_IsPlaying(Montage))
+	else
 	{
-		AnimInstance->Montage_Stop(0.15f, Montage);
+		// The owning client may have started a different montage than the one the
+		// data table points at now, so stop everything instead of one asset.
+		AnimInstance->Montage_Stop(0.2f, nullptr);
 		UE_LOG(LogMyBondageLife, Log, TEXT("Animation: restraint pose off."));
 	}
 }
