@@ -1278,10 +1278,13 @@ void UMyBondageLifeWardrobeWidget::HandleLockAction()
 		: nullptr;
 	if (!Account)
 	{
+		UE_LOG(LogMyBondageLife, Warning, TEXT("Lock: no account subsystem, action ignored."));
 		return;
 	}
 
 	const FMyBondageLifeRestraintLock Lock = Account->GetRestraintLock(PickerSlot);
+	UE_LOG(LogMyBondageLife, Warning, TEXT("Lock: action slot=%d lockType=%d canUnlock=%d"),
+		PickerSlot, Lock.LockType, Lock.bCanUnlock ? 1 : 0);
 	if (Lock.LockType == 0)
 	{
 		OpenLockMenu();
@@ -1307,8 +1310,12 @@ void UMyBondageLifeWardrobeWidget::OpenLockMenu()
 {
 	if (!RestraintPage)
 	{
+		UE_LOG(LogMyBondageLife, Warning, TEXT("Lock: menu has no page."));
 		return;
 	}
+
+	UE_LOG(LogMyBondageLife, Warning, TEXT("Lock: opening menu, created=%d"),
+		LockMenuBackdrop ? 1 : 0);
 
 	if (!LockMenuBackdrop)
 	{
