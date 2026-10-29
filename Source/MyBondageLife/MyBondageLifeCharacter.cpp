@@ -369,4 +369,10 @@ void AMyBondageLifeCharacter::ApplyHairStyle()
 
 	HairComponent->SetVisibility(true, true);
 	HairComponent->SetHiddenInGame(false, true);
+
+	UE_LOG(LogMyBondageLife, Log,
+		TEXT("Hair: style %d -> %s (sameSkeleton=%d, headSocket=%d, extent=%s)"),
+		HairIndex, *GetNameSafe(HairAsset), bSameSkeleton ? 1 : 0,
+		BodyMesh->DoesSocketExist(TEXT("head")) ? 1 : 0,
+		*HairAsset->GetBounds().BoxExtent.ToString());
 }
