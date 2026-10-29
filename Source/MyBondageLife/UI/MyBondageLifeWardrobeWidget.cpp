@@ -976,20 +976,47 @@ void UMyBondageLifeWardrobeWidget::OpenRestraintPicker(int32 SlotIndex)
 	}
 
 	PickerSlot = SlotIndex;
+
+	const UMyBondageLifeAccountSubsystem* LockAccount = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+	const FMyBondageLifeRestraintLock SlotLock = LockAccount
+		? LockAccount->GetRestraintLock(SlotIndex)
+		: FMyBondageLifeRestraintLock();
+	const bool bSlotLocked = SlotLock.LockType > 0;
+
 	PickerGrid->ClearChildren();
 	ClickProxies.RemoveAll([](const TObjectPtr<UMyBondageLifeWardrobeClickProxy>& Proxy)
 	{
 		return Proxy && Proxy->bIsItemButton;
 	});
 
-	PickerTitle->SetText(FText::FromString(FString::Printf(
-		TEXT("%s \uFF1A\u9009\u62E9\u62D8\u675F"), *FMyBondageLifeRestraintCatalog::GetSlotName(SlotIndex))));
+	{
+		FString Title = FMyBondageLifeRestraintCatalog::GetSlotName(SlotIndex);
+		if (bSlotLocked)
+		{
+			static const TCHAR* LockNames[] = { TEXT(""), TEXT("\u4E3B\u4EBA\u9501"), TEXT("\u4E3B\u4EBA\u8BA1\u65F6\u9501"),
+				TEXT("\u666E\u901A\u6302\u9501"), TEXT("\u5BC6\u7801\u9501"), TEXT("\u8BA1\u65F6\u9501") };
+			const int32 LockIndex = FMath::Clamp(SlotLock.LockType, 0, 5);
+			Title += FString::Printf(TEXT(" \uFF1A\u5DF2\u4E0A\u9501\uFF08%s\uFF09"), LockNames[LockIndex]);
+		}
+		else
+		{
+			Title += TEXT(" \uFF1A\u9009\u62E9\u62D8\u675F");
+		}
+		PickerTitle->SetText(FText::FromString(Title));
+	}
 
 	const TArray<const FMyBondageLifeRestraintItem*> Items = FMyBondageLifeRestraintCatalog::GetItemsForSlot(SlotIndex);
 
 	int32 Index = 0;
 	for (const FMyBondageLifeRestraintItem* Item : Items)
 	{
+		// A locked slot cannot be changed, so no candidates are listed.
+		if (bSlotLocked)
+		{
+			break;
+		}
 		const int32 ColIndex = Index % 4;
 		const int32 RowIndex = Index / 4;
 		++Index;
@@ -1055,7 +1082,7 @@ void UMyBondageLifeWardrobeWidget::OpenRestraintPicker(int32 SlotIndex)
 	{
 		if (const UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
 		{
-			if (!Account->GetEquippedRestraint(SlotIndex).IsEmpty())
+			if (!bSlotLocked && !Account->GetEquippedRestraint(SlotIndex).IsEmpty())
 			{
 				USizeBox* RemoveSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
 				RemoveSize->SetWidthOverride(140.0f);
