@@ -70,6 +70,31 @@ namespace
 		return 0;
 	}
 
+	/** Reads the display name (text / string / name property). */
+	FString ReadName(const UScriptStruct* RowStruct, const uint8* RowData)
+	{
+		for (TFieldIterator<FProperty> It(RowStruct); It; ++It)
+		{
+			if (!MatchesName(*It, { TEXT("Name") }))
+			{
+				continue;
+			}
+
+			if (const FTextProperty* TextProperty = CastField<FTextProperty>(*It))
+			{
+				return TextProperty->GetPropertyValue_InContainer(RowData).ToString();
+			}
+			if (const FStrProperty* StringProperty = CastField<FStrProperty>(*It))
+			{
+				return StringProperty->GetPropertyValue_InContainer(RowData);
+			}
+			if (const FNameProperty* NameProperty = CastField<FNameProperty>(*It))
+			{
+				return NameProperty->GetPropertyValue_InContainer(RowData).ToString();
+			}
+		}
+		return FString();
+	}
 	/** Reads an object reference of the requested class (hard or soft reference). */
 	void ReadObjectRef(
 		const UScriptStruct* RowStruct,
@@ -141,6 +166,7 @@ void FMyBondageLifeRestraintCatalog::Refresh()
 
 		FMyBondageLifeRestraintItem Item;
 		Item.ItemId = RowName;
+		Item.Name = ReadName(RowStruct, RowData);
 		Item.Slot = FMath::Clamp(ReadInt(RowStruct, RowData, { TEXT("Slot") }), 0, SlotCount - 1);
 
 		// The struct has a typo ("RestranitArm?"), so accept both spellings.
@@ -255,4 +281,17 @@ UTexture2D* FMyBondageLifeRestraintCatalog::LoadIcon(FName ItemId)
 {
 	const FMyBondageLifeRestraintItem* Item = Find(ItemId);
 	return Item ? Item->Icon.LoadSynchronous() : nullptr;
+}
+
+FString FMyBondageLifeRestraintCatalog::GetDisplayName(FName ItemId)
+{
+	if (const FMyBondageLifeRestraintItem* Item = Find(ItemId))
+	{
+		if (!Item->Name.IsEmpty())
+		{
+			return Item->Name;
+		}
+	}
+
+	return ItemId.ToString();
 }

@@ -771,46 +771,48 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 		SlotLabels.Add(Label);
 	}
 
-	// ------------------------------------------------------------- picker
+	// --------------------------------------------------------- picker menu
+	// A dim overlay with a centred box: the old inline strip sat under the grid and
+	// was hard to use.
 	PickerBackdrop = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("RestraintPicker"));
-	PickerBackdrop->SetBrushColor(FLinearColor(0.97f, 0.97f, 0.98f, 1.0f));
+	PickerBackdrop->SetBrushColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.45f));
+	PickerBackdrop->SetHorizontalAlignment(HAlign_Center);
+	PickerBackdrop->SetVerticalAlignment(VAlign_Center);
 	if (UCanvasPanelSlot* PickerBoxSlot = RestraintPage->AddChildToCanvas(PickerBackdrop))
 	{
-		PickerBoxSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
-		PickerBoxSlot->SetAlignment(FVector2D(0.0f, 0.0f));
-		PickerBoxSlot->SetPosition(FVector2D(56.0f, 620.0f));
-		PickerBoxSlot->SetSize(FVector2D(940.0f, 200.0f));
-		PickerBoxSlot->SetZOrder(10);
+		PickerBoxSlot->SetAnchors(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
+		PickerBoxSlot->SetOffsets(FMargin(0.0f));
+		PickerBoxSlot->SetZOrder(20);
 	}
 	PickerBackdrop->SetVisibility(ESlateVisibility::Collapsed);
+
+	UBorder* PickerBox = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
+	PickerBox->SetBrushColor(FLinearColor(1.0f, 1.0f, 1.0f, 1.0f));
+	PickerBox->SetPadding(FMargin(28.0f, 22.0f));
+	PickerBackdrop->AddChild(PickerBox);
+
+	UVerticalBox* PickerColumn = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	PickerBox->AddChild(PickerColumn);
 
 	PickerTitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
 	PickerTitle->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
 	{
 		FSlateFontInfo TitleFont = PickerTitle->GetFont();
-		TitleFont.Size = 20;
+		TitleFont.Size = 22;
 		PickerTitle->SetFont(TitleFont);
 	}
-	if (UCanvasPanelSlot* TitleSlot = RestraintPage->AddChildToCanvas(PickerTitle))
+	if (UVerticalBoxSlot* TitleSlot = PickerColumn->AddChildToVerticalBox(PickerTitle))
 	{
-		TitleSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
-		TitleSlot->SetAlignment(FVector2D(0.0f, 0.0f));
-		TitleSlot->SetPosition(FVector2D(64.0f, 600.0f));
-		TitleSlot->SetAutoSize(true);
-		TitleSlot->SetZOrder(11);
+		TitleSlot->SetHorizontalAlignment(HAlign_Center);
+		TitleSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 14.0f));
 	}
-	PickerTitle->SetVisibility(ESlateVisibility::Collapsed);
 
 	PickerGrid = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass());
-	if (UCanvasPanelSlot* GridSlot = RestraintPage->AddChildToCanvas(PickerGrid))
+	if (UVerticalBoxSlot* GridSlot = PickerColumn->AddChildToVerticalBox(PickerGrid))
 	{
-		GridSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
-		GridSlot->SetAlignment(FVector2D(0.0f, 0.0f));
-		GridSlot->SetPosition(FVector2D(64.0f, 640.0f));
-		GridSlot->SetSize(FVector2D(920.0f, 160.0f));
-		GridSlot->SetZOrder(11);
+		GridSlot->SetHorizontalAlignment(HAlign_Center);
 	}
-	PickerGrid->SetVisibility(ESlateVisibility::Collapsed);
+	PickerGrid->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 }
 
 void UMyBondageLifeWardrobeWidget::RefreshRestraintSlots()
@@ -828,7 +830,8 @@ void UMyBondageLifeWardrobeWidget::RefreshRestraintSlots()
 		if (SlotLabels.IsValidIndex(SlotIndex) && SlotLabels[SlotIndex])
 		{
 			SlotLabels[SlotIndex]->SetText(FText::FromString(
-				bWorn ? ItemId : FMyBondageLifeRestraintCatalog::GetSlotName(SlotIndex)));
+				bWorn ? FMyBondageLifeRestraintCatalog::GetDisplayName(FName(*ItemId))
+				      : FMyBondageLifeRestraintCatalog::GetSlotName(SlotIndex)));
 			SlotLabels[SlotIndex]->SetColorAndOpacity(FSlateColor(
 				bWorn ? FLinearColor(0.45f, 0.2f, 0.6f) : FLinearColor(0.35f, 0.35f, 0.38f)));
 		}
@@ -873,13 +876,13 @@ void UMyBondageLifeWardrobeWidget::OpenRestraintPicker(int32 SlotIndex)
 		++Index;
 
 		USizeBox* ItemSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-		ItemSize->SetWidthOverride(140.0f);
-		ItemSize->SetHeightOverride(140.0f);
+		ItemSize->SetWidthOverride(150.0f);
+		ItemSize->SetHeightOverride(190.0f);
 		if (UCanvasPanelSlot* ItemSlot = PickerGrid->AddChildToCanvas(ItemSize))
 		{
 			ItemSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
 			ItemSlot->SetAlignment(FVector2D(0.0f, 0.0f));
-			ItemSlot->SetPosition(FVector2D(ColIndex * 160.0f, RowIndex * 150.0f));
+			ItemSlot->SetPosition(FVector2D(ColIndex * 170.0f, RowIndex * 200.0f));
 			ItemSlot->SetAutoSize(true);
 		}
 
@@ -894,12 +897,38 @@ void UMyBondageLifeWardrobeWidget::OpenRestraintPicker(int32 SlotIndex)
 		ClickProxies.Add(Proxy);
 		ItemButton->OnClicked.AddDynamic(Proxy, &UMyBondageLifeWardrobeClickProxy::HandleClicked);
 
+		UVerticalBox* ItemColumn = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		ItemButton->AddChild(ItemColumn);
+
+		USizeBox* IconSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		IconSize->SetWidthOverride(150.0f);
+		IconSize->SetHeightOverride(150.0f);
+		if (UVerticalBoxSlot* IconSlot = ItemColumn->AddChildToVerticalBox(IconSize))
+		{
+			IconSlot->SetHorizontalAlignment(HAlign_Center);
+		}
+
 		UImage* Icon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
 		if (UTexture2D* Texture = Item->Icon.LoadSynchronous())
 		{
 			Icon->SetBrushFromTexture(Texture, true);
 		}
-		ItemButton->AddChild(Icon);
+		IconSize->AddChild(Icon);
+
+		UTextBlock* NameLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		NameLabel->SetText(FText::FromString(FMyBondageLifeRestraintCatalog::GetDisplayName(Item->ItemId)));
+		NameLabel->SetJustification(ETextJustify::Center);
+		NameLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
+		{
+			FSlateFontInfo NameFont = NameLabel->GetFont();
+			NameFont.Size = 16;
+			NameLabel->SetFont(NameFont);
+		}
+		if (UVerticalBoxSlot* NameSlot = ItemColumn->AddChildToVerticalBox(NameLabel))
+		{
+			NameSlot->SetHorizontalAlignment(HAlign_Center);
+			NameSlot->SetPadding(FMargin(0.0f, 4.0f, 0.0f, 0.0f));
+		}
 	}
 
 	// "脱下" button when the slot already holds something.
@@ -916,7 +945,7 @@ void UMyBondageLifeWardrobeWidget::OpenRestraintPicker(int32 SlotIndex)
 				{
 					RemoveSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
 					RemoveSlot->SetAlignment(FVector2D(0.0f, 0.0f));
-					RemoveSlot->SetPosition(FVector2D(0.0f, 300.0f));
+					RemoveSlot->SetPosition(FVector2D(0.0f, 410.0f));
 					RemoveSlot->SetAutoSize(true);
 				}
 

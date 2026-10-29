@@ -14,6 +14,9 @@ struct FMyBondageLifeRestraintItem
 	/** Row name, also the id stored on the account (e.g. "1"). */
 	FName ItemId;
 
+	/** Display name shown in the wardrobe. */
+	FString Name;
+
 	/** Enum_RestraintSlot value as an integer (0..11). */
 	int32 Slot = 0;
 
@@ -57,6 +60,9 @@ public:
 
 	/** Loads the icon of an item (may be null). */
 	static UTexture2D* LoadIcon(FName ItemId);
+
+	/** Name for display, falling back to the row name. */
+	static FString GetDisplayName(FName ItemId);
 
 private:
 
