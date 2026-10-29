@@ -524,11 +524,24 @@ void UMyBondageLifeWardrobeWidget::SetPanelOpen(bool bOpen)
 	if (PanelBorder)
 	{
 		PanelBorder->SetVisibility(bOpen ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+
+		if (!bOpen)
+		{
+			ResetToOwnMode();
+		}
 	}
 
 	if (bOpen)
 	{
-		SelectTab(0);
+		// Opening the panel normally means "my wardrobe"; OpenFriendWardrobe sets the
+		// pending flag right before opening (EnterFriendMode already ran).
+		if (bFriendMode && !bPendingFriendOpen)
+		{
+			ResetToOwnMode();
+		}
+		bPendingFriendOpen = false;
+
+		SelectTab(bFriendMode ? 2 : 0);
 		RefreshHeightLabel();
 		RefreshRestraintSlots();
 		CloseRestraintPicker();
@@ -1787,6 +1800,7 @@ void UMyBondageLifeWardrobeWidget::EnterFriendMode(const FString& InAccount)
 {
 	FriendAccount = InAccount;
 	bFriendMode = !InAccount.IsEmpty();
+	bPendingFriendOpen = bFriendMode;
 
 	if (bFriendMode && BodyTabLabel)
 	{

@@ -229,6 +229,7 @@ protected:
 	FString GetFriendAccount() const { return FriendAccount; }
 
 	FString FriendAccount;
+	bool bPendingFriendOpen = false;
 	bool bFriendMode = false;
 
 	void BuildRestraintSlots();
