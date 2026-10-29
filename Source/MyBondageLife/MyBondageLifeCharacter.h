@@ -54,6 +54,10 @@ class AMyBondageLifeCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_HeightScale, Category = "Identity", meta = (AllowPrivateAccess = "true"))
 	float HeightScale = 1.0f;
 
+	/** Hair style ID from DT_Hair (1 based). Replicated so others see the same hair. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_HairIndex, Category = "Identity", meta = (AllowPrivateAccess = "true"))
+	int32 HairIndex = 1;
+
 protected:
 
 	/** Jump Input Action */
@@ -99,12 +103,20 @@ public:
 	UFUNCTION(BlueprintPure, Category="Identity")
 	int64 GetCreatedAtUnix() const { return CreatedAtUnix; }
 
-	/** Applies name, class, account creation time and body height in one call. */
-	void SetCharacterIdentity(const FText& InCharacterName, int32 InCharacterClass, int64 InCreatedAtUnix, float InHeightScale);
+	/** Applies name, class, account creation time, body height and hair in one call. */
+	void SetCharacterIdentity(const FText& InCharacterName, int32 InCharacterClass, int64 InCreatedAtUnix, float InHeightScale, int32 InHairIndex);
 
 	/** Current body height multiplier (0.9 / 1.0 / 1.1). */
 	UFUNCTION(BlueprintPure, Category="Identity")
 	float GetHeightScale() const { return HeightScale; }
+
+	/** Hair style ID currently worn. */
+	UFUNCTION(BlueprintPure, Category="Identity")
+	int32 GetHairIndex() const { return HairIndex; }
+
+	/** Rebuilds the hair mesh from DT_Hair and attaches it to the body. */
+	UFUNCTION(BlueprintCallable, Category="Identity")
+	void ApplyHairStyle();
 
 	/** Rescales the mesh and capsule to match HeightScale. */
 	UFUNCTION(BlueprintCallable, Category="Identity")
@@ -115,6 +127,14 @@ protected:
 	/** Re-applied on clients whenever the replicated height changes. */
 	UFUNCTION()
 	void OnRep_HeightScale();
+
+	/** Re-applied on clients whenever the replicated hair changes. */
+	UFUNCTION()
+	void OnRep_HairIndex();
+
+	/** Extra skeletal mesh worn on the head, created on demand. */
+	UPROPERTY(Transient)
+	TObjectPtr<USkeletalMeshComponent> HairComponent;
 
 	/** Unscaled reference sizes captured on BeginPlay. */
 	float BaseCapsuleHalfHeight = 0.0f;

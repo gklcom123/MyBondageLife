@@ -145,6 +145,10 @@ struct FMyBondageLifeUserProfile
 	/** trialStartedAt, or formalStartedAt for a formal contract. */
 	UPROPERTY(BlueprintReadOnly, Category = "Contract")
 	FDateTime ContractSince;
+
+	/** Hair style ID worn by this character. */
+	UPROPERTY(BlueprintReadOnly, Category = "Contract")
+	int32 HairIndex = 1;
 };
 
 /** Raised whenever the local friend list changes. */
@@ -170,6 +174,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FMyBondageLifeContractActionResul
 
 /** Raised when the stored body height changed (0.9 / 1.0 / 1.1). */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeHeightChanged, float, NewHeightScale);
+
+/** Raised when the stored hair style changed (1 based DT_Hair ID). */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeHairChanged, int32, NewHairIndex);
 
 /** Raised when a public profile was fetched or refreshed. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeUserProfileUpdated, const FString&, Account);
@@ -236,6 +243,17 @@ public:
 	/** PATCH /users/me - persists a new body height and applies it locally. */
 	UFUNCTION(BlueprintCallable, Category = "Account")
 	void RequestUpdateHeight(float NewHeightScale);
+
+	/** Hair style ID stored for this account (1 based, matches DT_Hair ID). */
+	UFUNCTION(BlueprintPure, Category = "Account")
+	int32 GetHairIndex() const { return HairIndex; }
+
+	/** PATCH /users/me - persists a new hair style and applies it locally. */
+	UFUNCTION(BlueprintCallable, Category = "Account")
+	void RequestUpdateHair(int32 NewHairIndex);
+
+	UPROPERTY(BlueprintAssignable, Category = "Account")
+	FMyBondageLifeHairChanged OnHairChanged;
 
 	UPROPERTY(BlueprintAssignable, Category = "Account")
 	FMyBondageLifeHeightChanged OnHeightChanged;
@@ -418,6 +436,9 @@ private:
 
 	/** Body height multiplier (0.9 / 1.0 / 1.1). */
 	float HeightScale = 1.0f;
+
+	/** Hair style ID from DT_Hair (1 based). */
+	int32 HairIndex = 1;
 
 	/** Friend list, refreshed from GET /friends. */
 	TArray<FMyBondageLifeFriendEntry> Friends;

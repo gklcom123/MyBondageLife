@@ -671,6 +671,7 @@ void AMyBondageLifePlayerController::ShowPlayerInfo()
 		if (UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
 		{
 			Account->OnHeightChanged.AddDynamic(this, &AMyBondageLifePlayerController::HandleHeightChanged);
+			Account->OnHairChanged.AddDynamic(this, &AMyBondageLifePlayerController::HandleHairChanged);
 		}
 	}
 	PlayerInfoWidget->AddToViewport(PlayerInfoZOrder);
@@ -1218,17 +1219,17 @@ void AMyBondageLifePlayerController::ApplyCharacterNameToPawn()
 	// every other client's nameplate and inspect panel.
 	if (AMyBondageLifeCharacter* PlayerCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
 	{
-		PlayerCharacter->SetCharacterIdentity(FText::FromString(RoleName), RoleClass, CreatedAtUnix, Account->GetHeightScale());
+		PlayerCharacter->SetCharacterIdentity(FText::FromString(RoleName), RoleClass, CreatedAtUnix, Account->GetHeightScale(), Account->GetHairIndex());
 	}
 
-	ServerSetCharacterInfo(RoleName, RoleClass, CreatedAtUnix, Account->GetHeightScale());
+	ServerSetCharacterInfo(RoleName, RoleClass, CreatedAtUnix, Account->GetHeightScale(), Account->GetHairIndex());
 }
 
-void AMyBondageLifePlayerController::ServerSetCharacterInfo_Implementation(const FString& NewCharacterName, int32 NewCharacterClass, int64 NewCreatedAtUnix, float NewHeightScale)
+void AMyBondageLifePlayerController::ServerSetCharacterInfo_Implementation(const FString& NewCharacterName, int32 NewCharacterClass, int64 NewCreatedAtUnix, float NewHeightScale, int32 NewHairIndex)
 {
 	if (AMyBondageLifeCharacter* PlayerCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
 	{
-		PlayerCharacter->SetCharacterIdentity(FText::FromString(NewCharacterName), NewCharacterClass, NewCreatedAtUnix, NewHeightScale);
+		PlayerCharacter->SetCharacterIdentity(FText::FromString(NewCharacterName), NewCharacterClass, NewCreatedAtUnix, NewHeightScale, NewHairIndex);
 	}
 
 	// The name has just arrived, so this is the first moment the join notice can
@@ -1825,4 +1826,10 @@ void AMyBondageLifePlayerController::ClientHostLeftRoom_Implementation()
 			Session->LeaveRoom();
 		}
 	}
+}
+
+void AMyBondageLifePlayerController::HandleHairChanged(int32 NewHairIndex)
+{
+	// Re-publish the identity so the pawn (and everyone else) wears the new hair.
+	ApplyCharacterNameToPawn();
 }

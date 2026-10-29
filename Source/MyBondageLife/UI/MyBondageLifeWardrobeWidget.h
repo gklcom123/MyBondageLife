@@ -134,6 +134,39 @@ protected:
 	/** Greys out the arrow that would leave the allowed height range. */
 	void RefreshArrowStates();
 
+	/** Moves the hair selector by Delta steps and persists the new style. */
+	void StepHair(int32 Delta);
+
+	/** Rewrites the hair caption from the current style. */
+	void RefreshHairLabel();
+
+	/** Greys out the hair arrow that would leave the table range. */
+	void RefreshHairArrowStates();
+
+	UFUNCTION()
+	void HandleHairDownClicked();
+
+	UFUNCTION()
+	void HandleHairUpClicked();
+
+	UPROPERTY(Transient)
+	TObjectPtr<UButton> HairDownButton;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UButton> HairUpButton;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> HairDownLabel;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> HairUpLabel;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> HairValueLabel;
+
+	/** Current DT_Hair style ID shown by the selector. */
+	int32 HairId = 1;
+
 	/** Index into the height presets (0 = 娇小, 1 = 普通, 2 = 高大). */
 	int32 HeightIndex = 1;
 };

@@ -249,6 +249,13 @@ bool UMyBondageLifeAccountSubsystem::ApplyAuthPayload(const TSharedPtr<FJsonObje
 		HeightScale = FMath::Clamp(static_cast<float>(HeightValue), 0.5f, 2.0f);
 	}
 
+	// Hair style: the DT_Hair row ID, 1 based.
+	double HairValue = 1.0;
+	if ((*UserObject)->TryGetNumberField(TEXT("hairIndex"), HairValue))
+	{
+		HairIndex = FMath::Clamp(static_cast<int32>(HairValue), 1, 64);
+	}
+
 	// e.g. "2026-10-26T10:39:29.323Z" - the account creation date shown in the
 	// personal info panel.
 	FString CreatedAtString;
@@ -1161,6 +1168,12 @@ void UMyBondageLifeAccountSubsystem::RequestUserProfile(const FString& InAccount
 			}
 
 			Json->TryGetBoolField(TEXT("online"), Profile.bOnline);
+
+			double HairValue = 1.0;
+			if (Json->TryGetNumberField(TEXT("hairIndex"), HairValue))
+			{
+				Profile.HairIndex = FMath::Clamp(static_cast<int32>(HairValue), 1, 64);
+			}
 			Profile.CreatedAt = ParseIsoField(Json, TEXT("createdAt"));
 
 			const TSharedPtr<FJsonObject>* ContractObject = nullptr;
@@ -1194,4 +1207,35 @@ bool UMyBondageLifeAccountSubsystem::GetUserProfile(const FString& InAccountName
 		return true;
 	}
 	return false;
+}
+
+void UMyBondageLifeAccountSubsystem::RequestUpdateHair(int32 NewHairIndex)
+{
+	const int32 ClampedIndex = FMath::Clamp(NewHairIndex, 1, 64);
+
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetNumberField(TEXT("hairIndex"), ClampedIndex);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+
+	SendFriendApiRequest(TEXT("PATCH"), TEXT("/users/me"), Body,
+		[WeakThis, ClampedIndex](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self)
+			{
+				return;
+			}
+
+			if (!bOk)
+			{
+				UE_LOG(LogMyBondageLife, Warning, TEXT("Hair: update rejected (%d)."), StatusCode);
+				return;
+			}
+
+			Self->HairIndex = ClampedIndex;
+			Self->OnHairChanged.Broadcast(Self->HairIndex);
+
+			UE_LOG(LogMyBondageLife, Log, TEXT("Hair: stored style %d."), Self->HairIndex);
+		});
 }

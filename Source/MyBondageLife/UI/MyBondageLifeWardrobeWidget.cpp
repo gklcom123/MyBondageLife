@@ -13,6 +13,7 @@
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Core/MyBondageLifeAccountSubsystem.h"
+#include "Core/MyBondageLifeHairCatalog.h"
 #include "Engine/Texture2D.h"
 #include "MyBondageLife.h"
 #include "UObject/ConstructorHelpers.h"
@@ -332,6 +333,77 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 	HeightUpButton->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleHeightUpClicked);
 	HeightUpLabel = Cast<UTextBlock>(HeightUpButton->GetChildAt(0));
 
+	// ------------------------------------------------------- hair row (below)
+	UTextBlock* HairCaption = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+	HairCaption->SetText(FText::FromString(TEXT("\u53D1\u578B\uFF1A")));   // 发型：
+	HairCaption->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
+	{
+		FSlateFontInfo CaptionFont = HairCaption->GetFont();
+		CaptionFont.Size = 28;
+		HairCaption->SetFont(CaptionFont);
+	}
+	if (UCanvasPanelSlot* CaptionSlot = BodyPage->AddChildToCanvas(HairCaption))
+	{
+		CaptionSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
+		CaptionSlot->SetAlignment(FVector2D(0.0f, 0.0f));
+		CaptionSlot->SetPosition(FVector2D(56.0f, 350.0f));
+		CaptionSlot->SetAutoSize(true);
+	}
+
+	auto AddHairArrow = [this](const TCHAR* LabelText, float OffsetX)
+	{
+		USizeBox* ArrowSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		ArrowSize->SetWidthOverride(76.0f);
+		ArrowSize->SetHeightOverride(64.0f);
+		if (UCanvasPanelSlot* ArrowSlot = BodyPage->AddChildToCanvas(ArrowSize))
+		{
+			ArrowSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
+			ArrowSlot->SetAlignment(FVector2D(0.0f, 0.0f));
+			ArrowSlot->SetPosition(FVector2D(OffsetX, 330.0f));
+			ArrowSlot->SetAutoSize(true);
+		}
+
+		UButton* ArrowButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
+		ArrowSize->AddChild(ArrowButton);
+
+		UTextBlock* ArrowLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		ArrowLabel->SetText(FText::FromString(LabelText));
+		ArrowLabel->SetJustification(ETextJustify::Center);
+		ArrowLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
+		{
+			FSlateFontInfo ArrowFont = ArrowLabel->GetFont();
+			ArrowFont.Size = 30;
+			ArrowLabel->SetFont(ArrowFont);
+		}
+		ArrowButton->AddChild(ArrowLabel);
+
+		return ArrowButton;
+	};
+
+	HairDownButton = AddHairArrow(TEXT("<"), 180.0f);
+	HairDownButton->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleHairDownClicked);
+	HairDownLabel = Cast<UTextBlock>(HairDownButton->GetChildAt(0));
+
+	HairValueLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+	HairValueLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
+	HairValueLabel->SetJustification(ETextJustify::Center);
+	{
+		FSlateFontInfo ValueFont = HairValueLabel->GetFont();
+		ValueFont.Size = 28;
+		HairValueLabel->SetFont(ValueFont);
+	}
+	if (UCanvasPanelSlot* HairValueSlot = BodyPage->AddChildToCanvas(HairValueLabel))
+	{
+		HairValueSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
+		HairValueSlot->SetAlignment(FVector2D(0.0f, 0.0f));
+		HairValueSlot->SetPosition(FVector2D(276.0f, 342.0f));
+		HairValueSlot->SetSize(FVector2D(170.0f, 44.0f));
+	}
+
+	HairUpButton = AddHairArrow(TEXT(">"), 470.0f);
+	HairUpButton->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleHairUpClicked);
+	HairUpLabel = Cast<UTextBlock>(HairUpButton->GetChildAt(0));
+
 	SelectTab(0);
 }
 
@@ -363,6 +435,10 @@ void UMyBondageLifeWardrobeWidget::NativeConstruct()
 	}
 
 	RefreshHeightLabel();
+
+	// Hair: start on the style stored on the account (falls back to the first row).
+	HairId = FMyBondageLifeHairCatalog::ClampId(Account ? Account->GetHairIndex() : 1);
+	RefreshHairLabel();
 }
 
 void UMyBondageLifeWardrobeWidget::SelectTab(int32 TabIndex)
@@ -520,4 +596,78 @@ void UMyBondageLifeWardrobeWidget::RefreshArrowStates()
 	{
 		HeightUpLabel->SetColorAndOpacity(FSlateColor(bCanGoUp ? EnabledColor : DisabledColor));
 	}
+}
+
+void UMyBondageLifeWardrobeWidget::RefreshHairLabel()
+{
+	if (!HairValueLabel)
+	{
+		return;
+	}
+
+	HairId = FMyBondageLifeHairCatalog::ClampId(HairId);
+	HairValueLabel->SetText(FText::FromString(FString::Printf(TEXT("%d \u53F7"), HairId)));   // "N 号"
+
+	RefreshHairArrowStates();
+}
+
+void UMyBondageLifeWardrobeWidget::RefreshHairArrowStates()
+{
+	const int32 NextId = FMyBondageLifeHairCatalog::StepId(HairId, 1);
+	const int32 PrevId = FMyBondageLifeHairCatalog::StepId(HairId, -1);
+
+	const bool bCanGoUp = NextId != HairId;
+	const bool bCanGoDown = PrevId != HairId;
+
+	if (HairDownButton)
+	{
+		HairDownButton->SetIsEnabled(bCanGoDown);
+	}
+	if (HairUpButton)
+	{
+		HairUpButton->SetIsEnabled(bCanGoUp);
+	}
+
+	const FLinearColor EnabledColor(0.05f, 0.05f, 0.05f);
+	const FLinearColor DisabledColor(0.72f, 0.72f, 0.74f);
+
+	if (HairDownLabel)
+	{
+		HairDownLabel->SetColorAndOpacity(FSlateColor(bCanGoDown ? EnabledColor : DisabledColor));
+	}
+	if (HairUpLabel)
+	{
+		HairUpLabel->SetColorAndOpacity(FSlateColor(bCanGoUp ? EnabledColor : DisabledColor));
+	}
+}
+
+void UMyBondageLifeWardrobeWidget::StepHair(int32 Delta)
+{
+	const int32 NewId = FMyBondageLifeHairCatalog::StepId(HairId, Delta);
+	if (NewId == HairId)
+	{
+		return;
+	}
+
+	HairId = NewId;
+	RefreshHairLabel();
+
+	// Persist first; the controller republishes the identity when the service answers.
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
+		{
+			Account->RequestUpdateHair(HairId);
+		}
+	}
+}
+
+void UMyBondageLifeWardrobeWidget::HandleHairDownClicked()
+{
+	StepHair(-1);
+}
+
+void UMyBondageLifeWardrobeWidget::HandleHairUpClicked()
+{
+	StepHair(1);
 }

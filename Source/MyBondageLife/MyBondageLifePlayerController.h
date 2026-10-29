@@ -318,6 +318,10 @@ protected:
 	UFUNCTION()
 	void HandleHeightChanged(float NewHeightScale);
 
+	/** The stored hair style changed: push it to the pawn. */
+	UFUNCTION()
+	void HandleHairChanged(int32 NewHairIndex);
+
 	//~ Contracts -----------------------------------------------------------
 
 	/** The info panel asked to start (or formalise) a contract. */
@@ -403,7 +407,7 @@ protected:
 	void EnsureInputSetup();
 
 	UFUNCTION(Server, Reliable)
-	void ServerSetCharacterInfo(const FString& NewCharacterName, int32 NewCharacterClass, int64 NewCreatedAtUnix, float NewHeightScale);
+	void ServerSetCharacterInfo(const FString& NewCharacterName, int32 NewCharacterClass, int64 NewCreatedAtUnix, float NewHeightScale, int32 NewHairIndex);
 
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;

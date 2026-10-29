@@ -1,6 +1,9 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "MyBondageLifeCharacter.h"
+
+#include "Core/MyBondageLifeHairCatalog.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -91,14 +94,16 @@ void AMyBondageLifeCharacter::SetCharacterName(const FText& InCharacterName)
 	CharacterName = InCharacterName;
 }
 
-void AMyBondageLifeCharacter::SetCharacterIdentity(const FText& InCharacterName, int32 InCharacterClass, int64 InCreatedAtUnix, float InHeightScale)
+void AMyBondageLifeCharacter::SetCharacterIdentity(const FText& InCharacterName, int32 InCharacterClass, int64 InCreatedAtUnix, float InHeightScale, int32 InHairIndex)
 {
 	CharacterName = InCharacterName;
 	CharacterClass = FMath::Clamp(InCharacterClass, 1, 4);
 	CreatedAtUnix = InCreatedAtUnix;
 	HeightScale = FMath::Clamp(InHeightScale, 0.5f, 2.0f);
+	HairIndex = InHairIndex > 0 ? InHairIndex : 1;
 
 	ApplyHeightScale();
+	ApplyHairStyle();
 }
 
 void AMyBondageLifeCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -109,6 +114,7 @@ void AMyBondageLifeCharacter::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(AMyBondageLifeCharacter, CharacterClass);
 	DOREPLIFETIME(AMyBondageLifeCharacter, CreatedAtUnix);
 	DOREPLIFETIME(AMyBondageLifeCharacter, HeightScale);
+	DOREPLIFETIME(AMyBondageLifeCharacter, HairIndex);
 }
 void AMyBondageLifeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -217,6 +223,7 @@ void AMyBondageLifeCharacter::BeginPlay()
 		BaseMeshScale = MeshComponent->GetRelativeScale3D();
 	}
 	ApplyHeightScale();
+	ApplyHairStyle();
 
 	// Remember the designed camera distance: the wheel zoom keeps the range at
 	// 0.5x - 1.5x of it.
@@ -298,4 +305,68 @@ void AMyBondageLifeCharacter::ApplyHeightScale()
 		BaseMeshRelativeLocation.X,
 		BaseMeshRelativeLocation.Y,
 		BaseMeshRelativeLocation.Z - (NewHalfHeight - BaseCapsuleHalfHeight)));
+}
+
+void AMyBondageLifeCharacter::OnRep_HairIndex()
+{
+	ApplyHairStyle();
+}
+
+void AMyBondageLifeCharacter::ApplyHairStyle()
+{
+	USkeletalMeshComponent* BodyMesh = GetMesh();
+	if (!BodyMesh)
+	{
+		return;
+	}
+
+	USkeletalMesh* HairMesh = FMyBondageLifeHairCatalog::LoadMesh(HairIndex);
+	if (!HairMesh)
+	{
+		if (HairComponent)
+		{
+			HairComponent->SetSkeletalMeshAsset(nullptr);
+			HairComponent->SetVisibility(false);
+		}
+		return;
+	}
+
+	// Created on demand: only characters that actually wear hair pay for it.
+	if (!HairComponent)
+	{
+		HairComponent = NewObject<USkeletalMeshComponent>(this, TEXT("HairComponent"));
+		if (!HairComponent)
+		{
+			return;
+		}
+
+		HairComponent->SetupAttachment(BodyMesh);
+		HairComponent->RegisterComponent();
+		HairComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		HairComponent->SetGenerateOverlapEvents(false);
+		HairComponent->SetCastShadow(true);
+	}
+
+	HairComponent->SetSkeletalMeshAsset(HairMesh);
+
+	// Hair that shares the body skeleton follows the animation through master pose;
+	// anything else is parented to the head socket instead.
+	const USkeletalMesh* HairAsset = HairComponent->GetSkeletalMeshAsset();
+	const bool bSameSkeleton = HairAsset && BodyMesh->GetSkeletalMeshAsset()
+		&& HairAsset->GetSkeleton() == BodyMesh->GetSkeletalMeshAsset()->GetSkeleton();
+
+	if (bSameSkeleton)
+	{
+		HairComponent->SetMasterPoseComponent(BodyMesh);
+		HairComponent->AttachToComponent(BodyMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+	}
+	else
+	{
+		HairComponent->SetMasterPoseComponent(nullptr);
+		HairComponent->AttachToComponent(
+			BodyMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TEXT("head"));
+	}
+
+	HairComponent->SetVisibility(true, true);
+	HairComponent->SetHiddenInGame(false, true);
 }
