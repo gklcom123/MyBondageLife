@@ -724,7 +724,8 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 		{
 			CellSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
 			CellSlot->SetAlignment(FVector2D(0.0f, 0.0f));
-			CellSlot->SetPosition(FVector2D(56.0f + ColIndex * 185.0f, 30.0f + Row * 200.0f));
+			// Start below the tab row (tabs sit at y=116 in the panel canvas).
+			CellSlot->SetPosition(FVector2D(56.0f + ColIndex * 185.0f, 150.0f + Row * 200.0f));
 			CellSlot->SetAutoSize(true);
 		}
 
