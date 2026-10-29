@@ -211,6 +211,18 @@ protected:
 	//~ Restraint slots ------------------------------------------------------
 
 	/** Builds the 12 slot buttons plus the picker popup inside the 拘束 page. */
+public:
+	/** Switches the panel to another account's wardrobe (body tab disabled). */
+	void EnterFriendMode(const FString& InAccount);
+
+protected:
+
+	bool IsFriendMode() const { return bFriendMode; }
+	FString GetFriendAccount() const { return FriendAccount; }
+
+	FString FriendAccount;
+	bool bFriendMode = false;
+
 	void BuildRestraintSlots();
 
 	/** Rewrites slot icons / labels from the account equipment. */

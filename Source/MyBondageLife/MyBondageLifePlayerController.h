@@ -139,6 +139,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Wardrobe")
 	void ShowWardrobe();
 
+	/** Opens the wardrobe of another account (friend), with the body tab disabled. */
+	UFUNCTION(BlueprintCallable, Category = "Wardrobe")
+	void OpenFriendWardrobe(const FString& InAccount);
+
 	UFUNCTION(BlueprintCallable, Category = "Wardrobe")
 	void HideWardrobe();
 

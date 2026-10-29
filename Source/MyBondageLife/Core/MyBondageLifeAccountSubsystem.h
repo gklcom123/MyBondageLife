@@ -364,6 +364,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Restraint")
 	bool CanEditRestraintsOf(const FString& InAccountName) const;
 
+	/** Resolves an account name from a character (display) name. */
+	UFUNCTION(BlueprintPure, Category = "Friends")
+	FString FindAccountByCharacterName(const FText& InCharacterName) const;
+
 	/** GET /users/{account}/restraints into the "other" cache. */
 	UFUNCTION(BlueprintCallable, Category = "Restraint")
 	void RefreshRestraintsFor(const FString& InAccountName);

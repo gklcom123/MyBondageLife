@@ -1958,3 +1958,26 @@ void AMyBondageLifePlayerController::HandleRestraintsChanged()
 {
 	PushRestraintsToPawn();
 }
+void AMyBondageLifePlayerController::OpenFriendWardrobe(const FString& InAccount)
+{
+	if (InAccount.IsEmpty())
+	{
+		return;
+	}
+
+	HidePlayerInfo();
+
+	if (UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr)
+	{
+		Account->RefreshRestraintsFor(InAccount);
+	}
+
+	ShowWardrobe();
+
+	if (WardrobeWidget)
+	{
+		WardrobeWidget->EnterFriendMode(InAccount);
+	}
+}

@@ -445,6 +445,12 @@ void UMyBondageLifeWardrobeWidget::NativeConstruct()
 
 void UMyBondageLifeWardrobeWidget::SelectTab(int32 TabIndex)
 {
+	// Somebody else's wardrobe has no body page.
+	if (bFriendMode && TabIndex == 0)
+	{
+		TabIndex = 2;
+	}
+
 	// 0 body, 1 appearance, 2 restraint.
 	if (BodyPage)
 	{
@@ -943,7 +949,7 @@ void UMyBondageLifeWardrobeWidget::RefreshRestraintSlots()
 
 	for (int32 SlotIndex = 0; SlotIndex < SlotButtons.Num(); ++SlotIndex)
 	{
-		const FString ItemId = Account ? Account->GetEquippedRestraint(SlotIndex) : FString();
+		const FString ItemId = Account ? (bFriendMode ? Account->GetViewedRestraint(SlotIndex) : Account->GetEquippedRestraint(SlotIndex)) : FString();
 		const bool bWorn = !ItemId.IsEmpty();
 
 		if (SlotLabels.IsValidIndex(SlotIndex) && SlotLabels[SlotIndex])
@@ -984,7 +990,7 @@ void UMyBondageLifeWardrobeWidget::OpenRestraintPicker(int32 SlotIndex)
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
 		: nullptr;
 	const FMyBondageLifeRestraintLock SlotLock = LockAccount
-		? LockAccount->GetRestraintLock(SlotIndex)
+		? (bFriendMode ? LockAccount->GetViewedLock(SlotIndex) : LockAccount->GetRestraintLock(SlotIndex))
 		: FMyBondageLifeRestraintLock();
 	const bool bSlotLocked = SlotLock.LockType > 0;
 	PickerLockType = SlotLock.LockType;
@@ -1174,11 +1180,11 @@ void UMyBondageLifeWardrobeWidget::PickRestraintItem(FName ItemId)
 
 	if (ItemId.IsNone())
 	{
-		Account->UnequipRestraint(PickerSlot);
+		if (bFriendMode) { Account->UnequipRestraintFor(FriendAccount, PickerSlot); } else { Account->UnequipRestraint(PickerSlot); }
 	}
 	else
 	{
-		Account->EquipRestraint(PickerSlot, ItemId.ToString());
+		if (bFriendMode) { Account->EquipRestraintFor(FriendAccount, PickerSlot, ItemId.ToString()); } else { Account->EquipRestraint(PickerSlot, ItemId.ToString()); }
 	}
 
 	CloseRestraintPicker();
@@ -1322,7 +1328,7 @@ void UMyBondageLifeWardrobeWidget::RefreshLockActionButton()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
 		: nullptr;
 	const FMyBondageLifeRestraintLock Lock = Account
-		? Account->GetRestraintLock(PickerSlot)
+		? (bFriendMode ? Account->GetViewedLock(PickerSlot) : Account->GetRestraintLock(PickerSlot))
 		: FMyBondageLifeRestraintLock();
 
 	if (Lock.LockType > 0)
@@ -1351,7 +1357,7 @@ void UMyBondageLifeWardrobeWidget::HandleLockAction()
 		return;
 	}
 
-	const FMyBondageLifeRestraintLock Lock = Account->GetRestraintLock(PickerSlot);
+	const FMyBondageLifeRestraintLock Lock = (bFriendMode ? Account->GetViewedLock(PickerSlot) : Account->GetRestraintLock(PickerSlot));
 	UE_LOG(LogMyBondageLife, Warning, TEXT("Lock: action slot=%d lockType=%d canUnlock=%d"),
 		PickerSlot, Lock.LockType, Lock.bCanUnlock ? 1 : 0);
 	if (Lock.LockType == 0)
@@ -1372,7 +1378,7 @@ void UMyBondageLifeWardrobeWidget::HandleLockAction()
 		return;
 	}
 
-	Account->UnlockRestraint(PickerSlot, FString());
+	if (bFriendMode) { Account->UnlockRestraintFor(FriendAccount, PickerSlot, FString()); } else { Account->UnlockRestraint(PickerSlot, FString()); }
 }
 
 void UMyBondageLifeWardrobeWidget::OpenLockMenu()
@@ -1648,17 +1654,17 @@ void UMyBondageLifeWardrobeWidget::ConfirmLockInput()
 
 	if (PendingLockType == 104)
 	{
-		Account->UnlockRestraint(PickerSlot, Text);
+		if (bFriendMode) { Account->UnlockRestraintFor(FriendAccount, PickerSlot, Text); } else { Account->UnlockRestraint(PickerSlot, Text); }
 	}
 	else if (PendingLockType == 4)
 	{
 		PlayLockCue();
-		Account->LockRestraint(PickerSlot, 4, 0, Text);
+		if (bFriendMode) { Account->LockRestraintFor(FriendAccount, PickerSlot, 4, 0, Text); } else { Account->LockRestraint(PickerSlot, 4, 0, Text); }
 	}
 	else
 	{
 		PlayLockCue();
-		Account->LockRestraint(PickerSlot, PendingLockType, ParseDuration(Text), FString());
+		if (bFriendMode) { Account->LockRestraintFor(FriendAccount, PickerSlot, PendingLockType, ParseDuration(Text), FString()); } else { Account->LockRestraint(PickerSlot, PendingLockType, ParseDuration(Text), FString()); }
 	}
 
 	CloseLockInput();
@@ -1711,6 +1717,22 @@ void UMyBondageLifeWardrobeWidget::HandleRestraintsChanged()
 	CloseLockMenu();
 	CloseRestraintPicker();
 
+	RefreshRestraintSlots();
+	RefreshLockBadges();
+	RefreshLockActionButton();
+}
+void UMyBondageLifeWardrobeWidget::EnterFriendMode(const FString& InAccount)
+{
+	FriendAccount = InAccount;
+	bFriendMode = !InAccount.IsEmpty();
+
+	if (bFriendMode && BodyTabLabel)
+	{
+		// No body tab for somebody else's wardrobe.
+		BodyTabLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.72f, 0.72f, 0.72f)));
+	}
+
+	SelectTab(bFriendMode ? 2 : 0);
 	RefreshRestraintSlots();
 	RefreshLockBadges();
 	RefreshLockActionButton();

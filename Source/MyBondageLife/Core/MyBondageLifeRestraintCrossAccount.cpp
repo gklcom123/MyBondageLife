@@ -264,3 +264,16 @@ void UMyBondageLifeAccountSubsystem::UnlockRestraintFor(const FString& InAccount
 			Self->RefreshRestraintsFor(Target);
 		});
 }
+
+FString UMyBondageLifeAccountSubsystem::FindAccountByCharacterName(const FText& InCharacterName) const
+{
+	const FString Wanted = InCharacterName.ToString();
+	for (const FMyBondageLifeFriendEntry& Entry : Friends)
+	{
+		if (Entry.CharacterName.Equals(Wanted, ESearchCase::IgnoreCase))
+		{
+			return Entry.AccountName;
+		}
+	}
+	return FString();
+}
