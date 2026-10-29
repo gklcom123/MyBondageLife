@@ -125,6 +125,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Identity")
 	void ApplyHairStyle();
 
+	/** Server side setter; clients receive the arrays through replication. */
+	UFUNCTION(BlueprintCallable, Category="Restraint")
+	void SetRestraints(const TArray<int32>& InSlots, const TArray<FName>& InItems);
+
+	/** Rebuilds the worn meshes, the derived flags and the pose montage. */
+	UFUNCTION(BlueprintCallable, Category="Restraint")
+	void ApplyRestraints();
+
 	//~ Animation -----------------------------------------------------------
 
 	/** Enables or disables the temporary restraint pose. */
@@ -165,6 +173,51 @@ protected:
 	/** Re-applied on clients whenever the replicated pose state flips. */
 	UFUNCTION()
 	void OnRep_RestraintPose();
+
+	//~ Restraints ---------------------------------------------------------
+
+	UFUNCTION(BlueprintPure, Category="Restraint")
+	bool IsRestraintArmActive() const { return bRestraintArm; }
+
+	UFUNCTION(BlueprintPure, Category="Restraint")
+	bool IsRestraintLegActive() const { return bRestraintLeg; }
+
+	UFUNCTION(BlueprintPure, Category="Restraint")
+	bool IsCantMoveActive() const { return bCantMove; }
+
+	UFUNCTION(BlueprintPure, Category="Restraint")
+	bool IsInPetModeActive() const { return bInPetMode; }
+
+	UFUNCTION()
+	void OnRep_Restraints();
+
+	/** Slot index per equipped item (parallel to RestraintItemIds). */
+	UPROPERTY(ReplicatedUsing = OnRep_Restraints, BlueprintReadOnly, Category="Restraint", meta = (AllowPrivateAccess = "true"))
+	TArray<int32> RestraintSlots;
+
+	/** DT_Restraint row names of the equipped items. */
+	UPROPERTY(Replicated, BlueprintReadOnly, Category="Restraint", meta = (AllowPrivateAccess = "true"))
+	TArray<FName> RestraintItemIds;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category="Restraint", meta = (AllowPrivateAccess = "true"))
+	bool bRestraintArm = false;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category="Restraint", meta = (AllowPrivateAccess = "true"))
+	bool bRestraintLeg = false;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category="Restraint", meta = (AllowPrivateAccess = "true"))
+	bool bCantMove = false;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category="Restraint", meta = (AllowPrivateAccess = "true"))
+	bool bInPetMode = false;
+
+	/** Montage driven by the equipped items (lowest slot wins). */
+	UPROPERTY(Transient)
+	TObjectPtr<class UAnimMontage> ActiveUpAnmi;
+
+	/** Spawned components for the worn restraint meshes. */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<USkeletalMeshComponent>> RestraintComponents;
 
 	/** AnimBP used instead of the one assigned on the blueprint mesh. */
 	UPROPERTY(EditDefaultsOnly, Category="Animation")

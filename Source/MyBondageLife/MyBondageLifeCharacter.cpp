@@ -3,6 +3,8 @@
 #include "MyBondageLifeCharacter.h"
 
 #include "Core/MyBondageLifeHairCatalog.h"
+#include "Core/MyBondageLifeRestraintCatalog.h"
+#include "Animation/AnimMontage.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimSequence.h"
@@ -136,6 +138,12 @@ void AMyBondageLifeCharacter::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(AMyBondageLifeCharacter, HairIndex);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bRestraintPoseActive);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bRunning);
+	DOREPLIFETIME(AMyBondageLifeCharacter, RestraintSlots);
+	DOREPLIFETIME(AMyBondageLifeCharacter, RestraintItemIds);
+	DOREPLIFETIME(AMyBondageLifeCharacter, bRestraintArm);
+	DOREPLIFETIME(AMyBondageLifeCharacter, bRestraintLeg);
+	DOREPLIFETIME(AMyBondageLifeCharacter, bCantMove);
+	DOREPLIFETIME(AMyBondageLifeCharacter, bInPetMode);
 }
 void AMyBondageLifeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -507,7 +515,8 @@ void AMyBondageLifeCharacter::RefreshRestraintPose()
 		return;
 	}
 
-	UAnimMontage* Montage = Cast<UAnimMontage>(RestraintMontagePath.TryLoad());
+	// The equipped items decide the pose; the debug path is only a fallback.
+	UAnimMontage* Montage = ActiveUpAnmi ? ActiveUpAnmi.Get() : Cast<UAnimMontage>(RestraintMontagePath.TryLoad());
 	if (!Montage)
 	{
 		UE_LOG(LogMyBondageLife, Warning, TEXT("Animation: montage not found."));
@@ -571,4 +580,111 @@ void AMyBondageLifeCharacter::ApplyMoveSpeed()
 	{
 		Movement->MaxWalkSpeed = bRunning ? RunSpeed : WalkSpeed;
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Restraints
+// ---------------------------------------------------------------------------
+
+void AMyBondageLifeCharacter::SetRestraints(const TArray<int32>& InSlots, const TArray<FName>& InItems)
+{
+	RestraintSlots = InSlots;
+	RestraintItemIds = InItems;
+
+	ApplyRestraints();
+}
+
+void AMyBondageLifeCharacter::OnRep_Restraints()
+{
+	ApplyRestraints();
+}
+
+void AMyBondageLifeCharacter::ApplyRestraints()
+{
+	USkeletalMeshComponent* BodyMesh = GetMesh();
+	if (!BodyMesh)
+	{
+		return;
+	}
+
+	// Rebuild from scratch: the list is small and this keeps the state consistent.
+	for (USkeletalMeshComponent* Component : RestraintComponents)
+	{
+		if (Component)
+		{
+			Component->DestroyComponent();
+		}
+	}
+	RestraintComponents.Reset();
+
+	bRestraintArm = false;
+	bRestraintLeg = false;
+	bCantMove = false;
+	bInPetMode = false;
+	ActiveUpAnmi = nullptr;
+
+	int32 BestSlot = MAX_int32;
+
+	for (int32 Index = 0; Index < RestraintItemIds.Num(); ++Index)
+	{
+		const FMyBondageLifeRestraintItem* Item = FMyBondageLifeRestraintCatalog::Find(RestraintItemIds[Index]);
+		if (!Item)
+		{
+			continue;
+		}
+
+		// The derived states are a logical OR across every worn item.
+		bRestraintArm |= Item->bRestraintArm;
+		bRestraintLeg |= Item->bRestraintLeg;
+		bCantMove |= Item->bCantMove;
+		bInPetMode |= Item->bInPetMode;
+
+		const int32 Slot = RestraintSlots.IsValidIndex(Index) ? RestraintSlots[Index] : Item->Slot;
+
+		// Several items may bring a pose: the lowest slot wins (configuration error).
+		if (UAnimMontage* Montage = Item->UpAnmi.LoadSynchronous())
+		{
+			if (Slot < BestSlot)
+			{
+				ActiveUpAnmi = Montage;
+				BestSlot = Slot;
+			}
+		}
+
+		if (USkeletalMesh* WornMesh = Item->Mesh.LoadSynchronous())
+		{
+			USkeletalMeshComponent* Component = NewObject<USkeletalMeshComponent>(this);
+			if (!Component)
+			{
+				continue;
+			}
+
+			Component->SetupAttachment(BodyMesh);
+			Component->RegisterComponent();
+			Component->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			Component->SetGenerateOverlapEvents(false);
+			Component->SetSkeletalMeshAsset(WornMesh);
+
+			const bool bSameSkeleton = BodyMesh->GetSkeletalMeshAsset()
+				&& WornMesh->GetSkeleton() == BodyMesh->GetSkeletalMeshAsset()->GetSkeleton();
+
+			if (bSameSkeleton)
+			{
+				Component->SetMasterPoseComponent(BodyMesh);
+				Component->AttachToComponent(BodyMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+			}
+			else
+			{
+				Component->AttachToComponent(BodyMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TEXT("spine_03"));
+			}
+
+			RestraintComponents.Add(Component);
+		}
+	}
+
+	// Drive the pose from the equipped items instead of the old debug toggle.
+	SetRestraintPose(ActiveUpAnmi != nullptr);
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("Restraint: %d item(s) applied (arm=%d leg=%d cantmove=%d pet=%d)."),
+		RestraintItemIds.Num(), bRestraintArm ? 1 : 0, bRestraintLeg ? 1 : 0, bCantMove ? 1 : 0, bInPetMode ? 1 : 0);
 }

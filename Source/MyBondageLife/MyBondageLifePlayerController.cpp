@@ -672,6 +672,7 @@ void AMyBondageLifePlayerController::ShowPlayerInfo()
 		{
 			Account->OnHeightChanged.AddDynamic(this, &AMyBondageLifePlayerController::HandleHeightChanged);
 			Account->OnHairChanged.AddDynamic(this, &AMyBondageLifePlayerController::HandleHairChanged);
+			Account->OnRestraintsChanged.AddDynamic(this, &AMyBondageLifePlayerController::HandleRestraintsChanged);
 		}
 	}
 	PlayerInfoWidget->AddToViewport(PlayerInfoZOrder);
@@ -1182,6 +1183,9 @@ void AMyBondageLifePlayerController::ApplyAccountNameToPlayerState()
 	SetName(Account->GetAccountName());
 
 	ApplyCharacterNameToPawn();
+
+	// Restore the worn restraints on the freshly possessed pawn.
+	PushRestraintsToPawn();
 }
 
 void AMyBondageLifePlayerController::ApplyCharacterNameToPawn()
@@ -1257,6 +1261,9 @@ void AMyBondageLifePlayerController::OnPossess(APawn* InPawn)
 	Super::OnPossess(InPawn);
 
 	ApplyCharacterNameToPawn();
+
+	// Restore the worn restraints on the freshly possessed pawn.
+	PushRestraintsToPawn();
 
 	if (!IsLocalPlayerController())
 	{
@@ -1405,8 +1412,7 @@ void AMyBondageLifePlayerController::SetupInputComponent()
 	// 衣柜面板：B 键与底部入口同效。
 	InputComponent->BindKey(EKeys::B, IE_Pressed, this, &AMyBondageLifePlayerController::HandleWardrobeKeyPressed);
 
-	// 临时：F9 切换束缚姿势动画测试。
-	InputComponent->BindKey(EKeys::F9, IE_Pressed, this, &AMyBondageLifePlayerController::HandleRestraintTestKeyPressed);
+	// 束缚姿势改由装备的拘束（UpAnmi）驱动，F9 临时开关已移除。
 
 	// F: inspect the nearby player.
 	InputComponent->BindKey(EKeys::F, IE_Pressed, this, &AMyBondageLifePlayerController::HandleInspectPressed);
@@ -1673,6 +1679,9 @@ void AMyBondageLifePlayerController::HandleHeightChanged(float NewHeightScale)
 {
 	// Re-publish the identity so the pawn (and every other client) picks the new size.
 	ApplyCharacterNameToPawn();
+
+	// Restore the worn restraints on the freshly possessed pawn.
+	PushRestraintsToPawn();
 }
 
 // ---------------------------------------------------------------------------
@@ -1853,6 +1862,9 @@ void AMyBondageLifePlayerController::HandleHairChanged(int32 NewHairIndex)
 {
 	// Re-publish the identity so the pawn (and everyone else) wears the new hair.
 	ApplyCharacterNameToPawn();
+
+	// Restore the worn restraints on the freshly possessed pawn.
+	PushRestraintsToPawn();
 }
 
 // ---------------------------------------------------------------------------
@@ -1894,4 +1906,55 @@ void AMyBondageLifePlayerController::ServerSetRestraintPose_Implementation(bool 
 	{
 		TargetCharacter->SetRestraintPose(bActive);
 	}
+}
+
+void AMyBondageLifePlayerController::PushRestraintsToPawn()
+{
+	UGameInstance* GameInstance = GetGameInstance();
+	UMyBondageLifeAccountSubsystem* Account = GameInstance
+		? GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+	if (!Account)
+	{
+		return;
+	}
+
+	const TMap<int32, FString> Equipped = Account->GetEquippedRestraints();
+
+	TArray<int32> Slots;
+	TArray<FName> Items;
+	for (const TPair<int32, FString>& Pair : Equipped)
+	{
+		if (Pair.Value.IsEmpty())
+		{
+			continue;
+		}
+		Slots.Add(Pair.Key);
+		Items.Add(FName(*Pair.Value));
+	}
+
+	if (HasAuthority())
+	{
+		if (AMyBondageLifeCharacter* TargetCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+		{
+			TargetCharacter->SetRestraints(Slots, Items);
+		}
+	}
+	else
+	{
+		ServerSetRestraints(Slots, Items);
+	}
+}
+
+void AMyBondageLifePlayerController::ServerSetRestraints_Implementation(const TArray<int32>& Slots, const TArray<FName>& Items)
+{
+	if (AMyBondageLifeCharacter* TargetCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		TargetCharacter->SetRestraints(Slots, Items);
+	}
+}
+
+void AMyBondageLifePlayerController::HandleRestraintsChanged()
+{
+	PushRestraintsToPawn();
 }

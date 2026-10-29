@@ -338,6 +338,16 @@ protected:
 	UFUNCTION()
 	void HandleHairChanged(int32 NewHairIndex);
 
+	/** Sends the locally equipped restraints to the server pawn. */
+	void PushRestraintsToPawn();
+
+	/** The account equipment changed: re-apply it on the pawn. */
+	UFUNCTION()
+	void HandleRestraintsChanged();
+
+	UFUNCTION(Server, Reliable)
+	void ServerSetRestraints(const TArray<int32>& Slots, const TArray<FName>& Items);
+
 
 
 	//~ Contracts -----------------------------------------------------------
