@@ -695,8 +695,12 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 		}
 	}
 
-	// Drive the pose from the equipped items instead of the old debug toggle.
+	// Drive the pose from the equipped items: any item with UpAnmi wins, the lowest
+	// slot plays first; none means back to the normal pose.
 	SetRestraintPose(ActiveUpAnmi != nullptr);
+
+	// The owning client must apply it immediately as well (replication may be a tick late).
+	RefreshRestraintPose();
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("Restraint: %d item(s) applied (arm=%d leg=%d cantmove=%d pet=%d)."),
 		RestraintItemIds.Num(), bRestraintArm ? 1 : 0, bRestraintLeg ? 1 : 0, bCantMove ? 1 : 0, bInPetMode ? 1 : 0);
