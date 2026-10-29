@@ -262,6 +262,9 @@ protected:
 	/** 上锁 when unlocked, 开锁 when locked (password locks open the popup). */
 	void HandleLockAction();
 
+	/** Whether the local player may apply this lock type to the slot owner. */
+	bool IsLockTypeAllowed(int32 LockType) const;
+
 	void OpenLockMenu();
 	void CloseLockMenu();
 

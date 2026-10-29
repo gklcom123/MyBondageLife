@@ -1390,6 +1390,15 @@ void UMyBondageLifeWardrobeWidget::OpenLockMenu()
 			}
 			IconButton->AddChild(Icon);
 
+			// Only the locks the local player may actually use stay clickable.
+			const bool bAllowed = IsLockTypeAllowed(LockType);
+			IconButton->SetIsEnabled(bAllowed);
+			Icon->SetColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f, bAllowed ? 1.0f : 0.3f));
+			if (!bAllowed)
+			{
+				IconButton->SetToolTipText(FText::FromString(TEXT("\uFF08\u5F53\u524D\u8EAB\u4EFD\u4E0D\u53EF\u7528\uFF09")));
+			}
+
 			UTextBlock* Caption = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
 			Caption->SetText(LockTitle(LockType));
 			Caption->SetJustification(ETextJustify::Center);
@@ -1590,3 +1599,37 @@ void UMyBondageLifeWardrobeWidget::BuildLockWidgets()
 	RefreshLockBadges();
 }
 
+
+bool UMyBondageLifeWardrobeWidget::IsLockTypeAllowed(int32 LockType) const
+{
+	const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+	if (!Account)
+	{
+		return false;
+	}
+
+	// Today only the local wardrobe is editable, so the actor is always the owner.
+	// Keep the per-type rules here so opening a friend's wardrobe later needs no rewrite.
+	const bool bSelf = true;
+
+	if (bSelf)
+	{
+		// 1/2 need a master, 3/4 must be applied by someone else, 5 allows self locking.
+		return LockType == 5;
+	}
+
+	switch (LockType)
+	{
+	case 1:
+	case 2:
+		return Account->GetContractRoleWith(Account->GetAccountName()) == EMyBondageLifeContractRole::Master;
+	case 3:
+	case 4:
+	case 5:
+		return true;
+	default:
+		return false;
+	}
+}
