@@ -151,6 +151,9 @@ protected:
 	UFUNCTION()
 	void OnRep_HeightScale();
 
+	/** Picks idle / walk / run from the current speed and plays it in single-node mode. */
+	void UpdateLocomotionAnimation();
+
 	/** Re-applied on clients whenever the replicated hair changes. */
 	UFUNCTION()
 	void OnRep_HairIndex();
@@ -170,6 +173,20 @@ protected:
 	/** Montage played through the AnimBP slot while the pose is active. */
 	UPROPERTY(EditDefaultsOnly, Category="Animation")
 	FSoftObjectPath RestraintMontagePath;
+
+	/** Locomotion clips from /Game/Characters/Animation/Normal. */
+	UPROPERTY(EditDefaultsOnly, Category="Animation")
+	FSoftObjectPath IdleSequencePath;
+
+	UPROPERTY(EditDefaultsOnly, Category="Animation")
+	FSoftObjectPath WalkSequencePath;
+
+	UPROPERTY(EditDefaultsOnly, Category="Animation")
+	FSoftObjectPath RunSequencePath;
+
+	/** Sequence currently playing in single-node mode. */
+	UPROPERTY(Transient)
+	TObjectPtr<class UAnimSequence> CurrentLocomotionSequence;
 
 	/** Unscaled reference sizes captured on BeginPlay. */
 	float BaseCapsuleHalfHeight = 0.0f;
@@ -196,6 +213,39 @@ protected:
 
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
+
+	//~ Walk / run -----------------------------------------------------------
+
+	/** Shift pressed: switch to the running pace. */
+	void StartRunning();
+
+	/** Shift released: back to walking. */
+	void StopRunning();
+
+	/** Applies the running flag locally and tells the server about it. */
+	void SetRunning(bool bNewRunning);
+
+	/** Writes the matching max walk speed into the movement component. */
+	void ApplyMoveSpeed();
+
+	UFUNCTION(Server, Reliable)
+	void ServerSetRunning(bool bNewRunning);
+
+	UFUNCTION()
+	void OnRep_Running();
+
+	/** Default pace (no modifier). */
+	UPROPERTY(EditAnywhere, Category="Movement")
+	float WalkSpeed = 125.0f;
+
+	/** Pace while Shift is held. */
+	UPROPERTY(EditAnywhere, Category="Movement")
+	float RunSpeed = 300.0f;
+
+	/** Replicated so other clients see the same pace. */
+	UPROPERTY(ReplicatedUsing = OnRep_Running, BlueprintReadOnly, Category="Movement", meta = (AllowPrivateAccess = "true"))
+	bool bRunning = false;
+
 
 	/** Mouse wheel: pull the camera in / push it out (0.5x - 1.5x of the default). */
 	UFUNCTION(BlueprintCallable, Category="Camera")

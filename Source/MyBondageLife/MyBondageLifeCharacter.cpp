@@ -40,7 +40,10 @@ AMyBondageLifeCharacter::AMyBondageLifeCharacter()
 	AnimBlueprintOverridePath = FSoftClassPath(
 		TEXT("/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed_Restraint.ABP_Unarmed_Restraint_C"));
 	RestraintMontagePath = FSoftObjectPath(
-		TEXT("/Game/Characters/Animation/Restraint/AM_Restraint_HandBack_F.AM_Restraint_HandBack_F"));
+		TEXT("/Game/Characters/Animation/Restraint/Anmi_Restraint_HandBack_F.Anmi_Restraint_HandBack_F"));
+	IdleSequencePath = FSoftObjectPath(TEXT("/Game/Characters/Animation/Normal/Idle.Idle"));
+	WalkSequencePath = FSoftObjectPath(TEXT("/Game/Characters/Animation/Normal/Walk.Walk"));
+	RunSequencePath = FSoftObjectPath(TEXT("/Game/Characters/Animation/Normal/Run.Run"));
 
 		
 	// Don't rotate when the controller rotates. Let that just affect the camera.
@@ -56,7 +59,13 @@ AMyBondageLifeCharacter::AMyBondageLifeCharacter()
 	// instead of recompiling to adjust them
 	GetCharacterMovement()->JumpZVelocity = 500.f;
 	GetCharacterMovement()->AirControl = 0.35f;
-	GetCharacterMovement()->MaxWalkSpeed = 500.f;
+
+	// Walking is the default pace; holding Shift switches to running (see StartRunning).
+	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+
+	// Jumping is not part of the design: no input is bound and JumpMaxCount stays 0.
+	JumpMaxCount = 0;
+
 	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
 	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
 	GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
@@ -126,6 +135,7 @@ void AMyBondageLifeCharacter::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(AMyBondageLifeCharacter, HeightScale);
 	DOREPLIFETIME(AMyBondageLifeCharacter, HairIndex);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bRestraintPoseActive);
+	DOREPLIFETIME(AMyBondageLifeCharacter, bRunning);
 }
 void AMyBondageLifeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -140,9 +150,13 @@ void AMyBondageLifeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerI
 	// Set up action bindings
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
 		
-		// Jumping
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
+		// Jumping is intentionally not bound: the character cannot jump.
+
+		// Sprint: Shift is not part of the mapping context, so bind the key directly.
+		PlayerInputComponent->BindKey(EKeys::LeftShift, IE_Pressed, this, &AMyBondageLifeCharacter::StartRunning);
+		PlayerInputComponent->BindKey(EKeys::LeftShift, IE_Released, this, &AMyBondageLifeCharacter::StopRunning);
+		PlayerInputComponent->BindKey(EKeys::RightShift, IE_Pressed, this, &AMyBondageLifeCharacter::StartRunning);
+		PlayerInputComponent->BindKey(EKeys::RightShift, IE_Released, this, &AMyBondageLifeCharacter::StopRunning);
 
 		// Moving
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AMyBondageLifeCharacter::Move);
@@ -283,12 +297,8 @@ void AMyBondageLifeCharacter::Tick(float DeltaSeconds)
 		Boom->TargetArmLength = FMath::FInterpTo(Boom->TargetArmLength, TargetArmLength, DeltaSeconds, 8.0f);
 	}
 
-	// The AnimBP may be instanced a frame after the flag arrives, and the montage can
-	// be interrupted by other animations: keep the pose alive while it is requested.
-	if (bRestraintPoseActive)
-	{
-		RefreshRestraintPose();
-	}
+	// Locomotion is code driven: pick idle / walk / run from the current speed.
+	UpdateLocomotionAnimation();
 }
 
 void AMyBondageLifeCharacter::OnRep_HeightScale()
@@ -424,62 +434,124 @@ void AMyBondageLifeCharacter::ApplyAnimBlueprintOverride()
 		return;
 	}
 
-	UClass* AnimClass = AnimBlueprintOverridePath.TryLoadClass<UAnimInstance>();
-	if (!AnimClass)
+	// The project moved to its own skeleton, so the old mannequin AnimBP can no longer
+	// drive this mesh. Locomotion is played back in single-node mode instead.
+	MeshComponent->SetAnimInstanceClass(nullptr);
+	MeshComponent->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+
+	CurrentLocomotionSequence = nullptr;
+	UpdateLocomotionAnimation();
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("Animation: code-driven locomotion enabled."));
+}
+
+void AMyBondageLifeCharacter::UpdateLocomotionAnimation()
+{
+	USkeletalMeshComponent* MeshComponent = GetMesh();
+	if (!MeshComponent)
 	{
-		UE_LOG(LogMyBondageLife, Warning,
-			TEXT("Animation: '%s' not found, keeping the blueprint AnimBP."),
-			*AnimBlueprintOverridePath.ToString());
 		return;
 	}
 
-	if (MeshComponent->GetAnimInstance() && MeshComponent->GetAnimInstance()->GetClass() == AnimClass)
+	// The restraint pose owns the mesh while it is active.
+	if (bRestraintPoseActive)
 	{
 		return;
 	}
 
-	MeshComponent->SetAnimInstanceClass(AnimClass);
-	UE_LOG(LogMyBondageLife, Log, TEXT("Animation: using %s."), *AnimClass->GetName());
+	const float Speed2D = GetVelocity().Size2D();
+	const FSoftObjectPath* ChosenPath = &IdleSequencePath;
+
+	if (Speed2D >= 10.0f)
+	{
+		const float WalkLimit = (WalkSpeed + RunSpeed) * 0.5f;
+		ChosenPath = Speed2D < WalkLimit ? &WalkSequencePath : &RunSequencePath;
+	}
+
+	UAnimSequence* Sequence = Cast<UAnimSequence>(ChosenPath->TryLoad());
+	if (!Sequence || Sequence == CurrentLocomotionSequence)
+	{
+		return;
+	}
+
+	CurrentLocomotionSequence = Sequence;
+	MeshComponent->PlayAnimation(Sequence, true);
+
+	UE_LOG(LogMyBondageLife, Verbose, TEXT("Animation: locomotion -> %s (speed %.1f)."),
+		*Sequence->GetName(), Speed2D);
 }
 
 void AMyBondageLifeCharacter::RefreshRestraintPose()
 {
 	USkeletalMeshComponent* MeshComponent = GetMesh();
-	UAnimInstance* AnimInstance = MeshComponent ? MeshComponent->GetAnimInstance() : nullptr;
-	if (!MeshComponent || !AnimInstance)
+	if (!MeshComponent)
 	{
-		// The AnimBP may not be instanced yet; the tick retries while the pose is on.
-		return;
-	}
-
-	UAnimMontage* Montage = Cast<UAnimMontage>(RestraintMontagePath.TryLoad());
-	if (!Montage)
-	{
-		UE_LOG(LogMyBondageLife, Warning, TEXT("Animation: '%s' not found."), *RestraintMontagePath.ToString());
 		return;
 	}
 
 	if (bRestraintPoseActive)
 	{
-		if (!AnimInstance->Montage_IsPlaying(Montage))
+		UAnimSequence* PoseSequence = Cast<UAnimSequence>(RestraintMontagePath.TryLoad());
+		if (!PoseSequence)
 		{
-			// Played through the AnimBP's slot: the locomotion graph keeps running, so
-			// there is no animation-mode switch (that caused the freeze).
-			AnimInstance->Montage_Play(Montage, 1.0f);
-
-			// Hold the pose by looping the first section until the toggle is released.
-			if (Montage->CompositeSections.Num() > 0)
-			{
-				const FName SectionName = Montage->CompositeSections[0].SectionName;
-				AnimInstance->Montage_SetNextSection(SectionName, SectionName);
-			}
-
-			UE_LOG(LogMyBondageLife, Log, TEXT("Animation: restraint pose on (%s)."), *Montage->GetName());
+			UE_LOG(LogMyBondageLife, Warning, TEXT("Animation: '%s' not found."), *RestraintMontagePath.ToString());
+			return;
 		}
+
+		CurrentLocomotionSequence = PoseSequence;
+		MeshComponent->PlayAnimation(PoseSequence, true);
+
+		UE_LOG(LogMyBondageLife, Log, TEXT("Animation: restraint pose on (%s)."), *PoseSequence->GetName());
 	}
-	else if (AnimInstance->Montage_IsPlaying(Montage))
+	else
 	{
-		AnimInstance->Montage_Stop(0.15f, Montage);
+		// Hand the mesh back to the locomotion clips.
+		CurrentLocomotionSequence = nullptr;
+		UpdateLocomotionAnimation();
+
 		UE_LOG(LogMyBondageLife, Log, TEXT("Animation: restraint pose off."));
+	}
+}
+void AMyBondageLifeCharacter::StartRunning()
+{
+	SetRunning(true);
+}
+
+void AMyBondageLifeCharacter::StopRunning()
+{
+	SetRunning(false);
+}
+
+void AMyBondageLifeCharacter::SetRunning(bool bNewRunning)
+{
+	if (bRunning == bNewRunning)
+	{
+		return;
+	}
+
+	bRunning = bNewRunning;
+	ApplyMoveSpeed();
+
+	if (!HasAuthority())
+	{
+		ServerSetRunning(bNewRunning);
+	}
+}
+
+void AMyBondageLifeCharacter::ServerSetRunning_Implementation(bool bNewRunning)
+{
+	SetRunning(bNewRunning);
+}
+
+void AMyBondageLifeCharacter::OnRep_Running()
+{
+	ApplyMoveSpeed();
+}
+
+void AMyBondageLifeCharacter::ApplyMoveSpeed()
+{
+	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+	{
+		Movement->MaxWalkSpeed = bRunning ? RunSpeed : WalkSpeed;
 	}
 }
