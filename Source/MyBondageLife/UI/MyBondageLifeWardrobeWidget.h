@@ -218,6 +218,11 @@ public:
 	/** Back to the local player wardrobe. */
 	void ResetToOwnMode();
 
+	/** Re-reads the viewed account so their own changes show up here too. */
+	void SyncViewedAccount();
+
+	FTimerHandle ViewedSyncTimer;
+
 protected:
 
 	bool IsFriendMode() const { return bFriendMode; }

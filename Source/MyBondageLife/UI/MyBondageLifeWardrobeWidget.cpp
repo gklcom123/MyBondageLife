@@ -1174,6 +1174,11 @@ void UMyBondageLifeWardrobeWidget::OpenRestraintPicker(int32 SlotIndex)
 
 void UMyBondageLifeWardrobeWidget::ResetToOwnMode()
 {
+	if (UWorld* StopWorld = GetWorld())
+	{
+		StopWorld->GetTimerManager().ClearTimer(ViewedSyncTimer);
+	}
+
 	bFriendMode = false;
 	FriendAccount.Reset();
 	RefreshRestraintSlots();
@@ -1790,7 +1795,34 @@ void UMyBondageLifeWardrobeWidget::EnterFriendMode(const FString& InAccount)
 	}
 
 	SelectTab(bFriendMode ? 2 : 0);
+
+	if (UWorld* SyncWorld = GetWorld())
+	{
+		SyncWorld->GetTimerManager().ClearTimer(ViewedSyncTimer);
+		if (bFriendMode)
+		{
+			SyncWorld->GetTimerManager().SetTimer(ViewedSyncTimer, this,
+				&UMyBondageLifeWardrobeWidget::SyncViewedAccount, 2.0f, true);
+		}
+	}
+
 	RefreshRestraintSlots();
 	RefreshLockBadges();
 	RefreshLockActionButton();
+}
+void UMyBondageLifeWardrobeWidget::SyncViewedAccount()
+{
+	if (!bFriendMode || FriendAccount.IsEmpty())
+	{
+		return;
+	}
+
+	if (UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr)
+	{
+		// The owner is not the one being pushed events, so poll their wardrobe while
+		// it is on screen.
+		Account->RefreshRestraintsFor(FriendAccount);
+	}
 }
