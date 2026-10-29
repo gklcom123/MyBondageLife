@@ -167,9 +167,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Animation")
 	FSoftClassPath AnimBlueprintOverridePath;
 
-	/** Sequence played while the restraint pose is active. */
+	/** Montage played through the AnimBP slot while the pose is active. */
 	UPROPERTY(EditDefaultsOnly, Category="Animation")
-	FSoftObjectPath RestraintSequencePath;
+	FSoftObjectPath RestraintMontagePath;
 
 	/** Unscaled reference sizes captured on BeginPlay. */
 	float BaseCapsuleHalfHeight = 0.0f;

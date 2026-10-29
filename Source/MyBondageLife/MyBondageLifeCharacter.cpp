@@ -39,8 +39,8 @@ AMyBondageLifeCharacter::AMyBondageLifeCharacter()
 	// ABP_Unarmed so the pose graph can be extended without touching the original.
 	AnimBlueprintOverridePath = FSoftClassPath(
 		TEXT("/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed_Restraint.ABP_Unarmed_Restraint_C"));
-	RestraintSequencePath = FSoftObjectPath(
-		TEXT("/Game/Characters/Animation/Restraint/Anmi_Restraint_HandBack_F.Anmi_Restraint_HandBack_F"));
+	RestraintMontagePath = FSoftObjectPath(
+		TEXT("/Game/Characters/Animation/Restraint/AM_Restraint_HandBack_F.AM_Restraint_HandBack_F"));
 
 		
 	// Don't rotate when the controller rotates. Let that just affect the camera.
@@ -238,6 +238,7 @@ void AMyBondageLifeCharacter::BeginPlay()
 
 	// Use the copied AnimBP from now on, then restore the replicated pose state.
 	ApplyAnimBlueprintOverride();
+	RestraintMontagePath.TryLoad();   // warm the asset so the first toggle does not hitch
 	RefreshRestraintPose();
 
 	// Remember the designed camera distance: the wheel zoom keeps the range at
@@ -280,6 +281,13 @@ void AMyBondageLifeCharacter::Tick(float DeltaSeconds)
 	{
 		// Smooth so a single notch does not snap the camera.
 		Boom->TargetArmLength = FMath::FInterpTo(Boom->TargetArmLength, TargetArmLength, DeltaSeconds, 8.0f);
+	}
+
+	// The AnimBP may be instanced a frame after the flag arrives, and the montage can
+	// be interrupted by other animations: keep the pose alive while it is requested.
+	if (bRestraintPoseActive)
+	{
+		RefreshRestraintPose();
 	}
 }
 
@@ -437,33 +445,41 @@ void AMyBondageLifeCharacter::ApplyAnimBlueprintOverride()
 void AMyBondageLifeCharacter::RefreshRestraintPose()
 {
 	USkeletalMeshComponent* MeshComponent = GetMesh();
-	if (!MeshComponent)
+	UAnimInstance* AnimInstance = MeshComponent ? MeshComponent->GetAnimInstance() : nullptr;
+	if (!MeshComponent || !AnimInstance)
 	{
+		// The AnimBP may not be instanced yet; the tick retries while the pose is on.
+		return;
+	}
+
+	UAnimMontage* Montage = Cast<UAnimMontage>(RestraintMontagePath.TryLoad());
+	if (!Montage)
+	{
+		UE_LOG(LogMyBondageLife, Warning, TEXT("Animation: '%s' not found."), *RestraintMontagePath.ToString());
 		return;
 	}
 
 	if (bRestraintPoseActive)
 	{
-		UAnimSequence* Sequence = Cast<UAnimSequence>(RestraintSequencePath.TryLoad());
-		if (!Sequence)
+		if (!AnimInstance->Montage_IsPlaying(Montage))
 		{
-			UE_LOG(LogMyBondageLife, Warning, TEXT("Animation: '%s' not found."),
-				*RestraintSequencePath.ToString());
-			return;
+			// Played through the AnimBP's slot: the locomotion graph keeps running, so
+			// there is no animation-mode switch (that caused the freeze).
+			AnimInstance->Montage_Play(Montage, 1.0f);
+
+			// Hold the pose by looping the first section until the toggle is released.
+			if (Montage->CompositeSections.Num() > 0)
+			{
+				const FName SectionName = Montage->CompositeSections[0].SectionName;
+				AnimInstance->Montage_SetNextSection(SectionName, SectionName);
+			}
+
+			UE_LOG(LogMyBondageLife, Log, TEXT("Animation: restraint pose on (%s)."), *Montage->GetName());
 		}
-
-		// The single node player keeps the sequence looping (the pose is held) and
-		// applies its clavicle tracks on top of the skeleton.
-		MeshComponent->PlayAnimation(Sequence, true);
-
-		UE_LOG(LogMyBondageLife, Log, TEXT("Animation: restraint pose on (%s)."), *Sequence->GetName());
 	}
-	else
+	else if (AnimInstance->Montage_IsPlaying(Montage))
 	{
-		// Hand control back to the AnimBP so locomotion resumes.
-		MeshComponent->SetAnimationMode(EAnimationMode::AnimationBlueprint);
-		MeshComponent->InitAnim(true);
-
+		AnimInstance->Montage_Stop(0.15f, Montage);
 		UE_LOG(LogMyBondageLife, Log, TEXT("Animation: restraint pose off."));
 	}
 }

@@ -109,9 +109,7 @@ protected:
 	UFUNCTION()
 	void HandleSettingsClicked();
 
-	/** Temporary: toggles the restraint pose animation for testing. */
-	UFUNCTION()
-	void HandleRestraintTestClicked();
+
 
 	UFUNCTION()
 	void HandleQuitClicked();

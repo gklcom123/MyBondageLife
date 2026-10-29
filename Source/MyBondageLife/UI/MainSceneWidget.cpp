@@ -2,8 +2,6 @@
 
 #include "MainSceneWidget.h"
 
-#include "MyBondageLifePlayerController.h"
-
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
 #include "Components/Button.h"
@@ -150,10 +148,6 @@ void UMainSceneWidget::BuildLayout()
 	SettingsButton->SetToolTipText(FText::FromString(TEXT("\u5C1A\u672A\u5B9E\u73B0")));
 	SettingsButton->OnClicked.AddDynamic(this, &UMainSceneWidget::HandleSettingsClicked);
 
-	// 指定动画（临时测试按钮）
-	UButton* RestraintTestButton = CreateMenuButton(CenterBox, TEXT("\u6307\u5B9A\u52A8\u753B\uFF08\u6D4B\u8BD5\uFF09"), MenuButtonHeight, true);
-	RestraintTestButton->SetToolTipText(FText::FromString(TEXT("\u5207\u6362\u675F\u7F1A\u59FF\u52BF\u52A8\u753B\uFF08\u4E34\u65F6\u6D4B\u8BD5\uFF09")));
-	RestraintTestButton->OnClicked.AddDynamic(this, &UMainSceneWidget::HandleRestraintTestClicked);
 
 	// 离开游戏: closes the game process.
 	UButton* QuitButton = CreateMenuButton(CenterBox, TEXT("\u79BB\u5F00\u6E38\u620F"), MenuButtonHeight, true);
@@ -1005,11 +999,3 @@ void UMainSceneWidget::HandleJoinLocalRoomClicked()
 	OpenLocalRoomBrowser();
 }
 
-void UMainSceneWidget::HandleRestraintTestClicked()
-{
-	// Temporary hook for the restraint pose test.
-	if (AMyBondageLifePlayerController* Controller = Cast<AMyBondageLifePlayerController>(GetOwningPlayer()))
-	{
-		Controller->ToggleRestraintPose();
-	}
-}
