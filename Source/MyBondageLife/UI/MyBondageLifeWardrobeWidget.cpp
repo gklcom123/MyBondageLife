@@ -1642,6 +1642,11 @@ bool UMyBondageLifeWardrobeWidget::IsLockTypeAllowed(int32 LockType) const
 }
 void UMyBondageLifeWardrobeWidget::HandleRestraintsChanged()
 {
+	// A successful lock / unlock returns to the slot grid: the two popups are done.
+	CloseLockInput();
+	CloseLockMenu();
+	CloseRestraintPicker();
+
 	RefreshRestraintSlots();
 	RefreshLockBadges();
 	RefreshLockActionButton();
