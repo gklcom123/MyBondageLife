@@ -289,6 +289,10 @@ void UMyBondageLifePlayerInfoWidget::BuildLayout()
 	// only thing that should appear or disappear).
 	AddFriendButton->SetVisibility(ESlateVisibility::Collapsed);
 
+	if (WardrobeButton)
+	{
+		WardrobeButton->SetVisibility(ESlateVisibility::Collapsed);
+	}
 	// "签订契约" sits to the right of the add-friend button.
 	USizeBox* ContractSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("ContractSize"));
 	ContractSize->SetWidthOverride(360.0f);
@@ -428,6 +432,10 @@ void UMyBondageLifePlayerInfoWidget::RefreshContents()
 		if (!IsDisplayingOtherPlayer())
 		{
 			AddFriendButton->SetVisibility(ESlateVisibility::Collapsed);
+			if (WardrobeButton)
+			{
+				WardrobeButton->SetVisibility(ESlateVisibility::Collapsed);
+			}
 		}
 		else
 		{

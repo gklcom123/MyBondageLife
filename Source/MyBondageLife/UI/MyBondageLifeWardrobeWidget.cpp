@@ -736,7 +736,7 @@ void UMyBondageLifeWardrobeClickProxy::HandleClicked()
 		{
 			Owner->CloseLockMenu();
 			Owner->PlayLockCue();
-			Account->LockRestraint(Owner->PickerSlot, LockType, 0, FString());
+			if (Owner->IsFriendMode()) { Account->LockRestraintFor(Owner->GetFriendAccount(), Owner->PickerSlot, LockType, 0, FString()); } else { Account->LockRestraint(Owner->PickerSlot, LockType, 0, FString()); }
 		}
 		return;
 	}
@@ -997,6 +997,15 @@ void UMyBondageLifeWardrobeWidget::OpenRestraintPicker(int32 SlotIndex)
 	}
 
 	PickerSlot = SlotIndex;
+
+	if (bFriendMode)
+	{
+		// The owner may have changed things externally: re-read before showing state.
+		if (UMyBondageLifeAccountSubsystem* RefreshAccount = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+		{
+			RefreshAccount->RefreshRestraintsFor(FriendAccount);
+		}
+	}
 
 	const UMyBondageLifeAccountSubsystem* LockAccount = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
@@ -1304,7 +1313,7 @@ void UMyBondageLifeWardrobeWidget::RefreshLockBadges()
 		}
 
 		const FMyBondageLifeRestraintLock Lock = Account
-			? Account->GetRestraintLock(SlotIndex)
+			? (bFriendMode ? Account->GetViewedLock(SlotIndex) : Account->GetRestraintLock(SlotIndex))
 			: FMyBondageLifeRestraintLock();
 
 		UTexture2D* Icon = Lock.LockType > 0
