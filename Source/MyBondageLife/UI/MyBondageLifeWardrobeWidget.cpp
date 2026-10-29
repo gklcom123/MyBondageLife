@@ -183,23 +183,6 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 	}
 	CloseButton->AddChild(CloseLabel);
 
-	// Title
-	UTextBlock* Title = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-	Title->SetText(FText::FromString(WardrobeTitleText));
-	Title->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
-	{
-		FSlateFontInfo TitleFont = Title->GetFont();
-		TitleFont.Size = 30;
-		Title->SetFont(TitleFont);
-	}
-	if (UCanvasPanelSlot* TitleSlot = PanelCanvas->AddChildToCanvas(Title))
-	{
-		TitleSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
-		TitleSlot->SetAlignment(FVector2D(0.0f, 0.0f));
-		TitleSlot->SetPosition(FVector2D(56.0f, 40.0f));
-		TitleSlot->SetAutoSize(true);
-	}
-
 	// --------------------------------------------------------------- tab buttons
 	auto AddTab = [this, PanelCanvas](const TCHAR* LabelText, float OffsetX)
 	{
@@ -210,7 +193,7 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 		{
 			TabSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
 			TabSlot->SetAlignment(FVector2D(0.0f, 0.0f));
-			TabSlot->SetPosition(FVector2D(OffsetX, 116.0f));
+			TabSlot->SetPosition(FVector2D(OffsetX, 20.0f));
 
 			// Without auto size the canvas slot collapses and the tab shrinks to its
 			// text, which clips the caption.
@@ -717,15 +700,15 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 		const int32 Row = SlotIndex % 3;
 
 		USizeBox* CellSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-		CellSize->SetWidthOverride(150.0f);
-		CellSize->SetHeightOverride(178.0f);
+		CellSize->SetWidthOverride(130.0f);
+		CellSize->SetHeightOverride(152.0f);
 
 		if (UCanvasPanelSlot* CellSlot = RestraintPage->AddChildToCanvas(CellSize))
 		{
 			CellSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
 			CellSlot->SetAlignment(FVector2D(0.0f, 0.0f));
 			// Start below the tab row (tabs sit at y=116 in the panel canvas).
-			CellSlot->SetPosition(FVector2D(56.0f + ColIndex * 185.0f, 150.0f + Row * 200.0f));
+			CellSlot->SetPosition(FVector2D(56.0f + ColIndex * 150.0f, 124.0f + Row * 170.0f));
 			CellSlot->SetAutoSize(true);
 		}
 
@@ -744,8 +727,8 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 		SlotButton->AddChild(Column);
 
 		USizeBox* IconSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-		IconSize->SetWidthOverride(150.0f);
-		IconSize->SetHeightOverride(150.0f);
+		IconSize->SetWidthOverride(130.0f);
+		IconSize->SetHeightOverride(130.0f);
 		if (UVerticalBoxSlot* IconSlot = Column->AddChildToVerticalBox(IconSize))
 		{
 			IconSlot->SetHorizontalAlignment(HAlign_Center);
@@ -761,7 +744,7 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 		Label->SetJustification(ETextJustify::Center);
 		{
 			FSlateFontInfo LabelFont = Label->GetFont();
-			LabelFont.Size = 18;
+			LabelFont.Size = 16;
 			Label->SetFont(LabelFont);
 		}
 		if (UVerticalBoxSlot* LabelSlot = Column->AddChildToVerticalBox(Label))
@@ -905,8 +888,8 @@ void UMyBondageLifeWardrobeWidget::OpenRestraintPicker(int32 SlotIndex)
 		ItemButton->AddChild(ItemColumn);
 
 		USizeBox* IconSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-		IconSize->SetWidthOverride(150.0f);
-		IconSize->SetHeightOverride(150.0f);
+		IconSize->SetWidthOverride(130.0f);
+		IconSize->SetHeightOverride(130.0f);
 		if (UVerticalBoxSlot* IconSlot = ItemColumn->AddChildToVerticalBox(IconSize))
 		{
 			IconSlot->SetHorizontalAlignment(HAlign_Center);
