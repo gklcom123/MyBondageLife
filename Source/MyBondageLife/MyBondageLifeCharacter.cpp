@@ -53,6 +53,17 @@ AMyBondageLifeCharacter::AMyBondageLifeCharacter()
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
 
+	// The follow camera must not collide with characters: only the world blocks it.
+	// The spring arm probes on ECC_Camera, so characters ignore that channel.
+	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		Capsule->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	}
+	if (USkeletalMeshComponent* MeshComponent = GetMesh())
+	{
+		MeshComponent->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	}
+
 	// Configure character movement
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);

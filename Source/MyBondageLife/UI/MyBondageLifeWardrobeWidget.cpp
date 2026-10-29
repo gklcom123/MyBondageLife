@@ -35,12 +35,15 @@ namespace
 	constexpr float TabGap = 18.0f;
 
 	/** Height presets: 娇小 / 普通 / 高大. */
-	const float HeightPresets[] = { 0.9f, 1.0f, 1.1f };
+	const float HeightPresets[] = { 0.9f, 0.95f, 1.0f, 1.05f, 1.1f };
 	const TCHAR* HeightLabels[] = {
-		TEXT("\u5A07\u5C0F"),   // 娇小
-		TEXT("\u666E\u901A"),   // 普通
-		TEXT("\u9AD8\u5927")    // 高大
+		TEXT("\u5A07\u5C0F"),   // 娇小  0.90
+		TEXT("\u8F83\u5C0F"),   // 较小  0.95
+		TEXT("\u666E\u901A"),   // 普通  1.00
+		TEXT("\u8F83\u5927"),   // 较大  1.05
+		TEXT("\u9AD8\u5927")    // 高大  1.10
 	};
+	constexpr int32 HeightPresetCount = UE_ARRAY_COUNT(HeightPresets);
 
 	const TCHAR* WardrobeEntryText = TEXT("\u8863\u67DC\uFF08B\uFF09");   // 衣柜（B）
 	const TCHAR* WardrobeTitleText = TEXT("\u8863\u67DC");                // 衣柜
@@ -405,19 +408,20 @@ void UMyBondageLifeWardrobeWidget::NativeConstruct()
 
 	if (Account)
 	{
+		// Pick the closest preset to whatever the account service stored.
 		const float Scale = Account->GetHeightScale();
-		if (Scale < 0.95f)
+		int32 BestIndex = 0;
+		float BestDelta = FLT_MAX;
+		for (int32 Index = 0; Index < HeightPresetCount; ++Index)
 		{
-			HeightIndex = 0;
+			const float Delta = FMath::Abs(HeightPresets[Index] - Scale);
+			if (Delta < BestDelta)
+			{
+				BestDelta = Delta;
+				BestIndex = Index;
+			}
 		}
-		else if (Scale > 1.05f)
-		{
-			HeightIndex = 2;
-		}
-		else
-		{
-			HeightIndex = 1;
-		}
+		HeightIndex = BestIndex;
 	}
 
 	RefreshHeightLabel();
@@ -458,7 +462,7 @@ void UMyBondageLifeWardrobeWidget::RefreshHeightLabel()
 		return;
 	}
 
-	HeightIndex = FMath::Clamp(HeightIndex, 0, 2);
+	HeightIndex = FMath::Clamp(HeightIndex, 0, HeightPresetCount - 1);
 	HeightValueLabel->SetText(FText::FromString(HeightLabels[HeightIndex]));
 
 	RefreshArrowStates();
@@ -466,7 +470,7 @@ void UMyBondageLifeWardrobeWidget::RefreshHeightLabel()
 
 void UMyBondageLifeWardrobeWidget::StepHeight(int32 Delta)
 {
-	const int32 NewIndex = FMath::Clamp(HeightIndex + Delta, 0, 2);
+	const int32 NewIndex = FMath::Clamp(HeightIndex + Delta, 0, HeightPresetCount - 1);
 	if (NewIndex == HeightIndex)
 	{
 		return;
@@ -487,7 +491,7 @@ void UMyBondageLifeWardrobeWidget::StepHeight(int32 Delta)
 
 float UMyBondageLifeWardrobeWidget::GetDisplayedHeightScale() const
 {
-	return HeightPresets[FMath::Clamp(HeightIndex, 0, 2)];
+	return HeightPresets[FMath::Clamp(HeightIndex, 0, HeightPresetCount - 1)];
 }
 
 void UMyBondageLifeWardrobeWidget::SetPanelOpen(bool bOpen)
@@ -562,7 +566,7 @@ void UMyBondageLifeWardrobeWidget::RefreshArrowStates()
 {
 	// The selector must not leave the allowed range: 0 = 娇小, 2 = 高大.
 	const bool bCanGoDown = HeightIndex > 0;
-	const bool bCanGoUp = HeightIndex < 2;
+	const bool bCanGoUp = HeightIndex < HeightPresetCount - 1;
 
 	if (HeightDownButton)
 	{
