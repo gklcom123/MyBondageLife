@@ -1341,6 +1341,7 @@ void UMyBondageLifeWardrobeWidget::HandleLockAction()
 		PickerSlot, Lock.LockType, Lock.bCanUnlock ? 1 : 0);
 	if (Lock.LockType == 0)
 	{
+		PlayLockCue();
 		OpenLockMenu();
 		return;
 	}

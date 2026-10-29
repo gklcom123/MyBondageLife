@@ -273,6 +273,9 @@ protected:
 	void UpdateLockCountdown();
 	void StopLockCountdown();
 
+	/** Plays UI_Lock_Cue (silently skipped when the asset is missing). */
+	void PlayLockCue();
+
 	FDateTime PickerLockExpiry;
 	bool bPickerLockHasExpiry = false;
 	int32 PickerLockType = 0;
