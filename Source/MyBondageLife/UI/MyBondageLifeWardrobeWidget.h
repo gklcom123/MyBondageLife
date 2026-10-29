@@ -265,6 +265,10 @@ protected:
 	/** Whether the local player may apply this lock type to the slot owner. */
 	bool IsLockTypeAllowed(int32 LockType) const;
 
+	/** Equipment or lock state changed on the server: repaint slots and the button. */
+	UFUNCTION()
+	void HandleRestraintsChanged();
+
 	void OpenLockMenu();
 	void CloseLockMenu();
 

@@ -405,6 +405,13 @@ void UMyBondageLifeWardrobeWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	if (UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr)
+	{
+		Account->OnRestraintsChanged.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleRestraintsChanged);
+	}
+
 	// Start from the height the account service already has.
 	const UGameInstance* GameInstance = GetGameInstance();
 	const UMyBondageLifeAccountSubsystem* Account = GameInstance
@@ -1632,4 +1639,10 @@ bool UMyBondageLifeWardrobeWidget::IsLockTypeAllowed(int32 LockType) const
 	default:
 		return false;
 	}
+}
+void UMyBondageLifeWardrobeWidget::HandleRestraintsChanged()
+{
+	RefreshRestraintSlots();
+	RefreshLockBadges();
+	RefreshLockActionButton();
 }
