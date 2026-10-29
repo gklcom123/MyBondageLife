@@ -773,6 +773,28 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 	}
 
 	SlotButtons.Reset();
+	// Hint line under the slot grid.
+	USizeBox* HintSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("RestraintHint"));
+	HintSize->SetWidthOverride(1000.0f);
+	if (UCanvasPanelSlot* HintSlot = RestraintPage->AddChildToCanvas(HintSize))
+	{
+		HintSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
+		HintSlot->SetAlignment(FVector2D(0.0f, 0.0f));
+		HintSlot->SetPosition(FVector2D(56.0f, 650.0f));
+		HintSlot->SetAutoSize(true);
+	}
+
+	UTextBlock* HintText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+	HintText->SetText(FText::FromString(TEXT("\u624B\u81C2\u5931\u53BB\u81EA\u7531\u72B6\u6001\u4E0B\u65E0\u6CD5\u7ED9\u522B\u4EBA\u6DFB\u52A0\u62D8\u675F\uFF0C\u4E14\u53EA\u80FD\u7531\u652F\u914D\u8005\u7ED9\u5176\u4F59\u89D2\u8272\u914D\u7F6E\u62D8\u675F\uFF0C\u6216\u8005\u7531\u8F6C\u6362\u8005\u7ED9\u8F6C\u6362\u8005\u3001\u81E3\u670D\u8005\u3001\u5974\u96B6\u53D1\u8D77\u62D8\u675F")));
+	HintText->SetAutoWrapText(true);
+	HintText->SetColorAndOpacity(FSlateColor(FLinearColor(0.4f, 0.4f, 0.42f)));
+	{
+		FSlateFontInfo HintFont = HintText->GetFont();
+		HintFont.Size = 16;
+		HintText->SetFont(HintFont);
+	}
+	HintSize->AddChild(HintText);
+
 	SlotIcons.Reset();
 	SlotLabels.Reset();
 	SlotLockBadges.Reset();
