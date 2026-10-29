@@ -12,36 +12,105 @@ namespace
 	/** Path of the hair table, kept in one place. */
 	const TCHAR* HairTablePath = TEXT("/Game/DataTable/DT_Hair.DT_Hair");
 
-	/** Reads the ID out of a row; several spellings are accepted. */
+	/** Reads an integer ID out of a row. */
 	int32 ReadRowId(const UScriptStruct* RowStruct, const uint8* RowData)
 	{
-		static const TCHAR* IdNames[] = { TEXT("ID"), TEXT("Id"), TEXT("id"), TEXT("HairID"), TEXT("HairId") };
-
-		for (const TCHAR* Name : IdNames)
+		// Blueprint struct properties carry a rename suffix ("ID_5_826C..."), so the
+		// name is matched by prefix and the type does the rest.
+		for (TFieldIterator<FIntProperty> It(RowStruct); It; ++It)
 		{
-			if (const FIntProperty* Property = FindFProperty<FIntProperty>(RowStruct, FName(Name)))
+			if (It->GetName().StartsWith(TEXT("ID"), ESearchCase::IgnoreCase))
 			{
-				return Property->GetPropertyValue_InContainer(RowData);
+				return It->GetPropertyValue_InContainer(RowData);
 			}
 		}
 
 		return 0;
 	}
 
-	/** Reads the mesh out of a row; several spellings are accepted. */
-	USkeletalMesh* ReadRowMesh(const UScriptStruct* RowStruct, const uint8* RowData)
+	/** Reads the mesh out of a row; handles both hard and soft object references. */
+	void ReadRowMesh(const UScriptStruct* RowStruct, const uint8* RowData, FMyBondageLifeHairStyle& Style)
 	{
-		static const TCHAR* MeshNames[] = { TEXT("SkeletalMesh"), TEXT("HairMesh"), TEXT("Mesh") };
-
-		for (const TCHAR* Name : MeshNames)
+		auto IsMeshField = [](const FProperty* Property)
 		{
-			if (const FObjectProperty* Property = FindFProperty<FObjectProperty>(RowStruct, FName(Name)))
+			const FString Name = Property->GetName();
+			return Name.Contains(TEXT("Mesh"), ESearchCase::IgnoreCase)
+				|| Name.Contains(TEXT("Hair"), ESearchCase::IgnoreCase);
+		};
+
+		// Preferred: a soft object pointer whose name mentions the mesh.
+		for (TFieldIterator<FSoftObjectProperty> It(RowStruct); It; ++It)
+		{
+			if (!IsMeshField(*It))
 			{
-				return Cast<USkeletalMesh>(Property->GetObjectPropertyValue_InContainer(RowData));
+				continue;
+			}
+
+			const FSoftObjectPtr Value = It->GetPropertyValue_InContainer(RowData);
+			if (!Value.IsNull())
+			{
+				Style.Mesh = TSoftObjectPtr<USkeletalMesh>(Value.ToSoftObjectPath());
+				return;
 			}
 		}
 
-		return nullptr;
+		for (TFieldIterator<FObjectProperty> It(RowStruct); It; ++It)
+		{
+			if (!IsMeshField(*It))
+			{
+				continue;
+			}
+
+			if (USkeletalMesh* Mesh = Cast<USkeletalMesh>(It->GetObjectPropertyValue_InContainer(RowData)))
+			{
+				Style.Mesh = Mesh;
+				return;
+			}
+		}
+
+		// Fallback: any object reference at all (single-mesh struct).
+		for (TFieldIterator<FSoftObjectProperty> It(RowStruct); It; ++It)
+		{
+			const FSoftObjectPtr Value = It->GetPropertyValue_InContainer(RowData);
+			if (USkeletalMesh* Mesh = Cast<USkeletalMesh>(Value.LoadSynchronous()))
+			{
+				Style.Mesh = Mesh;
+				return;
+			}
+		}
+
+		for (TFieldIterator<FObjectProperty> It(RowStruct); It; ++It)
+		{
+			if (USkeletalMesh* Mesh = Cast<USkeletalMesh>(It->GetObjectPropertyValue_InContainer(RowData)))
+			{
+				Style.Mesh = Mesh;
+				return;
+			}
+		}
+	}
+
+	/** Comma separated property list of the row struct, for diagnostics. */
+	FString DescribeRowStruct(const UScriptStruct* RowStruct)
+	{
+		FString Names;
+		for (TFieldIterator<FProperty> It(RowStruct); It; ++It)
+		{
+			Names += It->GetName();
+			Names += TEXT(" ");
+		}
+		return Names;
+	}
+
+	/** "1" -> 1; anything else -> 0. */
+	int32 IdFromRowName(const FName& RowName)
+	{
+		const FString Text = RowName.ToString();
+		if (Text.IsEmpty() || !FChar::IsDigit(Text[0]))
+		{
+			return 0;
+		}
+
+		return FCString::Atoi(*Text);
 	}
 }
 
@@ -77,13 +146,23 @@ void FMyBondageLifeHairCatalog::Refresh()
 
 		FMyBondageLifeHairStyle Style;
 		Style.RowName = RowName;
-		Style.Id = ReadRowId(RowStruct, RowData);
-		Style.Mesh = ReadRowMesh(RowStruct, RowData);
+
+		// The table names its rows after the style ID ("1", "2", ...), so the row name
+		// is the number stored on the account; the ID property is only a fallback.
+		const int32 NamedId = IdFromRowName(RowName);
+		Style.Id = NamedId > 0 ? NamedId : ReadRowId(RowStruct, RowData);
+		ReadRowMesh(RowStruct, RowData, Style);
 
 		if (Style.Id <= 0)
 		{
 			UE_LOG(LogMyBondageLife, Warning, TEXT("Hair: row '%s' has no usable ID, skipped."), *RowName.ToString());
 			continue;
+		}
+
+		if (Style.Mesh.IsNull())
+		{
+			UE_LOG(LogMyBondageLife, Warning, TEXT("Hair: row %s (ID %d) has no mesh; struct properties: %s"),
+				*RowName.ToString(), Style.Id, *DescribeRowStruct(RowStruct));
 		}
 
 		Styles.Add(Style);
@@ -95,6 +174,20 @@ void FMyBondageLifeHairCatalog::Refresh()
 	});
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("Hair: %d style(s) loaded from %s."), Styles.Num(), HairTablePath);
+
+	if (Styles.Num() == 0)
+	{
+		// One-time diagnostic so a changed struct can be spotted from the log.
+		FString PropertyNames;
+		for (TFieldIterator<FProperty> It(RowStruct); It; ++It)
+		{
+			PropertyNames += It->GetName();
+			PropertyNames += TEXT(" ");
+		}
+
+		UE_LOG(LogMyBondageLife, Warning, TEXT("Hair: row struct '%s' properties: %s"),
+			*RowStruct->GetName(), *PropertyNames);
+	}
 }
 
 void FMyBondageLifeHairCatalog::EnsureLoaded()
@@ -190,9 +283,9 @@ int32 FMyBondageLifeHairCatalog::StepId(int32 HairId, int32 Delta)
 USkeletalMesh* FMyBondageLifeHairCatalog::LoadMesh(int32 HairId)
 {
 	const FMyBondageLifeHairStyle* Style = FindStyle(HairId);
-	if (!Style)
+	if (!Style && Styles.Num() > 0)
 	{
-		Style = Styles.Num() > 0 ? &Styles[0] : nullptr;
+		Style = &Styles[0];
 	}
 
 	return Style ? Style->Mesh.LoadSynchronous() : nullptr;
