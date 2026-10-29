@@ -287,6 +287,7 @@ bool UMyBondageLifeAccountSubsystem::ApplyAuthPayload(const TSharedPtr<FJsonObje
 	RefreshFriendsFromServer();
 
 	RefreshContractState();
+	RefreshRestraints();
 	return true;
 }
 
@@ -807,6 +808,7 @@ void UMyBondageLifeAccountSubsystem::StartFriendPolling()
 			{
 				LastContractRefreshSeconds = Now;
 				RefreshContractState();
+	RefreshRestraints();
 			}
 			}
 
@@ -1238,4 +1240,117 @@ void UMyBondageLifeAccountSubsystem::RequestUpdateHair(int32 NewHairIndex)
 
 			UE_LOG(LogMyBondageLife, Log, TEXT("Hair: stored style %d."), Self->HairIndex);
 		});
+}
+
+// ---------------------------------------------------------------------------
+// Restraints (GET/PUT/DELETE /users/me/restraints)
+// ---------------------------------------------------------------------------
+
+void UMyBondageLifeAccountSubsystem::RefreshRestraints()
+{
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+
+	SendFriendApiRequest(TEXT("GET"), TEXT("/users/me/restraints"), nullptr,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self || !bOk || !Json.IsValid())
+			{
+				return;
+			}
+
+			Self->EquippedRestraints.Reset();
+
+			const TArray<TSharedPtr<FJsonValue>>* Equipped = nullptr;
+			if (Json->TryGetArrayField(TEXT("equipped"), Equipped) && Equipped)
+			{
+				for (const TSharedPtr<FJsonValue>& Value : *Equipped)
+				{
+					const TSharedPtr<FJsonObject> Item = Value.IsValid() ? Value->AsObject() : nullptr;
+					if (!Item.IsValid())
+					{
+						continue;
+					}
+
+					double SlotValue = 0.0;
+					FString ItemId;
+					if (Item->TryGetNumberField(TEXT("slot"), SlotValue) && Item->TryGetStringField(TEXT("itemId"), ItemId))
+					{
+						Self->EquippedRestraints.Add(FMath::Clamp(static_cast<int32>(SlotValue), 0, 11), ItemId);
+					}
+				}
+			}
+
+			UE_LOG(LogMyBondageLife, Log, TEXT("Restraint: %d slot(s) equipped."), Self->EquippedRestraints.Num());
+			Self->OnRestraintsChanged.Broadcast();
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::EquipRestraint(int32 Slot, const FString& ItemId)
+{
+	if (Slot < 0 || Slot > 11 || ItemId.IsEmpty())
+	{
+		return;
+	}
+
+	// Optimistic local update so the character changes immediately.
+	EquippedRestraints.Add(Slot, ItemId);
+	OnRestraintsChanged.Broadcast();
+
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("itemId"), ItemId);
+
+	const FString Path = FString::Printf(TEXT("/users/me/restraints/%d"), Slot);
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+
+	SendFriendApiRequest(TEXT("PUT"), Path, Body,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self)
+			{
+				return;
+			}
+
+			UE_LOG(LogMyBondageLife, Log, TEXT("Restraint: equip %s (%d)."), bOk ? TEXT("ok") : TEXT("failed"), StatusCode);
+
+			// Re-sync so a rejected item does not stay on screen.
+			if (!bOk)
+			{
+				Self->RefreshRestraints();
+			}
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::UnequipRestraint(int32 Slot)
+{
+	if (Slot < 0 || Slot > 11)
+	{
+		return;
+	}
+
+	EquippedRestraints.Remove(Slot);
+	OnRestraintsChanged.Broadcast();
+
+	const FString Path = FString::Printf(TEXT("/users/me/restraints/%d"), Slot);
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+
+	SendFriendApiRequest(TEXT("DELETE"), Path, nullptr,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (Self && !bOk)
+			{
+				Self->RefreshRestraints();
+			}
+		});
+}
+
+FString UMyBondageLifeAccountSubsystem::GetEquippedRestraint(int32 Slot) const
+{
+	if (const FString* Found = EquippedRestraints.Find(Slot))
+	{
+		return *Found;
+	}
+	return FString();
 }

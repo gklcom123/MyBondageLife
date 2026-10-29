@@ -178,6 +178,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeHeightChanged, float, 
 /** Raised when the stored hair style changed (1 based DT_Hair ID). */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeHairChanged, int32, NewHairIndex);
 
+/** Raised when the equipped restraints changed. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeRestraintsChanged);
+
 /** Raised when a public profile was fetched or refreshed. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeUserProfileUpdated, const FString&, Account);
 
@@ -251,6 +254,31 @@ public:
 	/** PATCH /users/me - persists a new hair style and applies it locally. */
 	UFUNCTION(BlueprintCallable, Category = "Account")
 	void RequestUpdateHair(int32 NewHairIndex);
+
+	//~ Restraints ---------------------------------------------------------
+
+	/** GET /users/me/restraints */
+	UFUNCTION(BlueprintCallable, Category = "Restraint")
+	void RefreshRestraints();
+
+	/** PUT /users/me/restraints/{slot} */
+	UFUNCTION(BlueprintCallable, Category = "Restraint")
+	void EquipRestraint(int32 Slot, const FString& ItemId);
+
+	/** DELETE /users/me/restraints/{slot} */
+	UFUNCTION(BlueprintCallable, Category = "Restraint")
+	void UnequipRestraint(int32 Slot);
+
+	/** Item id equipped in a slot (empty when nothing is worn). */
+	UFUNCTION(BlueprintPure, Category = "Restraint")
+	FString GetEquippedRestraint(int32 Slot) const;
+
+	/** Slot -> item id for everything currently worn. */
+	UFUNCTION(BlueprintPure, Category = "Restraint")
+	TMap<int32, FString> GetEquippedRestraints() const { return EquippedRestraints; }
+
+	UPROPERTY(BlueprintAssignable, Category = "Restraint")
+	FMyBondageLifeRestraintsChanged OnRestraintsChanged;
 
 	UPROPERTY(BlueprintAssignable, Category = "Account")
 	FMyBondageLifeHairChanged OnHairChanged;
@@ -439,6 +467,9 @@ private:
 
 	/** Hair style ID from DT_Hair (1 based). */
 	int32 HairIndex = 1;
+
+	/** Slot -> item id of the equipped restraints. */
+	TMap<int32, FString> EquippedRestraints;
 
 	/** Friend list, refreshed from GET /friends. */
 	TArray<FMyBondageLifeFriendEntry> Friends;
