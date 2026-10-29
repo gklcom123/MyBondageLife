@@ -41,11 +41,30 @@ namespace
 
 	int32 ReadInt(const UScriptStruct* RowStruct, const uint8* RowData, std::initializer_list<const TCHAR*> Prefixes)
 	{
-		for (TFieldIterator<FIntProperty> It(RowStruct); It; ++It)
+		for (TFieldIterator<FProperty> It(RowStruct); It; ++It)
 		{
-			if (MatchesName(*It, Prefixes))
+			if (!MatchesName(*It, Prefixes))
 			{
-				return It->GetPropertyValue_InContainer(RowData);
+				continue;
+			}
+
+			if (const FEnumProperty* EnumProperty = CastField<FEnumProperty>(*It))
+			{
+				if (const FNumericProperty* Underlying = EnumProperty->GetUnderlyingProperty())
+				{
+					const void* ValuePtr = EnumProperty->ContainerPtrToValuePtr<void>(RowData);
+					return static_cast<int32>(Underlying->GetSignedIntPropertyValue(ValuePtr));
+				}
+			}
+
+			if (const FByteProperty* ByteProperty = CastField<FByteProperty>(*It))
+			{
+				return static_cast<int32>(ByteProperty->GetPropertyValue_InContainer(RowData));
+			}
+
+			if (const FIntProperty* IntProperty = CastField<FIntProperty>(*It))
+			{
+				return IntProperty->GetPropertyValue_InContainer(RowData);
 			}
 		}
 		return 0;
@@ -145,6 +164,9 @@ void FMyBondageLifeRestraintCatalog::Refresh()
 
 		ReadObjectRef(RowStruct, RowData, { TEXT("DownAnmi") }, UAnimMontage::StaticClass(), Temp);
 		Item.DownAnmi = TSoftObjectPtr<UAnimMontage>(Temp.ToSoftObjectPath());
+
+		UE_LOG(LogMyBondageLife, Log, TEXT("Restraint: item %s slot=%d mesh=%d icon=%d upAnmi=%d"),
+			*Item.ItemId.ToString(), Item.Slot, Item.Mesh.IsNull() ? 0 : 1, Item.Icon.IsNull() ? 0 : 1, Item.UpAnmi.IsNull() ? 0 : 1);
 
 		Items.Add(Item);
 	}
