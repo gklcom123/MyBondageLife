@@ -489,6 +489,12 @@ void UMyBondageLifePlayerInfoWidget::HandleAddFriendClicked()
 	UE_LOG(LogMyBondageLife, Log, TEXT("Friends: add-friend clicked (character=%s, other=%d, friend=%d)"),
 		*GetNameSafe(Character), IsDisplayingOtherPlayer() ? 1 : 0, IsDisplayedCharacterFriend() ? 1 : 0);
 
+	// Only meaningful for other players: hide it whenever this panel shows ourselves.
+	if (WardrobeButton)
+	{
+		WardrobeButton->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
 	if (!Character || !IsDisplayingOtherPlayer() || IsDisplayedCharacterFriend())
 	{
 		return;

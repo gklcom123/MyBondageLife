@@ -1184,6 +1184,13 @@ void AMyBondageLifePlayerController::ApplyAccountNameToPlayerState()
 
 	ApplyCharacterNameToPawn();
 
+	// Remote players change our wardrobe through the service: poll it.
+	if (UWorld* SyncWorld = GetWorld())
+	{
+		SyncWorld->GetTimerManager().SetTimer(RestraintSyncTimer, this,
+			&AMyBondageLifePlayerController::SyncRestraintsFromServer, 1.0f, true);
+	}
+
 	// Restore the worn restraints on the freshly possessed pawn.
 	PushRestraintsToPawn();
 }
@@ -1261,6 +1268,13 @@ void AMyBondageLifePlayerController::OnPossess(APawn* InPawn)
 	Super::OnPossess(InPawn);
 
 	ApplyCharacterNameToPawn();
+
+	// Remote players change our wardrobe through the service: poll it.
+	if (UWorld* SyncWorld = GetWorld())
+	{
+		SyncWorld->GetTimerManager().SetTimer(RestraintSyncTimer, this,
+			&AMyBondageLifePlayerController::SyncRestraintsFromServer, 1.0f, true);
+	}
 
 	// Restore the worn restraints on the freshly possessed pawn.
 	PushRestraintsToPawn();
@@ -1692,6 +1706,13 @@ void AMyBondageLifePlayerController::HandleHeightChanged(float NewHeightScale)
 	// Re-publish the identity so the pawn (and every other client) picks the new size.
 	ApplyCharacterNameToPawn();
 
+	// Remote players change our wardrobe through the service: poll it.
+	if (UWorld* SyncWorld = GetWorld())
+	{
+		SyncWorld->GetTimerManager().SetTimer(RestraintSyncTimer, this,
+			&AMyBondageLifePlayerController::SyncRestraintsFromServer, 1.0f, true);
+	}
+
 	// Restore the worn restraints on the freshly possessed pawn.
 	PushRestraintsToPawn();
 }
@@ -1875,6 +1896,13 @@ void AMyBondageLifePlayerController::HandleHairChanged(int32 NewHairIndex)
 	// Re-publish the identity so the pawn (and everyone else) wears the new hair.
 	ApplyCharacterNameToPawn();
 
+	// Remote players change our wardrobe through the service: poll it.
+	if (UWorld* SyncWorld = GetWorld())
+	{
+		SyncWorld->GetTimerManager().SetTimer(RestraintSyncTimer, this,
+			&AMyBondageLifePlayerController::SyncRestraintsFromServer, 1.0f, true);
+	}
+
 	// Restore the worn restraints on the freshly possessed pawn.
 	PushRestraintsToPawn();
 }
@@ -2001,6 +2029,26 @@ void AMyBondageLifePlayerController::OpenFriendWardrobe(const FString& InAccount
 		{
 			WardrobeWidget->EnterFriendMode(InAccount);
 			WardrobeWidget->SetPanelOpen(true);
+		}
+	}
+}
+
+void AMyBondageLifePlayerController::SyncRestraintsFromServer()
+{
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+
+	if (UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr)
+	{
+		// Nobody else can push to this client, so poll: another player may have
+		// equipped / removed / locked something on us.
+		if (!Account->GetAccountName().IsEmpty())
+		{
+			Account->RefreshRestraints();
 		}
 	}
 }

@@ -143,6 +143,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Wardrobe")
 	void OpenFriendWardrobe(const FString& InAccount);
 
+	/** Polls the account every couple of seconds so remote gear changes apply fast. */
+	void SyncRestraintsFromServer();
+
+	FTimerHandle RestraintSyncTimer;
+
 	UFUNCTION(BlueprintCallable, Category = "Wardrobe")
 	void HideWardrobe();
 
