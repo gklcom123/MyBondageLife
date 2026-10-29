@@ -284,6 +284,9 @@ protected:
 	UFUNCTION()
 	void HandleRestraintsChanged();
 
+	/** Set by a write operation so the next refresh closes the popups once. */
+	bool bClosePanelsOnNextChange = false;
+
 	/** Rewrites the picker title with the remaining lock time. */
 	void UpdateLockCountdown();
 	void StopLockCountdown();

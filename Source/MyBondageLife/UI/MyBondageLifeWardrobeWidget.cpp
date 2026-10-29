@@ -734,6 +734,7 @@ void UMyBondageLifeWardrobeClickProxy::HandleClicked()
 			? Owner->GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
 			: nullptr)
 		{
+			Owner->bClosePanelsOnNextChange = true;
 			Owner->CloseLockMenu();
 			Owner->PlayLockCue();
 			if (Owner->IsFriendMode()) { Account->LockRestraintFor(Owner->GetFriendAccount(), Owner->PickerSlot, LockType, 0, FString()); } else { Account->LockRestraint(Owner->PickerSlot, LockType, 0, FString()); }
@@ -1210,11 +1211,13 @@ void UMyBondageLifeWardrobeWidget::PickRestraintItem(FName ItemId)
 
 	if (ItemId.IsNone())
 	{
-		if (bFriendMode) { Account->UnequipRestraintFor(FriendAccount, PickerSlot); } else { Account->UnequipRestraint(PickerSlot); }
+		bClosePanelsOnNextChange = true;
+	if (bFriendMode) { Account->UnequipRestraintFor(FriendAccount, PickerSlot); } else { Account->UnequipRestraint(PickerSlot); }
 	}
 	else
 	{
-		if (bFriendMode) { Account->EquipRestraintFor(FriendAccount, PickerSlot, ItemId.ToString()); } else { Account->EquipRestraint(PickerSlot, ItemId.ToString()); }
+		bClosePanelsOnNextChange = true;
+	if (bFriendMode) { Account->EquipRestraintFor(FriendAccount, PickerSlot, ItemId.ToString()); } else { Account->EquipRestraint(PickerSlot, ItemId.ToString()); }
 	}
 
 	CloseRestraintPicker();
@@ -1409,6 +1412,7 @@ void UMyBondageLifeWardrobeWidget::HandleLockAction()
 		return;
 	}
 
+	bClosePanelsOnNextChange = true;
 	if (bFriendMode) { Account->UnlockRestraintFor(FriendAccount, PickerSlot, FString()); } else { Account->UnlockRestraint(PickerSlot, FString()); }
 }
 
@@ -1685,15 +1689,18 @@ void UMyBondageLifeWardrobeWidget::ConfirmLockInput()
 
 	if (PendingLockType == 104)
 	{
-		if (bFriendMode) { Account->UnlockRestraintFor(FriendAccount, PickerSlot, Text); } else { Account->UnlockRestraint(PickerSlot, Text); }
+		bClosePanelsOnNextChange = true;
+	if (bFriendMode) { Account->UnlockRestraintFor(FriendAccount, PickerSlot, Text); } else { Account->UnlockRestraint(PickerSlot, Text); }
 	}
 	else if (PendingLockType == 4)
 	{
+		bClosePanelsOnNextChange = true;
 		PlayLockCue();
 		if (bFriendMode) { Account->LockRestraintFor(FriendAccount, PickerSlot, 4, 0, Text); } else { Account->LockRestraint(PickerSlot, 4, 0, Text); }
 	}
 	else
 	{
+		bClosePanelsOnNextChange = true;
 		PlayLockCue();
 		if (bFriendMode) { Account->LockRestraintFor(FriendAccount, PickerSlot, PendingLockType, ParseDuration(Text), FString()); } else { Account->LockRestraint(PickerSlot, PendingLockType, ParseDuration(Text), FString()); }
 	}
@@ -1757,10 +1764,15 @@ bool UMyBondageLifeWardrobeWidget::IsLockTypeAllowed(int32 LockType) const
 }
 void UMyBondageLifeWardrobeWidget::HandleRestraintsChanged()
 {
-	// A successful lock / unlock returns to the slot grid: the two popups are done.
-	CloseLockInput();
-	CloseLockMenu();
-	CloseRestraintPicker();
+	// Only a write closes the popups; a plain refresh (e.g. re-reading the viewed
+	// wardrobe) must leave whatever the player has open alone.
+	if (bClosePanelsOnNextChange)
+	{
+		bClosePanelsOnNextChange = false;
+		CloseLockInput();
+		CloseLockMenu();
+		CloseRestraintPicker();
+	}
 
 	RefreshRestraintSlots();
 	RefreshLockBadges();
