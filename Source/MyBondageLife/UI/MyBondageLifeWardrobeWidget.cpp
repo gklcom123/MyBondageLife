@@ -3,6 +3,11 @@
 #include "MyBondageLifeWardrobeWidget.h"
 
 #include "Blueprint/WidgetTree.h"
+#include "Components/EditableTextBox.h"
+#include "Components/HorizontalBox.h"
+#include "Components/HorizontalBoxSlot.h"
+#include "Components/Overlay.h"
+#include "Components/OverlaySlot.h"
 #include "Components/Border.h"
 #include "Components/Button.h"
 #include "Components/CanvasPanel.h"
@@ -678,6 +683,43 @@ void UMyBondageLifeWardrobeClickProxy::HandleClicked()
 	if (bClosePicker)
 	{
 		Owner->CloseRestraintPicker();
+		Owner->CloseLockMenu();
+		Owner->CloseLockInput();
+		return;
+	}
+
+	if (bLockConfirm)
+	{
+		Owner->ConfirmLockInput();
+		return;
+	}
+
+	if (bLockCancel)
+	{
+		Owner->CloseLockInput();
+		return;
+	}
+
+	if (bLockAction)
+	{
+		Owner->HandleLockAction();
+		return;
+	}
+
+	if (bLockChoice)
+	{
+		// 2 and 5 need a duration, 4 needs a password: those open a small popup.
+		if (LockType == 2 || LockType == 4 || LockType == 5)
+		{
+			Owner->OpenLockInput(LockType);
+		}
+		else if (UMyBondageLifeAccountSubsystem* Account = Owner->GetGameInstance()
+			? Owner->GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+			: nullptr)
+		{
+			Owner->CloseLockMenu();
+			Account->LockRestraint(Owner->PickerSlot, LockType, 0, FString());
+		}
 		return;
 	}
 
@@ -701,6 +743,7 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 	SlotButtons.Reset();
 	SlotIcons.Reset();
 	SlotLabels.Reset();
+	SlotLockBadges.Reset();
 	ClickProxies.Reset();
 
 	// 4 columns x 3 rows, filled column by column to match the enum order.
@@ -723,8 +766,20 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 		}
 
 		UButton* SlotButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
-		CellSize->AddChild(SlotButton);
+		UOverlay* CellOverlay = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass());
+		CellSize->AddChild(CellOverlay);
+		CellOverlay->AddChildToOverlay(SlotButton);
 		SlotButtons.Add(SlotButton);
+
+		// Corner lock badge (decorative, never blocks the click).
+		UImage* LockBadge = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
+		LockBadge->SetVisibility(ESlateVisibility::HitTestInvisible);
+		if (UOverlaySlot* BadgeSlot = CellOverlay->AddChildToOverlay(LockBadge))
+		{
+			BadgeSlot->SetHorizontalAlignment(HAlign_Right);
+			BadgeSlot->SetVerticalAlignment(VAlign_Top);
+		}
+		SlotLockBadges.Add(LockBadge);
 
 		UMyBondageLifeWardrobeClickProxy* Proxy = NewObject<UMyBondageLifeWardrobeClickProxy>(this);
 		Proxy->Owner = this;
@@ -808,6 +863,34 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 	}
 	PickerGrid->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 
+	// "上锁 / 开锁" action, always present; its text and enabled state follow the slot.
+	USizeBox* LockActionSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	LockActionSize->SetWidthOverride(180.0f);
+	LockActionSize->SetHeightOverride(56.0f);
+	if (UVerticalBoxSlot* ActionSlot = PickerColumn->AddChildToVerticalBox(LockActionSize))
+	{
+		ActionSlot->SetHorizontalAlignment(HAlign_Center);
+		ActionSlot->SetPadding(FMargin(0.0f, 14.0f, 0.0f, 0.0f));
+	}
+
+	LockActionButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
+	LockActionSize->AddChild(LockActionButton);
+
+	UMyBondageLifeWardrobeClickProxy* ActionProxy = NewObject<UMyBondageLifeWardrobeClickProxy>(this);
+	ActionProxy->Owner = this;
+	ActionProxy->bLockAction = true;
+	ClickProxies.Add(ActionProxy);
+	LockActionButton->OnClicked.AddDynamic(ActionProxy, &UMyBondageLifeWardrobeClickProxy::HandleClicked);
+
+	LockActionLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+	LockActionLabel->SetJustification(ETextJustify::Center);
+	LockActionLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
+	{
+		FSlateFontInfo ActionFont = LockActionLabel->GetFont();
+		ActionFont.Size = 20;
+		LockActionLabel->SetFont(ActionFont);
+	}
+	LockActionButton->AddChild(LockActionLabel);
 	// Always available, even when the slot has no candidates at all.
 	USizeBox* CancelSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
 	CancelSize->SetWidthOverride(140.0f);
@@ -841,6 +924,8 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 
 void UMyBondageLifeWardrobeWidget::RefreshRestraintSlots()
 {
+	RefreshLockBadges();
+	RefreshLockActionButton();
 	const UGameInstance* GameInstance = GetGameInstance();
 	const UMyBondageLifeAccountSubsystem* Account = GameInstance
 		? GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>()
@@ -996,6 +1081,10 @@ void UMyBondageLifeWardrobeWidget::OpenRestraintPicker(int32 SlotIndex)
 		}
 	}
 
+	CloseLockMenu();
+	CloseLockInput();
+	RefreshLockActionButton();
+
 	PickerBackdrop->SetVisibility(ESlateVisibility::Visible);
 	PickerGrid->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	PickerTitle->SetVisibility(ESlateVisibility::HitTestInvisible);
@@ -1040,3 +1129,444 @@ void UMyBondageLifeWardrobeWidget::PickRestraintItem(FName ItemId)
 	CloseRestraintPicker();
 	RefreshRestraintSlots();
 }
+
+// ---------------------------------------------------------------------------
+// Restraint locks
+// ---------------------------------------------------------------------------
+
+namespace
+{
+	const TCHAR* LockIconPath(int32 LockType)
+	{
+		switch (LockType)
+		{
+		case 1: return TEXT("/Game/2DAssest/UI/MasterLock.MasterLock");
+		case 2: return TEXT("/Game/2DAssest/UI/MasterTimeLock.MasterTimeLock");
+		case 3: return TEXT("/Game/2DAssest/UI/NormalLock.NormalLock");
+		case 4: return TEXT("/Game/2DAssest/UI/PasswordLock.PasswordLock");
+		case 5: return TEXT("/Game/2DAssest/UI/TimePadLock.TimePadLock");
+		default: return nullptr;
+		}
+	}
+
+	FText LockTitle(int32 LockType)
+	{
+		switch (LockType)
+		{
+		case 1: return FText::FromString(TEXT("\u4E3B\u4EBA\u9501"));
+		case 2: return FText::FromString(TEXT("\u4E3B\u4EBA\u8BA1\u65F6\u9501"));
+		case 3: return FText::FromString(TEXT("\u666E\u901A\u6302\u9501"));
+		case 4: return FText::FromString(TEXT("\u5BC6\u7801\u9501"));
+		case 5: return FText::FromString(TEXT("\u8BA1\u65F6\u9501"));
+		default: return FText::GetEmpty();
+		}
+	}
+
+	FText LockTooltip(int32 LockType)
+	{
+		switch (LockType)
+		{
+		case 1:
+			return FText::FromString(TEXT("\u4E3B\u4EBA\u9501\uFF1A\u53EA\u80FD\u7531\u4E3B\u4EBA\u7ED9\u5176\u5974\u96B6/\u4E34\u65F6\u5974\u96B6\u4F7F\u7528\uFF0C\u81EA\u5DF1\u65E0\u6CD5\u5BF9\u81EA\u5DF1\u4F7F\u7528\u3002\u4E0A\u9501\u540E\u6CA1\u6709\u65F6\u9650\uFF0C\u76F4\u5230\u4E3B\u4EBA\u53D6\u4E0B\u3002"));
+		case 2:
+			return FText::FromString(TEXT("\u4E3B\u4EBA\u8BA1\u65F6\u9501\uFF1A\u53EA\u80FD\u7531\u4E3B\u4EBA\u7ED9\u5176\u5974\u96B6/\u4E34\u65F6\u5974\u96B6\u4F7F\u7528\u3002\u4E0A\u9501\u65F6\u8BBE\u5B9A\u65F6\u95F4\uFF08\u6700\u591A 30 \u5929\uFF09\uFF0C\u4E3B\u4EBA\u4E5F\u53EF\u4EE5\u63D0\u524D\u53D6\u4E0B\u3002"));
+		case 3:
+			return FText::FromString(TEXT("\u666E\u901A\u6302\u9501\uFF1A\u652F\u914D\u8005\u53EF\u7ED9\u4EFB\u610F\u4F4D\u7F6E\u66F4\u4F4E\u7684\u597D\u53CB\u4F7F\u7528\uFF0C\u8F6C\u6362\u8005\u4E4B\u95F4\u4E5F\u53EF\u3002\u65E0\u65F6\u9650\uFF0C\u9664\u88AB\u9501\u8005\u5916\u4EFB\u4F55\u4EBA\u90FD\u53EF\u53D6\u4E0B\u3002"));
+		case 4:
+			return FText::FromString(TEXT("\u5BC6\u7801\u9501\uFF1A\u652F\u914D\u8005\u53EF\u7ED9\u4F4E\u4F4D\u597D\u53CB\u4F7F\u7528\uFF0C\u8F6C\u6362\u8005\u4E4B\u95F4\u4E5F\u53EF\u3002\u65E0\u65F6\u9650\uFF0C\u77E5\u9053 4~8 \u4F4D\u5BC6\u7801\u7684\u4EFB\u4F55\u4EBA\u90FD\u53EF\u53D6\u4E0B\u3002"));
+		case 5:
+			return FText::FromString(TEXT("\u8BA1\u65F6\u9501\uFF1A\u652F\u914D\u8005\u53EF\u7ED9\u4F4E\u4F4D\u597D\u53CB\u4F7F\u7528\uFF0C\u4E5F\u53EF\u5BF9\u81EA\u5DF1\u4F7F\u7528\u3002\u8BA1\u65F6\u5F00\u59CB\u540E\u65E0\u4EBA\u53EF\u53D6\u4E0B\uFF1B\u81EA\u9501\u6700\u591A 24 \u5C0F\u65F6\uFF0C\u4ED6\u4EBA\u4E0A\u9501\u6700\u591A 7 \u5929\u3002"));
+		default:
+			return FText::GetEmpty();
+		}
+	}
+
+	/** "HH:MM:SS" (or plain seconds) -> seconds. */
+	int32 ParseDuration(const FString& Text)
+	{
+		TArray<FString> Parts;
+		Text.TrimStartAndEnd().ParseIntoArray(Parts, TEXT(":"), true);
+		if (Parts.Num() == 0)
+		{
+			return 0;
+		}
+
+		if (Parts.Num() == 1)
+		{
+			return FCString::Atoi(*Parts[0]);
+		}
+
+		int32 Seconds = 0;
+		int32 Multipliers[3] = { 3600, 60, 1 };
+		const int32 Offset = 3 - FMath::Min(Parts.Num(), 3);
+		for (int32 Index = 0; Index < Parts.Num() && Index < 3; ++Index)
+		{
+			Seconds += FCString::Atoi(*Parts[Index]) * Multipliers[Offset + Index];
+		}
+		return Seconds;
+	}
+}
+
+void UMyBondageLifeWardrobeWidget::RefreshLockBadges()
+{
+	const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+
+	for (int32 SlotIndex = 0; SlotIndex < SlotLockBadges.Num(); ++SlotIndex)
+	{
+		UImage* Badge = SlotLockBadges[SlotIndex];
+		if (!Badge)
+		{
+			continue;
+		}
+
+		const FMyBondageLifeRestraintLock Lock = Account
+			? Account->GetRestraintLock(SlotIndex)
+			: FMyBondageLifeRestraintLock();
+
+		UTexture2D* Icon = Lock.LockType > 0
+			? LoadObject<UTexture2D>(nullptr, LockIconPath(Lock.LockType))
+			: nullptr;
+
+		if (Icon)
+		{
+			Badge->SetBrushFromTexture(Icon, true);
+			Badge->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+		else
+		{
+			Badge->SetBrush(FSlateBrush());
+			Badge->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+}
+
+void UMyBondageLifeWardrobeWidget::RefreshLockActionButton()
+{
+	if (!LockActionButton || !LockActionLabel)
+	{
+		return;
+	}
+
+	const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+	const FMyBondageLifeRestraintLock Lock = Account
+		? Account->GetRestraintLock(PickerSlot)
+		: FMyBondageLifeRestraintLock();
+
+	if (Lock.LockType > 0)
+	{
+		LockActionLabel->SetText(FText::FromString(TEXT("\u5F00\u9501")));
+		LockActionButton->SetIsEnabled(Lock.bCanUnlock);
+		LockActionButton->SetToolTipText(FText::FromString(
+			Lock.bCanUnlock ? FString() : Lock.UnlockReason));
+	}
+	else
+	{
+		LockActionLabel->SetText(FText::FromString(TEXT("\u4E0A\u9501")));
+		LockActionButton->SetIsEnabled(true);
+		LockActionButton->SetToolTipText(FText::GetEmpty());
+	}
+}
+
+void UMyBondageLifeWardrobeWidget::HandleLockAction()
+{
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+	if (!Account)
+	{
+		return;
+	}
+
+	const FMyBondageLifeRestraintLock Lock = Account->GetRestraintLock(PickerSlot);
+	if (Lock.LockType == 0)
+	{
+		OpenLockMenu();
+		return;
+	}
+
+	if (!Lock.bCanUnlock)
+	{
+		return;
+	}
+
+	if (Lock.LockType == 4)
+	{
+		// Password locks need the password to open.
+		OpenLockInput(104);
+		return;
+	}
+
+	Account->UnlockRestraint(PickerSlot, FString());
+}
+
+void UMyBondageLifeWardrobeWidget::OpenLockMenu()
+{
+	if (!RestraintPage)
+	{
+		return;
+	}
+
+	if (!LockMenuBackdrop)
+	{
+		LockMenuBackdrop = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("LockMenu"));
+		LockMenuBackdrop->SetBrushColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.5f));
+		LockMenuBackdrop->SetHorizontalAlignment(HAlign_Center);
+		LockMenuBackdrop->SetVerticalAlignment(VAlign_Center);
+		if (UCanvasPanelSlot* BackdropSlot = RestraintPage->AddChildToCanvas(LockMenuBackdrop))
+		{
+			BackdropSlot->SetAnchors(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
+			BackdropSlot->SetOffsets(FMargin(0.0f));
+			BackdropSlot->SetZOrder(40);
+		}
+
+		UBorder* Box = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
+		Box->SetBrushColor(FLinearColor(1.0f, 1.0f, 1.0f, 1.0f));
+		Box->SetPadding(FMargin(26.0f, 20.0f));
+		LockMenuBackdrop->AddChild(Box);
+
+		UVerticalBox* Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		Box->AddChild(Column);
+
+		LockMenuTitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		LockMenuTitle->SetText(FText::FromString(TEXT("\u9009\u62E9\u9501")));
+		LockMenuTitle->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
+		{
+			FSlateFontInfo TitleFont = LockMenuTitle->GetFont();
+			TitleFont.Size = 22;
+			LockMenuTitle->SetFont(TitleFont);
+		}
+		if (UVerticalBoxSlot* TitleSlot = Column->AddChildToVerticalBox(LockMenuTitle))
+		{
+			TitleSlot->SetHorizontalAlignment(HAlign_Center);
+			TitleSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 14.0f));
+		}
+
+		UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		Column->AddChildToVerticalBox(Row);
+
+		for (int32 LockType = 1; LockType <= 5; ++LockType)
+		{
+			USizeBox* IconSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+			IconSize->SetWidthOverride(120.0f);
+			IconSize->SetHeightOverride(120.0f);
+			if (UHorizontalBoxSlot* IconSlot = Row->AddChildToHorizontalBox(IconSize))
+			{
+				IconSlot->SetPadding(FMargin(6.0f));
+			}
+
+			UButton* IconButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
+			IconSize->AddChild(IconButton);
+			IconButton->SetToolTipText(LockTooltip(LockType));
+
+			UMyBondageLifeWardrobeClickProxy* Proxy = NewObject<UMyBondageLifeWardrobeClickProxy>(this);
+			Proxy->Owner = this;
+			Proxy->bLockChoice = true;
+			Proxy->LockType = LockType;
+			ClickProxies.Add(Proxy);
+			IconButton->OnClicked.AddDynamic(Proxy, &UMyBondageLifeWardrobeClickProxy::HandleClicked);
+
+			UImage* Icon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
+			if (UTexture2D* Texture = LoadObject<UTexture2D>(nullptr, LockIconPath(LockType)))
+			{
+				Icon->SetBrushFromTexture(Texture, true);
+			}
+			IconButton->AddChild(Icon);
+
+			UTextBlock* Caption = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+			Caption->SetText(LockTitle(LockType));
+			Caption->SetJustification(ETextJustify::Center);
+			Caption->SetColorAndOpacity(FSlateColor(FLinearColor(0.1f, 0.1f, 0.1f)));
+			if (UVerticalBoxSlot* CaptionSlot = Column->AddChildToVerticalBox(Caption))
+			{
+				CaptionSlot->SetHorizontalAlignment(HAlign_Center);
+			}
+		}
+
+		USizeBox* CancelSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		CancelSize->SetWidthOverride(160.0f);
+		CancelSize->SetHeightOverride(52.0f);
+		if (UVerticalBoxSlot* CancelSlot = Column->AddChildToVerticalBox(CancelSize))
+		{
+			CancelSlot->SetHorizontalAlignment(HAlign_Center);
+			CancelSlot->SetPadding(FMargin(0.0f, 14.0f, 0.0f, 0.0f));
+		}
+
+		UButton* CancelButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
+		CancelSize->AddChild(CancelButton);
+
+		UMyBondageLifeWardrobeClickProxy* CancelProxy = NewObject<UMyBondageLifeWardrobeClickProxy>(this);
+		CancelProxy->Owner = this;
+		CancelProxy->bLockCancel = true;
+		ClickProxies.Add(CancelProxy);
+		CancelButton->OnClicked.AddDynamic(CancelProxy, &UMyBondageLifeWardrobeClickProxy::HandleClicked);
+
+		UTextBlock* CancelLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		CancelLabel->SetText(FText::FromString(TEXT("\u53D6\u6D88")));
+		CancelLabel->SetJustification(ETextJustify::Center);
+		CancelLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
+		CancelButton->AddChild(CancelLabel);
+	}
+
+	LockMenuBackdrop->SetVisibility(ESlateVisibility::Visible);
+}
+
+void UMyBondageLifeWardrobeWidget::CloseLockMenu()
+{
+	if (LockMenuBackdrop)
+	{
+		LockMenuBackdrop->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
+void UMyBondageLifeWardrobeWidget::OpenLockInput(int32 InLockType)
+{
+	if (!RestraintPage)
+	{
+		return;
+	}
+
+	PendingLockType = InLockType;
+
+	if (!LockInputBackdrop)
+	{
+		LockInputBackdrop = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("LockInput"));
+		LockInputBackdrop->SetBrushColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.6f));
+		LockInputBackdrop->SetHorizontalAlignment(HAlign_Center);
+		LockInputBackdrop->SetVerticalAlignment(VAlign_Center);
+		if (UCanvasPanelSlot* BackdropSlot = RestraintPage->AddChildToCanvas(LockInputBackdrop))
+		{
+			BackdropSlot->SetAnchors(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
+			BackdropSlot->SetOffsets(FMargin(0.0f));
+			BackdropSlot->SetZOrder(50);
+		}
+
+		UBorder* Box = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
+		Box->SetBrushColor(FLinearColor(1.0f, 1.0f, 1.0f, 1.0f));
+		Box->SetPadding(FMargin(26.0f, 20.0f));
+		LockInputBackdrop->AddChild(Box);
+
+		UVerticalBox* Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		Box->AddChild(Column);
+
+		LockInputTitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		LockInputTitle->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
+		if (UVerticalBoxSlot* TitleSlot = Column->AddChildToVerticalBox(LockInputTitle))
+		{
+			TitleSlot->SetHorizontalAlignment(HAlign_Center);
+			TitleSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 10.0f));
+		}
+
+		LockInputHint = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		LockInputHint->SetColorAndOpacity(FSlateColor(FLinearColor(0.35f, 0.35f, 0.35f)));
+		if (UVerticalBoxSlot* HintSlot = Column->AddChildToVerticalBox(LockInputHint))
+		{
+			HintSlot->SetHorizontalAlignment(HAlign_Center);
+			HintSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 8.0f));
+		}
+
+		LockInputBox = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
+		LockInputBox->SetHintText(FText::FromString(TEXT("HH:MM:SS")));
+		if (UVerticalBoxSlot* BoxSlot = Column->AddChildToVerticalBox(LockInputBox))
+		{
+			BoxSlot->SetHorizontalAlignment(HAlign_Center);
+			BoxSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 12.0f));
+		}
+
+		UHorizontalBox* ButtonRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		if (UVerticalBoxSlot* RowSlot = Column->AddChildToVerticalBox(ButtonRow))
+		{
+			RowSlot->SetHorizontalAlignment(HAlign_Center);
+		}
+
+		auto AddButton = [this, ButtonRow](const TCHAR* Caption, bool bConfirm) -> void
+		{
+			USizeBox* ButtonSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+			ButtonSize->SetWidthOverride(130.0f);
+			ButtonSize->SetHeightOverride(52.0f);
+			if (UHorizontalBoxSlot* ButtonSlot = ButtonRow->AddChildToHorizontalBox(ButtonSize))
+			{
+				ButtonSlot->SetPadding(FMargin(6.0f));
+			}
+
+			UButton* Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
+			ButtonSize->AddChild(Button);
+
+			UMyBondageLifeWardrobeClickProxy* Proxy = NewObject<UMyBondageLifeWardrobeClickProxy>(this);
+			Proxy->Owner = this;
+			Proxy->bLockConfirm = bConfirm;
+			Proxy->bLockCancel = !bConfirm;
+			ClickProxies.Add(Proxy);
+			Button->OnClicked.AddDynamic(Proxy, &UMyBondageLifeWardrobeClickProxy::HandleClicked);
+
+			UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+			Label->SetText(FText::FromString(Caption));
+			Label->SetJustification(ETextJustify::Center);
+			Label->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
+			Button->AddChild(Label);
+		};
+
+		AddButton(TEXT("\u786E\u5B9A"), true);
+		AddButton(TEXT("\u53D6\u6D88"), false);
+	}
+
+	const bool bUnlockPassword = (InLockType == 104);
+	const bool bPassword = (InLockType == 4) || bUnlockPassword;
+
+	LockInputTitle->SetText(bPassword
+		? FText::FromString(TEXT("\u8F93\u5165\u5BC6\u7801"))
+		: FText::FromString(bUnlockPassword ? TEXT("") : LockTitle(InLockType).ToString() + TEXT(" \u65F6\u957F")));
+	LockInputHint->SetText(bPassword
+		? FText::FromString(TEXT("4~8 \u4F4D\u7EAF\u6570\u5B57"))
+		: FText::FromString(TEXT("\u683C\u5F0F \u65F6:\u5206:\u79D2\uFF0C\u4F8B\u5982 01:30:00")));
+	LockInputBox->SetHintText(FText::FromString(bPassword ? TEXT("0000") : TEXT("HH:MM:SS")));
+	LockInputBox->SetText(FText::GetEmpty());
+
+	LockInputBackdrop->SetVisibility(ESlateVisibility::Visible);
+}
+
+void UMyBondageLifeWardrobeWidget::CloseLockInput()
+{
+	if (LockInputBackdrop)
+	{
+		LockInputBackdrop->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
+void UMyBondageLifeWardrobeWidget::ConfirmLockInput()
+{
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+	if (!Account || !LockInputBox)
+	{
+		return;
+	}
+
+	const FString Text = LockInputBox->GetText().ToString().TrimStartAndEnd();
+
+	if (PendingLockType == 104)
+	{
+		Account->UnlockRestraint(PickerSlot, Text);
+	}
+	else if (PendingLockType == 4)
+	{
+		Account->LockRestraint(PickerSlot, 4, 0, Text);
+	}
+	else
+	{
+		Account->LockRestraint(PickerSlot, PendingLockType, ParseDuration(Text), FString());
+	}
+
+	CloseLockInput();
+	CloseLockMenu();
+}
+
+void UMyBondageLifeWardrobeWidget::BuildLockWidgets()
+{
+	RefreshLockBadges();
+}
+

@@ -10,6 +10,7 @@ class UBorder;
 class UButton;
 class UCanvasPanel;
 class UImage;
+class UEditableTextBox;
 class UTextBlock;
 class UTexture2D;
 
@@ -34,6 +35,19 @@ public:
 
 	/** True for the picker "取消" button. */
 	bool bClosePicker = false;
+
+	/** True for a lock choice in the lock menu. */
+	bool bLockChoice = false;
+
+	/** True for the "上锁 / 开锁" action button. */
+	bool bLockAction = false;
+
+	/** True for the confirm / cancel buttons of the lock parameter popup. */
+	bool bLockConfirm = false;
+	bool bLockCancel = false;
+
+	/** Lock type carried by a lock menu button (1..5). */
+	int32 LockType = 0;
 
 	int32 Slot = 0;
 	FName ItemId;
@@ -233,6 +247,61 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UTextBlock> PickerTitle;
+
+	//~ Restraint locks ------------------------------------------------------
+
+	/** Adds the corner lock badge + the 上锁/开锁 button to the picker. */
+	void BuildLockWidgets();
+
+	/** Re-applies lock badges on the 12 slots. */
+	void RefreshLockBadges();
+
+	/** Updates the 上锁/开锁 button for the slot the picker was opened for. */
+	void RefreshLockActionButton();
+
+	/** 上锁 when unlocked, 开锁 when locked (password locks open the popup). */
+	void HandleLockAction();
+
+	void OpenLockMenu();
+	void CloseLockMenu();
+
+	/** Opens the time / password popup for locks that need a parameter. */
+	void OpenLockInput(int32 InLockType);
+	void CloseLockInput();
+	void ConfirmLockInput();
+
+	/** Lock type picked in the lock menu (0 when none). */
+	int32 PendingLockType = 0;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UImage>> SlotLockBadges;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UButton> LockActionButton;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> LockActionLabel;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UBorder> LockMenuBackdrop;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UCanvasPanel> LockMenuGrid;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> LockMenuTitle;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UBorder> LockInputBackdrop;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> LockInputTitle;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> LockInputHint;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UEditableTextBox> LockInputBox;
 
 	/** Index into the height presets (0 = 娇小, 1 = 普通, 2 = 高大). */
 	int32 HeightIndex = 1;
