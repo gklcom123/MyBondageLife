@@ -9,10 +9,34 @@
 class UBorder;
 class UButton;
 class UCanvasPanel;
+class UImage;
 class UTextBlock;
 class UTexture2D;
 
-/** Raised when the wardrobe panel opens or closes, so the controller can gate input. */
+class UMyBondageLifeWardrobeWidget;
+
+/** Carries the slot / item of a button click into a per-instance handler. */
+UCLASS()
+class MYBONDAGELIFE_API UMyBondageLifeWardrobeClickProxy : public UObject
+{
+	GENERATED_BODY()
+
+public:
+
+	UFUNCTION()
+	void HandleClicked();
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMyBondageLifeWardrobeWidget> Owner;
+
+	/** True for a picker item button, false for a slot button. */
+	bool bIsItemButton = false;
+
+	int32 Slot = 0;
+	FName ItemId;
+};
+
+/** The wardrobe panel: three tabs, body height/hair and the restraint slots. *//** Raised when the wardrobe panel opens or closes, so the controller can gate input. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeWardrobeOpenChanged, bool, bIsOpen);
 
 /**
@@ -167,6 +191,50 @@ protected:
 	/** Current DT_Hair style ID shown by the selector. */
 	int32 HairId = 1;
 
+	//~ Restraint slots ------------------------------------------------------
+
+	/** Builds the 12 slot buttons plus the picker popup inside the 拘束 page. */
+	void BuildRestraintSlots();
+
+	/** Rewrites slot icons / labels from the account equipment. */
+	void RefreshRestraintSlots();
+
+	/** Opens the item picker for one slot. */
+	void OpenRestraintPicker(int32 Slot);
+
+	/** Hides the picker again. */
+	void CloseRestraintPicker();
+
+	/** Equips an item in the slot the picker was opened for. */
+	void PickRestraintItem(FName ItemId);
+
+	friend class UMyBondageLifeWardrobeClickProxy;
+
+	/** Slot index the picker is currently editing. */
+	int32 PickerSlot = 0;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UButton>> SlotButtons;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UImage>> SlotIcons;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UTextBlock>> SlotLabels;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UBorder> PickerBackdrop;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UCanvasPanel> PickerGrid;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> PickerTitle;
+
 	/** Index into the height presets (0 = 娇小, 1 = 普通, 2 = 高大). */
 	int32 HeightIndex = 1;
+
+	/** Keeps the per-button proxies alive. */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UMyBondageLifeWardrobeClickProxy>> ClickProxies;
 };
