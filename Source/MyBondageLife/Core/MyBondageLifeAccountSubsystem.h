@@ -181,6 +181,37 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeHairChanged, int32, Ne
 /** Raised when the equipped restraints changed. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeRestraintsChanged);
 
+/** Lock state of one restraint slot, as computed by the server. */
+USTRUCT(BlueprintType)
+struct FMyBondageLifeRestraintLock
+{
+	GENERATED_BODY()
+
+	/** 1 master, 2 master timed, 3 padlock, 4 password, 5 timed. */
+	UPROPERTY(BlueprintReadOnly, Category = "Restraint")
+	int32 LockType = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Restraint")
+	FString LockedBy;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Restraint")
+	FString LockedByName;
+
+	/** Only meaningful when bHasExpiry is true. */
+	UPROPERTY(BlueprintReadOnly, Category = "Restraint")
+	FDateTime ExpiresAt;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Restraint")
+	bool bHasExpiry = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Restraint")
+	bool bCanUnlock = false;
+
+	/** MASTER_ONLY / NOT_YOUR_LOCK / PASSWORD_REQUIRED / TIMED_LOCKED, empty when unlockable. */
+	UPROPERTY(BlueprintReadOnly, Category = "Restraint")
+	FString UnlockReason;
+};
+
 /** Raised when a public profile was fetched or refreshed. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeUserProfileUpdated, const FString&, Account);
 
@@ -272,6 +303,24 @@ public:
 	/** Item id equipped in a slot (empty when nothing is worn). */
 	UFUNCTION(BlueprintPure, Category = "Restraint")
 	FString GetEquippedRestraint(int32 Slot) const;
+
+	//~ Restraint locks -----------------------------------------------------
+
+	/** True when the slot currently carries an active lock. */
+	UFUNCTION(BlueprintPure, Category = "Restraint")
+	bool HasRestraintLock(int32 Slot) const;
+
+	/** Lock state of a slot (LockType 0 when unlocked). */
+	UFUNCTION(BlueprintPure, Category = "Restraint")
+	FMyBondageLifeRestraintLock GetRestraintLock(int32 Slot) const;
+
+	/** POST /users/{account}/restraints/{slot}/lock */
+	UFUNCTION(BlueprintCallable, Category = "Restraint")
+	void LockRestraint(int32 Slot, int32 LockType, int32 DurationSeconds, const FString& Password);
+
+	/** DELETE /users/{account}/restraints/{slot}/lock */
+	UFUNCTION(BlueprintCallable, Category = "Restraint")
+	void UnlockRestraint(int32 Slot, const FString& Password);
 
 	/** Slot -> item id for everything currently worn. */
 	UFUNCTION(BlueprintPure, Category = "Restraint")
@@ -470,6 +519,9 @@ private:
 
 	/** Slot -> item id of the equipped restraints. */
 	TMap<int32, FString> EquippedRestraints;
+
+	/** Slot -> active lock (absent when the slot is unlocked). */
+	TMap<int32, FMyBondageLifeRestraintLock> RestraintLocks;
 
 	/** Friend list, refreshed from GET /friends. */
 	TArray<FMyBondageLifeFriendEntry> Friends;

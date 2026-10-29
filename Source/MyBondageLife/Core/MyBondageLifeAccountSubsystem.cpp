@@ -1261,6 +1261,9 @@ void UMyBondageLifeAccountSubsystem::RefreshRestraints()
 
 			Self->EquippedRestraints.Reset();
 
+			Self->EquippedRestraints.Reset();
+			Self->RestraintLocks.Reset();
+
 			const TArray<TSharedPtr<FJsonValue>>* Equipped = nullptr;
 			if (Json->TryGetArrayField(TEXT("equipped"), Equipped) && Equipped)
 			{
@@ -1274,9 +1277,38 @@ void UMyBondageLifeAccountSubsystem::RefreshRestraints()
 
 					double SlotValue = 0.0;
 					FString ItemId;
-					if (Item->TryGetNumberField(TEXT("slot"), SlotValue) && Item->TryGetStringField(TEXT("itemId"), ItemId))
+					if (!Item->TryGetNumberField(TEXT("slot"), SlotValue) || !Item->TryGetStringField(TEXT("itemId"), ItemId))
 					{
-						Self->EquippedRestraints.Add(FMath::Clamp(static_cast<int32>(SlotValue), 0, 11), ItemId);
+						continue;
+					}
+
+					const int32 SlotIndex = FMath::Clamp(static_cast<int32>(SlotValue), 0, 11);
+					Self->EquippedRestraints.Add(SlotIndex, ItemId);
+
+					const TSharedPtr<FJsonObject>* LockObject = nullptr;
+					if (!Item->TryGetObjectField(TEXT("lock"), LockObject) || !LockObject || !LockObject->IsValid())
+					{
+						continue;
+					}
+
+					FMyBondageLifeRestraintLock Lock;
+					double LockType = 0.0;
+					LockObject->Get()->TryGetNumberField(TEXT("lockType"), LockType);
+					Lock.LockType = static_cast<int32>(LockType);
+					LockObject->Get()->TryGetStringField(TEXT("lockedBy"), Lock.LockedBy);
+					LockObject->Get()->TryGetStringField(TEXT("lockedByName"), Lock.LockedByName);
+					LockObject->Get()->TryGetBoolField(TEXT("canUnlock"), Lock.bCanUnlock);
+					LockObject->Get()->TryGetStringField(TEXT("unlockReason"), Lock.UnlockReason);
+
+					FString ExpiresAt;
+					if (LockObject->Get()->TryGetStringField(TEXT("expiresAt"), ExpiresAt) && !ExpiresAt.IsEmpty())
+					{
+						Lock.bHasExpiry = FDateTime::ParseIso8601(*ExpiresAt, Lock.ExpiresAt);
+					}
+
+					if (Lock.LockType > 0)
+					{
+						Self->RestraintLocks.Add(SlotIndex, Lock);
 					}
 				}
 			}
@@ -1353,4 +1385,85 @@ FString UMyBondageLifeAccountSubsystem::GetEquippedRestraint(int32 Slot) const
 		return *Found;
 	}
 	return FString();
+}
+
+bool UMyBondageLifeAccountSubsystem::HasRestraintLock(int32 Slot) const
+{
+	return RestraintLocks.Contains(Slot);
+}
+
+FMyBondageLifeRestraintLock UMyBondageLifeAccountSubsystem::GetRestraintLock(int32 Slot) const
+{
+	if (const FMyBondageLifeRestraintLock* Found = RestraintLocks.Find(Slot))
+	{
+		return *Found;
+	}
+	return FMyBondageLifeRestraintLock();
+}
+
+void UMyBondageLifeAccountSubsystem::LockRestraint(int32 Slot, int32 LockType, int32 DurationSeconds, const FString& Password)
+{
+	if (Slot < 0 || Slot > 11 || LockType < 1 || LockType > 5)
+	{
+		return;
+	}
+
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetNumberField(TEXT("lockType"), LockType);
+	if (DurationSeconds > 0)
+	{
+		Body->SetNumberField(TEXT("durationSeconds"), DurationSeconds);
+	}
+	if (!Password.IsEmpty())
+	{
+		Body->SetStringField(TEXT("password"), Password);
+	}
+
+	const FString Path = FString::Printf(TEXT("/users/me/restraints/%d/lock"), Slot);
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+
+	SendFriendApiRequest(TEXT("POST"), Path, Body,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self)
+			{
+				return;
+			}
+
+			UE_LOG(LogMyBondageLife, Log, TEXT("Restraint: lock %s (%d)."), bOk ? TEXT("ok") : TEXT("failed"), StatusCode);
+
+			// Always re-read: the server owns the rules (canUnlock, expiry, ...).
+			Self->RefreshRestraints();
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::UnlockRestraint(int32 Slot, const FString& Password)
+{
+	if (Slot < 0 || Slot > 11)
+	{
+		return;
+	}
+
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	if (!Password.IsEmpty())
+	{
+		Body->SetStringField(TEXT("password"), Password);
+	}
+
+	const FString Path = FString::Printf(TEXT("/users/me/restraints/%d/lock"), Slot);
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+
+	SendFriendApiRequest(TEXT("DELETE"), Path, Body,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self)
+			{
+				return;
+			}
+
+			UE_LOG(LogMyBondageLife, Log, TEXT("Restraint: unlock %s (%d)."), bOk ? TEXT("ok") : TEXT("failed"), StatusCode);
+			Self->RefreshRestraints();
+		});
 }
