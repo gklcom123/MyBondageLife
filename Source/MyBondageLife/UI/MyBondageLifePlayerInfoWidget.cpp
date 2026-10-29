@@ -758,6 +758,8 @@ void UMyBondageLifePlayerInfoWidget::HandleContractsChanged()
 
 void UMyBondageLifePlayerInfoWidget::HandleWardrobeClicked()
 {
+	UE_LOG(LogMyBondageLife, Warning, TEXT("Wardrobe button clicked (char=%s)"), *GetNameSafe(DisplayedCharacter.Get()));
+
 	const AMyBondageLifeCharacter* Character = DisplayedCharacter.Get();
 	if (!Character)
 	{

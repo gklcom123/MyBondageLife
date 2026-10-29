@@ -1627,6 +1627,12 @@ void AMyBondageLifePlayerController::ShowWardrobe()
 	}
 
 	WardrobeWidget = CreateWidget<UMyBondageLifeWardrobeWidget>(this, WardrobeWidgetClass);
+
+	// Own wardrobe by default; OpenFriendWardrobe switches it afterwards.
+	if (WardrobeWidget)
+	{
+		WardrobeWidget->EnterFriendMode(FString());
+	}
 	if (!WardrobeWidget)
 	{
 		UE_LOG(LogMyBondageLife, Error, TEXT("Wardrobe: could not create the widget."));
@@ -1964,6 +1970,8 @@ void AMyBondageLifePlayerController::OpenFriendWardrobe(const FString& InAccount
 	{
 		return;
 	}
+
+	UE_LOG(LogMyBondageLife, Warning, TEXT("Wardrobe: open friend %s"), *InAccount);
 
 	HidePlayerInfo();
 
