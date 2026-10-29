@@ -1357,12 +1357,19 @@ void UMyBondageLifeWardrobeWidget::OpenLockMenu()
 
 		for (int32 LockType = 1; LockType <= 5; ++LockType)
 		{
+			// One column per lock: icon on top, caption underneath.
+			UVerticalBox* LockBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+			if (UHorizontalBoxSlot* LockSlot = Row->AddChildToHorizontalBox(LockBox))
+			{
+				LockSlot->SetPadding(FMargin(6.0f));
+			}
+
 			USizeBox* IconSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
 			IconSize->SetWidthOverride(120.0f);
 			IconSize->SetHeightOverride(120.0f);
-			if (UHorizontalBoxSlot* IconSlot = Row->AddChildToHorizontalBox(IconSize))
+			if (UVerticalBoxSlot* IconSlot = LockBox->AddChildToVerticalBox(IconSize))
 			{
-				IconSlot->SetPadding(FMargin(6.0f));
+				IconSlot->SetHorizontalAlignment(HAlign_Center);
 			}
 
 			UButton* IconButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
@@ -1387,9 +1394,15 @@ void UMyBondageLifeWardrobeWidget::OpenLockMenu()
 			Caption->SetText(LockTitle(LockType));
 			Caption->SetJustification(ETextJustify::Center);
 			Caption->SetColorAndOpacity(FSlateColor(FLinearColor(0.1f, 0.1f, 0.1f)));
-			if (UVerticalBoxSlot* CaptionSlot = Column->AddChildToVerticalBox(Caption))
+			{
+				FSlateFontInfo CaptionFont = Caption->GetFont();
+				CaptionFont.Size = 15;
+				Caption->SetFont(CaptionFont);
+			}
+			if (UVerticalBoxSlot* CaptionSlot = LockBox->AddChildToVerticalBox(Caption))
 			{
 				CaptionSlot->SetHorizontalAlignment(HAlign_Center);
+				CaptionSlot->SetPadding(FMargin(0.0f, 6.0f, 0.0f, 0.0f));
 			}
 		}
 

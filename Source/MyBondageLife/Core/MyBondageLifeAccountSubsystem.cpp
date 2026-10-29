@@ -1419,7 +1419,9 @@ void UMyBondageLifeAccountSubsystem::LockRestraint(int32 Slot, int32 LockType, i
 		Body->SetStringField(TEXT("password"), Password);
 	}
 
-	const FString Path = FString::Printf(TEXT("/users/me/restraints/%d/lock"), Slot);
+	// The lock routes do not resolve "me": use the real account name.
+	const FString Owner = AccountName.IsEmpty() ? TEXT("me") : AccountName;
+	const FString Path = FString::Printf(TEXT("/users/%s/restraints/%d/lock"), *Owner, Slot);
 	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
 
 	SendFriendApiRequest(TEXT("POST"), Path, Body,
@@ -1451,7 +1453,8 @@ void UMyBondageLifeAccountSubsystem::UnlockRestraint(int32 Slot, const FString& 
 		Body->SetStringField(TEXT("password"), Password);
 	}
 
-	const FString Path = FString::Printf(TEXT("/users/me/restraints/%d/lock"), Slot);
+	const FString Owner = AccountName.IsEmpty() ? TEXT("me") : AccountName;
+	const FString Path = FString::Printf(TEXT("/users/%s/restraints/%d/lock"), *Owner, Slot);
 	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
 
 	SendFriendApiRequest(TEXT("DELETE"), Path, Body,
