@@ -727,6 +727,7 @@ void UMyBondageLifeWardrobeClickProxy::HandleClicked()
 			: nullptr)
 		{
 			Owner->CloseLockMenu();
+			Owner->PlayLockCue();
 			Account->LockRestraint(Owner->PickerSlot, LockType, 0, FString());
 		}
 		return;
@@ -1355,7 +1356,6 @@ void UMyBondageLifeWardrobeWidget::HandleLockAction()
 		PickerSlot, Lock.LockType, Lock.bCanUnlock ? 1 : 0);
 	if (Lock.LockType == 0)
 	{
-		PlayLockCue();
 		OpenLockMenu();
 		return;
 	}
@@ -1652,10 +1652,12 @@ void UMyBondageLifeWardrobeWidget::ConfirmLockInput()
 	}
 	else if (PendingLockType == 4)
 	{
+		PlayLockCue();
 		Account->LockRestraint(PickerSlot, 4, 0, Text);
 	}
 	else
 	{
+		PlayLockCue();
 		Account->LockRestraint(PickerSlot, PendingLockType, ParseDuration(Text), FString());
 	}
 
