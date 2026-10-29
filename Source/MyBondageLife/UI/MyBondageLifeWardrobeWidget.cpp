@@ -449,7 +449,8 @@ void UMyBondageLifeWardrobeWidget::SelectTab(int32 TabIndex)
 	// Somebody else's wardrobe has no body page.
 	if (bFriendMode && TabIndex == 0)
 	{
-		TabIndex = 2;
+		// Somebody else's wardrobe has no body page: ignore the click entirely.
+		return;
 	}
 
 	// 0 body, 1 appearance, 2 restraint.
@@ -1105,7 +1106,7 @@ void UMyBondageLifeWardrobeWidget::OpenRestraintPicker(int32 SlotIndex)
 	{
 		if (const UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
 		{
-			if (!bSlotLocked && !Account->GetEquippedRestraint(SlotIndex).IsEmpty())
+			if (!bSlotLocked && !(bFriendMode ? Account->GetViewedRestraint(SlotIndex) : Account->GetEquippedRestraint(SlotIndex)).IsEmpty())
 			{
 				USizeBox* RemoveSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
 				RemoveSize->SetWidthOverride(140.0f);
@@ -1159,6 +1160,15 @@ void UMyBondageLifeWardrobeWidget::OpenRestraintPicker(int32 SlotIndex)
 	PickerBackdrop->SetVisibility(ESlateVisibility::Visible);
 	PickerGrid->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	PickerTitle->SetVisibility(ESlateVisibility::HitTestInvisible);
+}
+
+void UMyBondageLifeWardrobeWidget::ResetToOwnMode()
+{
+	bFriendMode = false;
+	FriendAccount.Reset();
+	RefreshRestraintSlots();
+	RefreshLockBadges();
+	RefreshLockActionButton();
 }
 
 void UMyBondageLifeWardrobeWidget::CloseRestraintPicker()
@@ -1326,7 +1336,8 @@ void UMyBondageLifeWardrobeWidget::RefreshLockActionButton()
 	{
 		UGameInstance* GameInstance = GetGameInstance();
 		UMyBondageLifeAccountSubsystem* AccountSub = GameInstance ? GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
-		return AccountSub && !AccountSub->GetEquippedRestraint(PickerSlot).IsEmpty();
+		if (!AccountSub) { return false; }
+		return !(bFriendMode ? AccountSub->GetViewedRestraint(PickerSlot) : AccountSub->GetEquippedRestraint(PickerSlot)).IsEmpty();
 	}();
 
 	LockActionButton->SetVisibility(bHasItem ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);

@@ -437,7 +437,7 @@ void UMyBondageLifePlayerInfoWidget::RefreshContents()
 
 			if (WardrobeButton)
 			{
-				WardrobeButton->SetVisibility(bIsFriend ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+				WardrobeButton->SetVisibility((bIsFriend && IsDisplayingOtherPlayer()) ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 			}
 			AddFriendLabel->SetText(FText::FromString(bIsFriend
 				? FString(TEXT("\u5DF2\u662F\u597D\u53CB"))     // 已是好友

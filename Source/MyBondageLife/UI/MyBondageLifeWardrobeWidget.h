@@ -215,6 +215,9 @@ public:
 	/** Switches the panel to another account's wardrobe (body tab disabled). */
 	void EnterFriendMode(const FString& InAccount);
 
+	/** Back to the local player wardrobe. */
+	void ResetToOwnMode();
+
 protected:
 
 	bool IsFriendMode() const { return bFriendMode; }

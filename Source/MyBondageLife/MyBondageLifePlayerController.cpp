@@ -1645,6 +1645,12 @@ void AMyBondageLifePlayerController::ShowWardrobe()
 
 void AMyBondageLifePlayerController::HideWardrobe()
 {
+	// Leaving somebody else's wardrobe must not leak into the next open.
+	if (WardrobeWidget)
+	{
+		WardrobeWidget->ResetToOwnMode();
+	}
+
 	if (WardrobeWidget)
 	{
 		WardrobeWidget->RemoveFromParent();
