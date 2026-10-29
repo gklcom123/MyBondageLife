@@ -675,6 +675,12 @@ void UMyBondageLifeWardrobeClickProxy::HandleClicked()
 		return;
 	}
 
+	if (bClosePicker)
+	{
+		Owner->CloseRestraintPicker();
+		return;
+	}
+
 	if (bIsItemButton)
 	{
 		Owner->PickRestraintItem(ItemId);
@@ -801,6 +807,36 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 		GridSlot->SetHorizontalAlignment(HAlign_Center);
 	}
 	PickerGrid->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+
+	// Always available, even when the slot has no candidates at all.
+	USizeBox* CancelSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	CancelSize->SetWidthOverride(140.0f);
+	CancelSize->SetHeightOverride(56.0f);
+	if (UVerticalBoxSlot* CancelSlot = PickerColumn->AddChildToVerticalBox(CancelSize))
+	{
+		CancelSlot->SetHorizontalAlignment(HAlign_Center);
+		CancelSlot->SetPadding(FMargin(0.0f, 14.0f, 0.0f, 0.0f));
+	}
+
+	UButton* CancelButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
+	CancelSize->AddChild(CancelButton);
+
+	UMyBondageLifeWardrobeClickProxy* CancelProxy = NewObject<UMyBondageLifeWardrobeClickProxy>(this);
+	CancelProxy->Owner = this;
+	CancelProxy->bClosePicker = true;
+	ClickProxies.Add(CancelProxy);
+	CancelButton->OnClicked.AddDynamic(CancelProxy, &UMyBondageLifeWardrobeClickProxy::HandleClicked);
+
+	UTextBlock* CancelLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+	CancelLabel->SetText(FText::FromString(TEXT("\u53D6\u6D88")));
+	CancelLabel->SetJustification(ETextJustify::Center);
+	CancelLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
+	{
+		FSlateFontInfo CancelFont = CancelLabel->GetFont();
+		CancelFont.Size = 20;
+		CancelLabel->SetFont(CancelFont);
+	}
+	CancelButton->AddChild(CancelLabel);
 }
 
 void UMyBondageLifeWardrobeWidget::RefreshRestraintSlots()

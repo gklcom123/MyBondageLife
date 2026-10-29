@@ -32,6 +32,9 @@ public:
 	/** True for a picker item button, false for a slot button. */
 	bool bIsItemButton = false;
 
+	/** True for the picker "取消" button. */
+	bool bClosePicker = false;
+
 	int32 Slot = 0;
 	FName ItemId;
 };
