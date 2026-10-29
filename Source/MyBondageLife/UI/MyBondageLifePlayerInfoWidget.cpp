@@ -772,9 +772,21 @@ void UMyBondageLifePlayerInfoWidget::HandleWardrobeClicked()
 		return;
 	}
 
-	const FString Target = Account->FindAccountByCharacterName(Character->GetCharacterName());
+	// Same rule as IsDisplayedCharacterFriend(): the player name is the account name.
+	FString Target;
+	if (const APlayerState* OwnerState = Character->GetPlayerState())
+	{
+		Target = OwnerState->GetPlayerName();
+	}
+	if (Target.IsEmpty())
+	{
+		Target = Account->FindAccountByCharacterName(Character->GetCharacterName());
+	}
+
 	if (Target.IsEmpty() || !Account->IsFriend(Target))
 	{
+		UE_LOG(LogMyBondageLife, Warning, TEXT("Wardrobe button: cannot resolve account (friend=%d)."),
+			Target.IsEmpty() ? 0 : 1);
 		return;
 	}
 
