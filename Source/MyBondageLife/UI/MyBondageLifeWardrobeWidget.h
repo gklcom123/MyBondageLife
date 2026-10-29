@@ -269,6 +269,15 @@ protected:
 	UFUNCTION()
 	void HandleRestraintsChanged();
 
+	/** Rewrites the picker title with the remaining lock time. */
+	void UpdateLockCountdown();
+	void StopLockCountdown();
+
+	FDateTime PickerLockExpiry;
+	bool bPickerLockHasExpiry = false;
+	int32 PickerLockType = 0;
+	FTimerHandle LockCountdownTimer;
+
 	void OpenLockMenu();
 	void CloseLockMenu();
 

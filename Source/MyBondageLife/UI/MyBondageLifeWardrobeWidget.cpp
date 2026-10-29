@@ -703,7 +703,9 @@ void UMyBondageLifeWardrobeClickProxy::HandleClicked()
 
 	if (bLockCancel)
 	{
+		// Same button is used by the lock menu and the parameter popup.
 		Owner->CloseLockInput();
+		Owner->CloseLockMenu();
 		return;
 	}
 
@@ -984,6 +986,9 @@ void UMyBondageLifeWardrobeWidget::OpenRestraintPicker(int32 SlotIndex)
 		? LockAccount->GetRestraintLock(SlotIndex)
 		: FMyBondageLifeRestraintLock();
 	const bool bSlotLocked = SlotLock.LockType > 0;
+	PickerLockType = SlotLock.LockType;
+	PickerLockExpiry = SlotLock.ExpiresAt;
+	bPickerLockHasExpiry = SlotLock.bHasExpiry;
 
 	PickerGrid->ClearChildren();
 	ClickProxies.RemoveAll([](const TObjectPtr<UMyBondageLifeWardrobeClickProxy>& Proxy)
@@ -1119,6 +1124,20 @@ void UMyBondageLifeWardrobeWidget::OpenRestraintPicker(int32 SlotIndex)
 	CloseLockInput();
 	RefreshLockActionButton();
 
+	if (bPickerLockHasExpiry)
+	{
+		UpdateLockCountdown();
+		if (UWorld* World = GetWorld())
+		{
+			World->GetTimerManager().SetTimer(LockCountdownTimer, this,
+				&UMyBondageLifeWardrobeWidget::UpdateLockCountdown, 1.0f, true);
+		}
+	}
+	else
+	{
+		StopLockCountdown();
+	}
+
 	PickerBackdrop->SetVisibility(ESlateVisibility::Visible);
 	PickerGrid->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	PickerTitle->SetVisibility(ESlateVisibility::HitTestInvisible);
@@ -1126,6 +1145,7 @@ void UMyBondageLifeWardrobeWidget::OpenRestraintPicker(int32 SlotIndex)
 
 void UMyBondageLifeWardrobeWidget::CloseRestraintPicker()
 {
+	StopLockCountdown();
 	if (PickerBackdrop)
 	{
 		PickerBackdrop->SetVisibility(ESlateVisibility::Collapsed);
