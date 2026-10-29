@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "MyBondageLifePlayerInfoWidget.h"
+#include "MyBondageLifePlayerController.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
@@ -315,6 +316,34 @@ void UMyBondageLifePlayerInfoWidget::BuildLayout()
 	}
 	ContractButton->AddChild(ContractLabel);
 	ContractButton->SetVisibility(ESlateVisibility::Collapsed);
+
+	// "衣物/拘束" sits to the right of the contract button; only for friends.
+	USizeBox* WardrobeSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("WardrobeSize"));
+	WardrobeSize->SetWidthOverride(300.0f);
+	WardrobeSize->SetHeightOverride(88.0f);
+	if (UCanvasPanelSlot* WardrobeSlot = PanelCanvas->AddChildToCanvas(WardrobeSize))
+	{
+		WardrobeSlot->SetAnchors(FAnchors(0.0f, 1.0f, 0.0f, 1.0f));
+		WardrobeSlot->SetAlignment(FVector2D(0.0f, 1.0f));
+		WardrobeSlot->SetPosition(FVector2D(808.0f, -56.0f));
+		WardrobeSlot->SetAutoSize(true);
+	}
+
+	WardrobeButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("WardrobeButton"));
+	WardrobeButton->OnClicked.AddDynamic(this, &UMyBondageLifePlayerInfoWidget::HandleWardrobeClicked);
+	WardrobeSize->AddChild(WardrobeButton);
+
+	UTextBlock* WardrobeLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("WardrobeLabel"));
+	WardrobeLabel->SetText(FText::FromString(TEXT("\u8863\u7269/\u62D8\u675F")));
+	WardrobeLabel->SetJustification(ETextJustify::Center);
+	WardrobeLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.02f, 0.02f, 0.02f)));
+	{
+		FSlateFontInfo WardrobeFont = WardrobeLabel->GetFont();
+		WardrobeFont.Size = 20;
+		WardrobeLabel->SetFont(WardrobeFont);
+	}
+	WardrobeButton->AddChild(WardrobeLabel);
+	WardrobeButton->SetVisibility(ESlateVisibility::Collapsed);
 }
 
 void UMyBondageLifePlayerInfoWidget::NativeConstruct()
@@ -405,6 +434,11 @@ void UMyBondageLifePlayerInfoWidget::RefreshContents()
 			const bool bIsFriend = IsDisplayedCharacterFriend();
 			AddFriendButton->SetVisibility(ESlateVisibility::Visible);
 			AddFriendButton->SetIsEnabled(!bIsFriend);
+
+			if (WardrobeButton)
+			{
+				WardrobeButton->SetVisibility(bIsFriend ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+			}
 			AddFriendLabel->SetText(FText::FromString(bIsFriend
 				? FString(TEXT("\u5DF2\u662F\u597D\u53CB"))     // 已是好友
 				: FString(TEXT("\u6DFB\u52A0\u597D\u53CB"))));  // 添加好友
@@ -719,5 +753,33 @@ void UMyBondageLifePlayerInfoWidget::HandleContractsChanged()
 	if (IsPanelOpen())
 	{
 		RefreshContents();
+	}
+}
+
+void UMyBondageLifePlayerInfoWidget::HandleWardrobeClicked()
+{
+	const AMyBondageLifeCharacter* Character = DisplayedCharacter.Get();
+	if (!Character)
+	{
+		return;
+	}
+
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+	if (!Account)
+	{
+		return;
+	}
+
+	const FString Target = Account->FindAccountByCharacterName(Character->GetCharacterName());
+	if (Target.IsEmpty() || !Account->IsFriend(Target))
+	{
+		return;
+	}
+
+	if (AMyBondageLifePlayerController* Controller = Cast<AMyBondageLifePlayerController>(GetOwningPlayer()))
+	{
+		Controller->OpenFriendWardrobe(Target);
 	}
 }

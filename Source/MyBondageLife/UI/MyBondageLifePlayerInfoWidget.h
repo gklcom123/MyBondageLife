@@ -128,6 +128,13 @@ protected:
 	UFUNCTION()
 	void HandleContractClicked();
 
+	/** Opens the shown friend's wardrobe (wardrobe/restraint tab). */
+	UFUNCTION()
+	void HandleWardrobeClicked();
+
+	UPROPERTY(Transient)
+	TObjectPtr<UButton> WardrobeButton;
+
 	/** A public profile arrived: repaint if it belongs to the shown character. */
 	UFUNCTION()
 	void HandleUserProfileUpdated(const FString& Account);

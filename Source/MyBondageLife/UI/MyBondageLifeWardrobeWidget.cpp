@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "MyBondageLifeWardrobeWidget.h"
+#include "MyBondageLifeCharacter.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/EditableTextBox.h"
@@ -979,6 +980,16 @@ void UMyBondageLifeWardrobeWidget::RefreshRestraintSlots()
 
 void UMyBondageLifeWardrobeWidget::OpenRestraintPicker(int32 SlotIndex)
 {
+	if (bFriendMode)
+	{
+		const UMyBondageLifeAccountSubsystem* Guard = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+		const AMyBondageLifeCharacter* OwnPawn = Cast<AMyBondageLifeCharacter>(GetOwningPlayerPawn());
+		if (!Guard || !Guard->CanEditRestraintsOf(FriendAccount) || (OwnPawn && OwnPawn->IsArmsRestrained()))
+		{
+			return;
+		}
+	}
+
 	if (!PickerBackdrop || !PickerGrid || !PickerTitle)
 	{
 		return;
@@ -1690,6 +1701,20 @@ bool UMyBondageLifeWardrobeWidget::IsLockTypeAllowed(int32 LockType) const
 	// Today only the local wardrobe is editable, so the actor is always the owner.
 	// Keep the per-type rules here so opening a friend's wardrobe later needs no rewrite.
 	const bool bSelf = true;
+
+	if (bFriendMode)
+	{
+		// Someone else's wardrobe: 1/2 need a master contract, 3/4/5 the hierarchy rule.
+		const int32 ActorClass = Account->GetCharacterClass();
+		const int32 OwnerClass = Account->GetFriendClass(FriendAccount);
+
+		if (LockType == 1 || LockType == 2)
+		{
+			return Account->GetContractRoleWith(FriendAccount) == EMyBondageLifeContractRole::Master;
+		}
+
+		return (ActorClass == 1 && OwnerClass >= 2) || (ActorClass == 2 && OwnerClass >= 2);
+	}
 
 	if (bSelf)
 	{

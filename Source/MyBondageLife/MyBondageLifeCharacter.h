@@ -133,6 +133,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Restraint")
 	void ApplyRestraints();
 
+	/** Public mirror of the restraint state (used by other widgets). */
+	UFUNCTION(BlueprintPure, Category="Restraint")
+	bool IsArmsRestrained() const { return bRestraintArm; }
+
 	//~ Animation -----------------------------------------------------------
 
 	/** Enables or disables the temporary restraint pose. */
