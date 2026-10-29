@@ -2,33 +2,47 @@
 
 #include "UI/MyBondageLifeWardrobeWidget.h"
 
+#include "Framework/Application/SlateApplication.h"
 #include "Kismet/GameplayStatics.h"
-#include "Sound/SoundBase.h"
 #include "MyBondageLife.h"
+#include "Sound/SoundBase.h"
 
 /**
  *  Sound played when "上锁" is pressed.
  *
- *  The cue is looked up lazily so the widget still works (silently) before the
- *  asset is imported, and so moving the asset only needs a path update here.
+ *  Played through Slate so it behaves as a real UI sound (own volume, unaffected by
+ *  3D attenuation / listener position). Falls back to PlaySound2D when Slate is not
+ *  available.
  */
 void UMyBondageLifeWardrobeWidget::PlayLockCue()
 {
 	static const TCHAR* CandidatePaths[] = {
+		TEXT("/Game/Characters/Sound/UI/UI_Lock_Cue.UI_Lock_Cue"),
 		TEXT("/Game/2DAssest/UI/UI_Lock_Cue.UI_Lock_Cue"),
-		TEXT("/Game/2DAssest/Sound/UI_Lock_Cue.UI_Lock_Cue"),
 		TEXT("/Game/Characters/Sound/UI_Lock_Cue.UI_Lock_Cue"),
-		TEXT("/Game/UI/Sound/UI_Lock_Cue.UI_Lock_Cue"),
+		TEXT("/Game/2DAssest/Sound/UI_Lock_Cue.UI_Lock_Cue"),
 	};
 
 	for (const TCHAR* Path : CandidatePaths)
 	{
-		if (USoundBase* Cue = LoadObject<USoundBase>(nullptr, Path))
+		USoundBase* Cue = LoadObject<USoundBase>(nullptr, Path);
+		if (!Cue)
+		{
+			continue;
+		}
+
+		if (FSlateApplication::IsInitialized())
+		{
+			FSlateSound SlateSound;
+			SlateSound.SetResourceObject(Cue);
+			FSlateApplication::Get().PlaySound(SlateSound);
+		}
+		else
 		{
 			UGameplayStatics::PlaySound2D(this, Cue);
-			return;
 		}
+		return;
 	}
 
-	UE_LOG(LogMyBondageLife, Verbose, TEXT("Lock: UI_Lock_Cue not found, no sound played."));
+	UE_LOG(LogMyBondageLife, Warning, TEXT("Lock: UI_Lock_Cue not found under /Game/Characters/Sound/UI."));
 }

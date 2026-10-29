@@ -1303,6 +1303,20 @@ void UMyBondageLifeWardrobeWidget::RefreshLockActionButton()
 		return;
 	}
 
+	// An empty slot has nothing to lock, so the button is hidden entirely.
+	const bool bHasItem = [this]() -> bool
+	{
+		UGameInstance* GameInstance = GetGameInstance();
+		UMyBondageLifeAccountSubsystem* AccountSub = GameInstance ? GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+		return AccountSub && !AccountSub->GetEquippedRestraint(PickerSlot).IsEmpty();
+	}();
+
+	LockActionButton->SetVisibility(bHasItem ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	if (!bHasItem)
+	{
+		return;
+	}
+
 	const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
 		: nullptr;
