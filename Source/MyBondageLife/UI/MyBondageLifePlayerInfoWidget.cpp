@@ -909,6 +909,11 @@ bool UMyBondageLifePlayerInfoWidget::TryAdoptBlueprintLayout()
 	if (PanelBorder)
 	{
 		// The panel must start closed, exactly like the code-built layout.
+		if (UCanvasPanelSlot* PanelSlotZ = Cast<UCanvasPanelSlot>(PanelBorder->Slot))
+		{
+			PanelSlotZ->SetZOrder(10);
+		}
+
 		PanelBorder->SetVisibility(ESlateVisibility::Collapsed);
 	}
 

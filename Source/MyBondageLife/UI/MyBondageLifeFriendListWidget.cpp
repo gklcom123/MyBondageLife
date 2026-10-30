@@ -454,7 +454,6 @@ void UMyBondageLifeFriendListWidget::RefreshFriends()
 
 			if (UMyBondageLifeFriendRowWidget* Row = CreateWidget<UMyBondageLifeFriendRowWidget>(GetOwningPlayer(), RowWidgetClass))
 			{
-				Row->SetFriendEntry(Friend, false);
 				Row->OnRowClicked.AddUniqueDynamic(this, &UMyBondageLifeFriendListWidget::HandleDesignedRowClicked);
 				Row->OnRowMenuClicked.AddUniqueDynamic(this, &UMyBondageLifeFriendListWidget::HandleDesignedRowMenuClicked);
 
@@ -463,6 +462,8 @@ void UMyBondageLifeFriendListWidget::RefreshFriends()
 					RowSlot->SetPadding(FMargin(0.0f, 4.0f));
 					RowSlot->SetHorizontalAlignment(HAlign_Fill);
 				}
+				// 布局在 AddChild 时才构建，因此数据要在之后填。
+				Row->SetFriendEntry(Friend, false);
 				continue;
 			}
 		}
@@ -1070,6 +1071,11 @@ bool UMyBondageLifeFriendListWidget::TryAdoptBlueprintLayout()
 
 	if (PanelBorder)
 	{
+		if (UCanvasPanelSlot* PanelSlotZ = Cast<UCanvasPanelSlot>(PanelBorder->Slot))
+		{
+			PanelSlotZ->SetZOrder(10);
+		}
+
 		PanelBorder->SetVisibility(ESlateVisibility::Collapsed);
 	}
 
