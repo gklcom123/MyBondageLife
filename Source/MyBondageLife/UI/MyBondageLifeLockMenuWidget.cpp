@@ -104,9 +104,37 @@ void UMyBondageLifeLockMenuWidget::BuildLayout()
 	LockButtons.Reset();
 	ChoiceProxies.Reset();
 
+	// Buttons placed inside W_LockMenu_Row are used in order when names are missing:
+	// the designer can skip naming entirely.
+	TArray<UButton*> RowButtons;
+	if (UPanelWidget* RowPanel = Cast<UPanelWidget>(WidgetTree->FindWidget(TEXT("W_LockMenu_Row"))))
+	{
+		for (int32 Index = 0; Index < RowPanel->GetChildrenCount(); ++Index)
+		{
+			if (UButton* RowButton = FindButtonIn(RowPanel->GetChildAt(Index)))
+			{
+				RowButtons.Add(RowButton);
+			}
+		}
+	}
+
 	for (int32 LockType = 1; LockType <= 5; ++LockType)
 	{
+		// Several accepted spellings, plus an order-based fallback below.
 		UButton* Button = FindNamedButton(WidgetTree, FString::Printf(TEXT("W_Lock_%d"), LockType));
+		if (!Button)
+		{
+			Button = FindNamedButton(WidgetTree, FString::Printf(TEXT("W_Lock%d"), LockType));
+		}
+		if (!Button)
+		{
+			Button = FindNamedButton(WidgetTree, FString::Printf(TEXT("W_Lock_Button_%d"), LockType));
+		}
+
+		if (!Button && RowButtons.IsValidIndex(LockType - 1))
+		{
+			Button = RowButtons[LockType - 1];
+		}
 
 		if (Button)
 		{
