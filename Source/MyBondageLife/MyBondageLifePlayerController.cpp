@@ -835,7 +835,8 @@ void AMyBondageLifePlayerController::ShowFriendList()
 
 	if (!FriendListWidgetClass)
 	{
-		FriendListWidgetClass = UMyBondageLifeFriendListWidget::StaticClass();
+		UClass* DesignedList = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_FriendList.WBP_FriendList_C"));
+		FriendListWidgetClass = DesignedList ? DesignedList : UMyBondageLifeFriendListWidget::StaticClass();
 	}
 
 	FriendListWidget = CreateWidget<UMyBondageLifeFriendListWidget>(this, FriendListWidgetClass);

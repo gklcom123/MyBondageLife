@@ -79,9 +79,13 @@ TSharedRef<SWidget> UMyBondageLifeFriendListWidget::RebuildWidget()
 		WidgetTree = NewObject<UWidgetTree>(this, TEXT("WidgetTree"));
 	}
 
-	if (WidgetTree && !WidgetTree->RootWidget)
+	if (!IsDesignTime() && WidgetTree && !bLayoutBuilt)
 	{
-		BuildLayout();
+		bLayoutBuilt = true;
+		if (!TryAdoptBlueprintLayout())
+		{
+			BuildLayout();
+		}
 		BuildDialogs();
 	}
 
@@ -1000,5 +1004,97 @@ void UMyBondageLifeFriendRowProxy::HandleClicked()
 	if (Owner)
 	{
 		Owner->OpenFriendMenu(Account, ContractId, Role);
+	}
+}
+
+bool UMyBondageLifeFriendListWidget::TryAdoptBlueprintLayout()
+{
+	if (!WidgetTree)
+	{
+		return false;
+	}
+
+	PanelBorder = Cast<UBorder>(WidgetTree->FindWidget(TEXT("W_Panel")));
+	FriendListBox = Cast<UScrollBox>(WidgetTree->FindWidget(TEXT("W_List")));
+	EmptyHint = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_EmptyHint")));
+
+	if (!PanelBorder)
+	{
+		UE_LOG(LogMyBondageLife, Warning, TEXT("FriendList: no W_Panel, using the code layout."));
+		return false;
+	}
+
+	if (PanelBorder)
+	{
+		PanelBorder->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	// The bottom HUD entry stays under code control (same spot as before).
+	if (!OpenButton)
+	{
+		BuildEntryButtonOnly();
+	}
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("FriendList: using the designed layout."));
+	return true;
+}
+void UMyBondageLifeFriendListWidget::BuildEntryButtonOnly()
+{
+	UCanvasPanel* Canvas = Cast<UCanvasPanel>(WidgetTree ? WidgetTree->RootWidget : nullptr);
+	if (!Canvas || OpenButton)
+	{
+		return;
+	}
+
+	OpenButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("FriendListButton"));
+	FButtonStyle Transparent;
+	Transparent.Normal.DrawAs = ESlateBrushDrawType::NoDrawType;
+	Transparent.Hovered.DrawAs = ESlateBrushDrawType::NoDrawType;
+	Transparent.Pressed.DrawAs = ESlateBrushDrawType::NoDrawType;
+	Transparent.Disabled.DrawAs = ESlateBrushDrawType::NoDrawType;
+	OpenButton->SetStyle(Transparent);
+	OpenButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeFriendListWidget::HandleOpenButtonClicked);
+
+	if (UCanvasPanelSlot* EntrySlot = Canvas->AddChildToCanvas(OpenButton))
+	{
+		EntrySlot->SetAnchors(FAnchors(0.0f, 1.0f, 0.0f, 1.0f));
+		EntrySlot->SetAlignment(FVector2D(0.0f, 1.0f));
+		EntrySlot->SetPosition(FVector2D(FriendEntryPositionX, FriendEntryPositionY));
+		EntrySlot->SetAutoSize(true);
+		EntrySlot->SetZOrder(30);
+	}
+
+	UVerticalBox* Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	OpenButton->AddChild(Column);
+
+	USizeBox* IconSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	IconSize->SetWidthOverride(FriendEntryIconSize);
+	IconSize->SetHeightOverride(FriendEntryIconSize);
+	if (UVerticalBoxSlot* IconSlot = Column->AddChildToVerticalBox(IconSize))
+	{
+		IconSlot->SetHorizontalAlignment(HAlign_Center);
+	}
+
+	UImage* Icon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
+	if (UTexture2D* Texture = LoadObject<UTexture2D>(nullptr, TEXT("/Game/2DAssest/UI/UI_FriendIcon.UI_FriendIcon")))
+	{
+		Icon->SetBrushFromTexture(Texture, true);
+	}
+	IconSize->AddChild(Icon);
+
+	UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+	Label->SetText(FText::FromString(TEXT("\u597D\u53CB\u5217\u8868\uFF08V\uFF09")));
+	Label->SetColorAndOpacity(FSlateColor(FLinearColor::White));
+	Label->SetJustification(ETextJustify::Center);
+	Label->SetShadowOffset(FVector2D(1.0f, 1.0f));
+	Label->SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.9f));
+	{
+		FSlateFontInfo LabelFont = Label->GetFont();
+		LabelFont.Size = 16;
+		Label->SetFont(LabelFont);
+	}
+	if (UVerticalBoxSlot* LabelSlot = Column->AddChildToVerticalBox(Label))
+	{
+		LabelSlot->SetHorizontalAlignment(HAlign_Center);
 	}
 }

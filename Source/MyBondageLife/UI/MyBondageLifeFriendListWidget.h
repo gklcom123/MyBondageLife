@@ -111,6 +111,11 @@ protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 
+	bool TryAdoptBlueprintLayout();
+	bool bLayoutBuilt = false;
+
+	void BuildEntryButtonOnly();
+
 	void BuildLayout();
 	void BuildDialogs();
 
