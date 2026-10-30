@@ -183,57 +183,14 @@ void UMyBondageLifeLockMenuWidget::BuildLayout()
 		}
 		else
 		{
-			// Fallback: build the row in code when the asset has no lock buttons.
-			UVerticalBox* Column = Cast<UVerticalBox>(WidgetTree->RootWidget);
-			if (!Column)
-			{
-				Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("LockMenuRoot"));
-				if (WidgetTree->RootWidget)
-				{
-					if (UPanelWidget* ExistingRoot = Cast<UPanelWidget>(WidgetTree->RootWidget))
-					{
-						ExistingRoot->AddChild(Column);
-					}
-				}
-				else
-				{
-					WidgetTree->RootWidget = Column;
-				}
-			}
-
-			UHorizontalBox* Row = Cast<UHorizontalBox>(WidgetTree->FindWidget(TEXT("LockMenuRow")));
-			if (!Row)
-			{
-				Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("LockMenuRow"));
-				Column->AddChildToVerticalBox(Row);
-			}
-
-			USizeBox* IconSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-			IconSize->SetWidthOverride(110.0f);
-			IconSize->SetHeightOverride(110.0f);
-			if (UHorizontalBoxSlot* IconSlot = Row->AddChildToHorizontalBox(IconSize))
-			{
-				IconSlot->SetPadding(FMargin(6.0f));
-			}
-
-			Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
-			IconSize->AddChild(Button);
-
-			UImage* Icon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
-			if (UTexture2D* Texture = LoadObject<UTexture2D>(nullptr, LockIconPath(LockType)))
-			{
-				Icon->SetBrushFromTexture(Texture, true);
-			}
-			Button->AddChild(Icon);
-
-			LockButtons.Add(Button);
-
-			UTextBlock* Caption = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-			Caption->SetText(LockDisplayName(LockType));
-			Caption->SetJustification(ETextJustify::Center);
-			Column->AddChildToVerticalBox(Caption);
+			// No designed button for this slot: leave it empty instead of building a
+			// smaller code-made row (that used to look like the design "shrank").
+			UE_LOG(LogMyBondageLife, Warning,
+				TEXT("LockMenu: no designed button for lock %d (add W_Lock_%d or put it in W_LockMenu_Row)."),
+				LockType, LockType);
+			LockButtons.Add(nullptr);
+			continue;
 		}
-
 		if (LockButtons.IsValidIndex(LockType - 1) && !IsValid(LockButtons[LockType - 1]))
 		{
 			continue;
