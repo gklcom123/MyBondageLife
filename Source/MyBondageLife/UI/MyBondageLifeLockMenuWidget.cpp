@@ -44,6 +44,28 @@ namespace
 		}
 	}
 
+	UImage* FindImageIn(UWidget* Root)
+	{
+		if (!Root)
+		{
+			return nullptr;
+		}
+		if (UImage* AsImage = Cast<UImage>(Root))
+		{
+			return AsImage;
+		}
+		if (UPanelWidget* Panel = Cast<UPanelWidget>(Root))
+		{
+			for (int32 Index = 0; Index < Panel->GetChildrenCount(); ++Index)
+			{
+				if (UImage* Found = FindImageIn(Panel->GetChildAt(Index)))
+				{
+					return Found;
+				}
+			}
+		}
+		return nullptr;
+	}
 	UButton* FindButtonIn(UWidget* Root)
 	{
 		if (!Root)
@@ -194,6 +216,15 @@ void UMyBondageLifeLockMenuWidget::BuildLayout()
 		if (LockButtons.IsValidIndex(LockType - 1) && !IsValid(LockButtons[LockType - 1]))
 		{
 			continue;
+		}
+
+		// Designed buttons: fill in the lock icon when the designer left an Image.
+		if (UImage* Icon = FindImageIn(Button))
+		{
+			if (UTexture2D* Texture = LoadObject<UTexture2D>(nullptr, LockIconPath(LockType)))
+			{
+				Icon->SetBrushFromTexture(Texture, true);
+			}
 		}
 
 		Button->SetToolTipText(LockDisplayName(LockType));
