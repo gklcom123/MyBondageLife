@@ -1037,6 +1037,13 @@ bool UMyBondageLifeFriendListWidget::TryAdoptBlueprintLayout()
 		PanelBorder->SetVisibility(ESlateVisibility::Collapsed);
 	}
 
+	if (!FriendListBox)
+	{
+		// The design has no W_List yet: create one inside the panel so rows still show.
+		FriendListBox = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass(), TEXT("W_List"));
+		PanelBorder->AddChild(FriendListBox);
+	}
+
 	// The bottom HUD entry stays under code control (same spot as before).
 	if (!OpenButton)
 	{
@@ -1069,7 +1076,7 @@ void UMyBondageLifeFriendListWidget::BuildEntryButtonOnly()
 		EntrySlot->SetAlignment(FVector2D(0.0f, 1.0f));
 		EntrySlot->SetPosition(FVector2D(FriendEntryPositionX, FriendEntryPositionY));
 		EntrySlot->SetAutoSize(true);
-		EntrySlot->SetZOrder(30);
+		EntrySlot->SetZOrder(5);
 	}
 
 	UVerticalBox* Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());

@@ -1007,7 +1007,7 @@ void UMyBondageLifePlayerInfoWidget::BuildEntryButtonOnly()
 		EntrySlot->SetAlignment(FVector2D(0.0f, 1.0f));
 		EntrySlot->SetPosition(FVector2D(EntryPositionX, EntryPositionY));
 		EntrySlot->SetAutoSize(true);
-		EntrySlot->SetZOrder(30);
+		EntrySlot->SetZOrder(5);
 	}
 
 	UVerticalBox* Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
