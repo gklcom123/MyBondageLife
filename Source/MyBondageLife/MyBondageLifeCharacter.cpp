@@ -341,8 +341,10 @@ void AMyBondageLifeCharacter::ApplyHeightScale()
 	// every attached restraint scale together, so the feet stay on the capsule bottom
 	// by construction and the value replicates with the actor transform (no custom
 	// replication, no offset maths).
-	const bool bEnabled = !bHeightScalingDisabled;
-	const float Scale = bEnabled ? FMath::Clamp(HeightScale, 0.5f, 2.0f) : 1.0f;
+	// Always on: a blueprint may still carry the old disabled default.
+	const float Scale = FMath::Clamp(HeightScale, 0.5f, 2.0f);
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("[Height] apply requested=%.2f current=%.2f"), Scale, GetActorScale3D().Z);
 
 	if (!FMath::IsNearlyEqual(GetActorScale3D().Z, Scale, 0.001f))
 	{
