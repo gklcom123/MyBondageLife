@@ -89,7 +89,10 @@ public:
 	void HandleItemClicked(FName ItemId);
 
 protected:
+	UFUNCTION()
 	void HandleCancelClicked();
+
+	UFUNCTION()
 	void HandleLockActionClicked();
 
 	UFUNCTION()
