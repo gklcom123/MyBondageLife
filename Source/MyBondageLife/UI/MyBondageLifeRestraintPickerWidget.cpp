@@ -145,6 +145,11 @@ void UMyBondageLifeRestraintPickerWidget::BuildLayout()
 		TEXT("Picker: adopted title=%d grid=%d lockAction=%d cancel=%d"),
 		PickerTitle ? 1 : 0, PickerGrid ? 1 : 0, LockActionButton ? 1 : 0, CancelButton ? 1 : 0);
 
+	if (IsValid(RemoveButton))
+	{
+		RemoveButton->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
 	SetVisibility(ESlateVisibility::Collapsed);
 	OnLayoutBuilt();
 }
@@ -169,8 +174,21 @@ void UMyBondageLifeRestraintPickerWidget::RefreshContents()
 	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
 		: nullptr;
-	if (!Account || !PickerGrid)
+	if (!Account)
 	{
+		return;
+	}
+
+	if (!PickerGrid)
+	{
+		// Nothing to fill, but the 脱下 / 上锁 state still has to be right.
+		const FString WornOnly = ViewAccount.IsEmpty()
+			? Account->GetEquippedRestraint(PickerSlot)
+			: Account->GetViewedRestraint(PickerSlot);
+		if (IsValid(RemoveButton))
+		{
+			RemoveButton->SetVisibility(WornOnly.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+		}
 		return;
 	}
 
@@ -315,6 +333,8 @@ void UMyBondageLifeRestraintPickerWidget::HandleItemClicked(FName ItemId)
 	{
 		Account->EquipRestraint(PickerSlot, ItemId.ToString());
 	}
+
+	ClosePicker();
 }
 
 void UMyBondageLifeRestraintPickerWidget::HandleCancelClicked()
@@ -354,5 +374,7 @@ void UMyBondageLifeRestraintPickerWidget::HandleRemoveClicked()
 	{
 		Account->UnequipRestraintFor(ViewAccount, PickerSlot);
 	}
+
+	ClosePicker();
 }
 
