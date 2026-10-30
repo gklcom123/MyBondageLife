@@ -104,6 +104,12 @@ protected:
 	UPROPERTY(Transient)
 	TObjectPtr<UButton> CancelButton;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Restraint", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UButton> RemoveButton;
+
+	UFUNCTION()
+	void HandleRemoveClicked();
+
 	int32 PickerSlot = INDEX_NONE;
 	FString ViewAccount;
 	bool bLayoutBuilt = false;

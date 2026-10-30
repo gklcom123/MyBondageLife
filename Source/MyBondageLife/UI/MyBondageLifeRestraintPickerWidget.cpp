@@ -257,6 +257,14 @@ void UMyBondageLifeRestraintPickerWidget::RefreshContents()
 		}
 	}
 
+	// 脱下 only makes sense when the slot holds something and is not locked.
+	if (IsValid(RemoveButton))
+	{
+		RemoveButton->SetVisibility((!WornId.IsEmpty() && Lock.LockType == 0)
+			? ESlateVisibility::Visible
+			: ESlateVisibility::Collapsed);
+	}
+
 	// Lock action: 上锁 when free, 开锁 when locked and allowed.
 	if (LockActionButton && LockActionLabel)
 	{
@@ -327,3 +335,24 @@ void UMyBondageLifeRestraintPickerWidget::HandleRestraintsChanged()
 		RefreshContents();
 	}
 }
+
+void UMyBondageLifeRestraintPickerWidget::HandleRemoveClicked()
+{
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+	if (!Account)
+	{
+		return;
+	}
+
+	if (ViewAccount.IsEmpty())
+	{
+		Account->UnequipRestraint(PickerSlot);
+	}
+	else
+	{
+		Account->UnequipRestraintFor(ViewAccount, PickerSlot);
+	}
+}
+
