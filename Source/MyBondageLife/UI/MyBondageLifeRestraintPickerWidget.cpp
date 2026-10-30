@@ -68,7 +68,18 @@ void UMyBondageLifeRestraintPickerWidget::BuildLayout()
 		if (!Column)
 		{
 			Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("PickerRoot"));
-			WidgetTree->RootWidget = Column;
+			if (WidgetTree->RootWidget)
+			{
+				// Keep the asset's root: adding to it avoids orphaning authored widgets.
+				if (UPanelWidget* ExistingRoot = Cast<UPanelWidget>(WidgetTree->RootWidget))
+				{
+					ExistingRoot->AddChild(Column);
+				}
+			}
+			else
+			{
+				WidgetTree->RootWidget = Column;
+			}
 		}
 
 		if (!PickerTitle)
@@ -108,8 +119,19 @@ void UMyBondageLifeRestraintPickerWidget::BuildLayout()
 		}
 	}
 
-	LockActionButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeRestraintPickerWidget::HandleLockActionClicked);
-	CancelButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeRestraintPickerWidget::HandleCancelClicked);
+	// Bind only real instances, never during design time: a missing widget used to
+	// crash the delegate access detector.
+	if (!IsDesignTime())
+	{
+		if (IsValid(LockActionButton))
+		{
+			LockActionButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeRestraintPickerWidget::HandleLockActionClicked);
+		}
+		if (IsValid(CancelButton))
+		{
+			CancelButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeRestraintPickerWidget::HandleCancelClicked);
+		}
+	}
 
 	SetVisibility(ESlateVisibility::Collapsed);
 	OnLayoutBuilt();
