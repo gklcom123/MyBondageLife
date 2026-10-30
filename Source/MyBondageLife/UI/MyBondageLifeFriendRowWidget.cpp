@@ -124,16 +124,27 @@ void UMyBondageLifeFriendRowWidget::SetSelected(bool bInSelected)
 
 	if (RoleText)
 	{
+		// 显示"对方在我的关系里是什么身份"，所以要和 ContractRole 反过来。
+		const bool bTrial = Entry.ContractTrialEndsAt.GetTicks() > 0
+			&& FDateTime::UtcNow() < Entry.ContractTrialEndsAt;
+
 		FString RoleLabel;
 		FLinearColor RoleColor(0.35f, 0.35f, 0.38f);
 		switch (Entry.ContractRole)
 		{
 		case EMyBondageLifeContractRole::Master:
-			RoleLabel = TEXT("\u4E3B\u4EBA"); RoleColor = FLinearColor(0.55f, 0.25f, 0.75f); break;
+			// 我是主人 → 对方是我的奴隶
+			RoleLabel = bTrial ? TEXT("\u4E34\u65F6\u5974\u96B6") : TEXT("\u5974\u96B6");
+			RoleColor = FLinearColor(0.45f, 0.2f, 0.6f);
+			break;
 		case EMyBondageLifeContractRole::Slave:
-			RoleLabel = TEXT("\u5974\u96B6"); RoleColor = FLinearColor(0.45f, 0.2f, 0.6f); break;
+			// 我是奴隶 → 对方是我的主人
+			RoleLabel = bTrial ? TEXT("\u4E34\u65F6\u4E3B\u4EBA") : TEXT("\u4E3B\u4EBA");
+			RoleColor = FLinearColor(0.55f, 0.25f, 0.75f);
+			break;
 		default:
-			RoleLabel = TEXT("\u65E0"); break;
+			RoleLabel = TEXT("\u65E0");
+			break;
 		}
 		RoleText->SetText(FText::FromString(RoleLabel));
 		RoleText->SetColorAndOpacity(FSlateColor(RoleColor));
