@@ -969,6 +969,14 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 
 void UMyBondageLifeWardrobeWidget::RefreshRestraintSlots()
 {
+	// A designed grid owns the slots: just forward the refresh.
+	if (RestraintGrid)
+	{
+		RestraintGrid->SetViewAccount(bFriendMode ? FriendAccount : FString());
+		RefreshLockActionButton();
+		return;
+	}
+
 	RefreshLockBadges();
 	RefreshLockActionButton();
 	const UGameInstance* GameInstance = GetGameInstance();

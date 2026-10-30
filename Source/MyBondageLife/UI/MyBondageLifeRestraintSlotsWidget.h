@@ -44,6 +44,7 @@ class MYBONDAGELIFE_API UMyBondageLifeRestraintSlotsWidget : public UUserWidget
 public:
 
 	virtual TSharedRef<SWidget> RebuildWidget() override;
+	virtual void NativeConstruct() override;
 
 	/** Empty = the local player; otherwise another account's wardrobe. */
 	UFUNCTION(BlueprintCallable, Category = "Restraint")

@@ -37,6 +37,20 @@ void UMyBondageLifeRestraintSlotClickProxy::HandleClicked()
 	}
 }
 
+void UMyBondageLifeRestraintSlotsWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	if (UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr)
+	{
+		Account->OnRestraintsChanged.AddUniqueDynamic(this, &UMyBondageLifeRestraintSlotsWidget::HandleRestraintsChanged);
+	}
+
+	RefreshSlots();
+}
+
 TSharedRef<SWidget> UMyBondageLifeRestraintSlotsWidget::RebuildWidget()
 {
 	if (!WidgetTree)
