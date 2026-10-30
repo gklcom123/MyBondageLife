@@ -4,6 +4,7 @@
 #include "MyBondageLifeRestraintSlotsWidget.h"
 #include "MyBondageLifeRestraintPickerWidget.h"
 #include "UI/MyBondageLifeLockMenuWidget.h"
+#include "UI/MyBondageLifeLockInputWidget.h"
 #include "MyBondageLifeCharacter.h"
 
 #include "Blueprint/WidgetTree.h"
@@ -767,6 +768,16 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 		UE_LOG(LogMyBondageLife, Log, TEXT("Wardrobe: using the designed slot picker widget."));
 	}
 
+	// Designed lock menu (optional, third level).
+	LockMenuWidget = Cast<UMyBondageLifeLockMenuWidget>(WidgetTree->FindWidget(TEXT("W_LockMenu")));
+	if (LockMenuWidget)
+	{
+		LockMenuWidget->OnLockChosen.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleDesignedLockChosen);
+		UE_LOG(LogMyBondageLife, Log, TEXT("Wardrobe: using the designed lock menu."));
+	}
+
+	// Designed duration / password popup (optional).
+	LockInputWidget = Cast<UMyBondageLifeLockInputWidget>(WidgetTree->FindWidget(TEXT("W_LockInput")));
 	if (!RestraintGrid)
 	{
 	USizeBox* HintSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("RestraintHint"));
@@ -1479,7 +1490,8 @@ void UMyBondageLifeWardrobeWidget::HandleLockAction()
 }
 
 void UMyBondageLifeWardrobeWidget::OpenLockMenu()
-{	if (LockMenuWidget)
+{
+	if (LockMenuWidget)
 	{
 		LockMenuWidget->OpenForSlot(PickerSlot);
 		for (int32 LockType = 1; LockType <= 5; ++LockType)

@@ -277,6 +277,9 @@ protected:
 	UPROPERTY(Transient)
 	TObjectPtr<class UMyBondageLifeLockMenuWidget> LockMenuWidget;
 
+	UPROPERTY(Transient)
+	TObjectPtr<class UMyBondageLifeLockInputWidget> LockInputWidget;
+
 	UFUNCTION()
 	void HandleDesignedLockChosen(int32 LockType);
 
