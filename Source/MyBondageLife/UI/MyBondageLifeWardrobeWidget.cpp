@@ -400,6 +400,9 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 	HairUpLabel = Cast<UTextBlock>(HairUpButton->GetChildAt(0));
 
 	SelectTab(0);
+
+
+	OnLayoutBuilt();
 }
 
 void UMyBondageLifeWardrobeWidget::NativeConstruct()

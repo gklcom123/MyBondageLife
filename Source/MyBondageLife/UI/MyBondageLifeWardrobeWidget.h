@@ -27,7 +27,7 @@ public:
 	UFUNCTION()
 	void HandleClicked();
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UMyBondageLifeWardrobeWidget> Owner;
 
 	/** True for a picker item button, false for a slot button. */
@@ -95,6 +95,10 @@ protected:
 
 	void BuildLayout();
 
+	/** Called after the code-built layout exists: subclass in Blueprint to restyle. */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Wardrobe")
+	void OnLayoutBuilt();
+
 	/** Shows one of the three tabs (0 body, 1 appearance, 2 restraint). */
 	void SelectTab(int32 TabIndex);
 
@@ -125,51 +129,51 @@ protected:
 	UFUNCTION()
 	void HandleHeightUpClicked();
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UTexture2D> WardrobeIconTexture;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UCanvasPanel> RootCanvas;
 
 	//~ Bottom entry
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UButton> OpenButton;
 
 	//~ Panel
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UBorder> PanelBorder;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UTextBlock> BodyTabLabel;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UTextBlock> AppearanceTabLabel;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UTextBlock> RestraintTabLabel;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UCanvasPanel> BodyPage;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UCanvasPanel> AppearancePage;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UCanvasPanel> RestraintPage;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UTextBlock> HeightValueLabel;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UButton> HeightDownButton;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UButton> HeightUpButton;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UTextBlock> HeightDownLabel;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UTextBlock> HeightUpLabel;
 
 	/** Greys out the arrow that would leave the allowed height range. */
@@ -190,19 +194,19 @@ protected:
 	UFUNCTION()
 	void HandleHairUpClicked();
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UButton> HairDownButton;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UButton> HairUpButton;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UTextBlock> HairDownLabel;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UTextBlock> HairUpLabel;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UTextBlock> HairValueLabel;
 
 	/** Current DT_Hair style ID shown by the selector. */
@@ -251,22 +255,22 @@ protected:
 	/** Slot index the picker is currently editing. */
 	int32 PickerSlot = 0;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TArray<TObjectPtr<UButton>> SlotButtons;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TArray<TObjectPtr<UImage>> SlotIcons;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TArray<TObjectPtr<UTextBlock>> SlotLabels;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UBorder> PickerBackdrop;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UCanvasPanel> PickerGrid;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UTextBlock> PickerTitle;
 
 	//~ Restraint locks ------------------------------------------------------
@@ -316,40 +320,40 @@ protected:
 	/** Lock type picked in the lock menu (0 when none). */
 	int32 PendingLockType = 0;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TArray<TObjectPtr<UImage>> SlotLockBadges;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UButton> LockActionButton;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UTextBlock> LockActionLabel;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UBorder> LockMenuBackdrop;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UCanvasPanel> LockMenuGrid;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UTextBlock> LockMenuTitle;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UBorder> LockInputBackdrop;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UTextBlock> LockInputTitle;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UTextBlock> LockInputHint;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UEditableTextBox> LockInputBox;
 
 	/** Index into the height presets (0 = 娇小, 1 = 普通, 2 = 高大). */
 	int32 HeightIndex = 1;
 
 	/** Keeps the per-button proxies alive. */
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TArray<TObjectPtr<UMyBondageLifeWardrobeClickProxy>> ClickProxies;
 };
