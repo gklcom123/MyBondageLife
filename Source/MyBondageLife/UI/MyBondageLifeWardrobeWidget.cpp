@@ -114,62 +114,6 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 	}
 	RootCanvas->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 
-	// ------------------------------------------------------------ bottom entry
-	OpenButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("WardrobeButton"));
-	{
-		FButtonStyle ButtonStyle;
-		ButtonStyle.Normal.DrawAs = ESlateBrushDrawType::NoDrawType;
-		ButtonStyle.Hovered.DrawAs = ESlateBrushDrawType::NoDrawType;
-		ButtonStyle.Pressed.DrawAs = ESlateBrushDrawType::NoDrawType;
-		ButtonStyle.Disabled.DrawAs = ESlateBrushDrawType::NoDrawType;
-		OpenButton->SetStyle(ButtonStyle);
-	}
-	OpenButton->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleOpenButtonClicked);
-
-	if (UCanvasPanelSlot* EntrySlot = RootCanvas->AddChildToCanvas(OpenButton))
-	{
-		EntrySlot->SetAnchors(FAnchors(0.0f, 1.0f, 0.0f, 1.0f));
-		EntrySlot->SetAlignment(FVector2D(0.0f, 1.0f));
-		EntrySlot->SetPosition(FVector2D(WardrobeEntryPositionX, WardrobeEntryPositionY));
-		EntrySlot->SetAutoSize(true);
-		EntrySlot->SetZOrder(20);
-	}
-
-	UVerticalBox* EntryColumn = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-	OpenButton->AddChild(EntryColumn);
-
-	USizeBox* IconSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-	IconSize->SetWidthOverride(WardrobeEntryIconSize);
-	IconSize->SetHeightOverride(WardrobeEntryIconSize);
-	if (UVerticalBoxSlot* IconSlot = EntryColumn->AddChildToVerticalBox(IconSize))
-	{
-		IconSlot->SetHorizontalAlignment(HAlign_Center);
-	}
-
-	UImage* WardrobeIcon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
-	if (WardrobeIconTexture)
-	{
-		WardrobeIcon->SetBrushFromTexture(WardrobeIconTexture, true);
-	}
-	IconSize->AddChild(WardrobeIcon);
-
-	UTextBlock* EntryLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-	EntryLabel->SetText(FText::FromString(WardrobeEntryText));
-	EntryLabel->SetColorAndOpacity(FSlateColor(FLinearColor::White));
-	EntryLabel->SetJustification(ETextJustify::Center);
-	EntryLabel->SetShadowOffset(FVector2D(1.0f, 1.0f));
-	EntryLabel->SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.9f));
-	{
-		FSlateFontInfo EntryFont = EntryLabel->GetFont();
-		EntryFont.Size = 16;
-		EntryLabel->SetFont(EntryFont);
-	}
-	if (UVerticalBoxSlot* LabelSlot = EntryColumn->AddChildToVerticalBox(EntryLabel))
-	{
-		LabelSlot->SetHorizontalAlignment(HAlign_Center);
-		LabelSlot->SetPadding(FMargin(0.0f, 4.0f, 0.0f, 0.0f));
-	}
-
 	// ------------------------------------------------------------------ panel
 	PanelBorder = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("WardrobePanel"));
 	PanelBorder->SetBrushColor(FLinearColor(1.0f, 1.0f, 1.0f, 1.0f));

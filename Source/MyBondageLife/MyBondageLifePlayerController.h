@@ -139,6 +139,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Wardrobe")
 	void ShowWardrobe();
 
+	/** Creates the HUD entry button that opens the wardrobe. */
+	UFUNCTION(BlueprintCallable, Category = "Wardrobe")
+	void ShowWardrobeButton();
+
+	UPROPERTY(EditDefaultsOnly, Category = "Wardrobe")
+	TSubclassOf<class UMyBondageLifeWardrobeButtonWidget> WardrobeButtonWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UMyBondageLifeWardrobeButtonWidget> WardrobeButtonWidget;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Wardrobe")
+	int32 WardrobeButtonZOrder = 12;
+
 	/** Opens the wardrobe of another account (friend), with the body tab disabled. */
 	UFUNCTION(BlueprintCallable, Category = "Wardrobe")
 	void OpenFriendWardrobe(const FString& InAccount);

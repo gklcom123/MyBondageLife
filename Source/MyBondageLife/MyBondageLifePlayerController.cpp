@@ -21,6 +21,7 @@
 #include "UI/MyBondageLifeNameplateLayer.h"
 #include "UI/MyBondageLifePlayerInfoWidget.h"
 #include "UI/MyBondageLifeWardrobeWidget.h"
+#include "UI/MyBondageLifeWardrobeButtonWidget.h"
 
 namespace
 {
@@ -2053,5 +2054,25 @@ void AMyBondageLifePlayerController::SyncRestraintsFromServer()
 		{
 			Account->RefreshRestraints();
 		}
+	}
+}
+
+void AMyBondageLifePlayerController::ShowWardrobeButton()
+{
+	if (!IsLocalPlayerController() || WardrobeButtonWidget)
+	{
+		return;
+	}
+
+	if (!WardrobeButtonWidgetClass)
+	{
+		UClass* DesignedClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_WardrobeEntry.WBP_WardrobeEntry_C"));
+		WardrobeButtonWidgetClass = DesignedClass ? DesignedClass : UMyBondageLifeWardrobeButtonWidget::StaticClass();
+	}
+
+	WardrobeButtonWidget = CreateWidget<UMyBondageLifeWardrobeButtonWidget>(this, WardrobeButtonWidgetClass);
+	if (WardrobeButtonWidget)
+	{
+		WardrobeButtonWidget->AddToViewport(WardrobeButtonZOrder);
 	}
 }
