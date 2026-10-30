@@ -355,16 +355,12 @@ void AMyBondageLifeCharacter::ApplyHeightScale()
 	const float NewHalfHeight = BaseCapsuleHalfHeight * Scale;
 	Capsule->SetCapsuleSize(BaseCapsuleRadius * Scale, NewHalfHeight, true);
 
-	// Keep the feet on the capsule bottom. The mesh is scaled about its own origin,
-	// so its lowest point moves with the scale: align the scaled bounds to -HalfHeight
-	// instead of shifting by the capsule delta only (that made clients look sunk).
-	float MeshZ = BaseMeshRelativeLocation.Z - (NewHalfHeight - BaseCapsuleHalfHeight);
-	if (const USkeletalMesh* MeshAsset = MeshComponent->GetSkeletalMeshAsset())
-	{
-		const FBoxSphereBounds LocalBounds = MeshAsset->GetBounds();
-		const float FeetLocalZ = LocalBounds.Origin.Z - LocalBounds.BoxExtent.Z;
-		MeshZ = -NewHalfHeight - FeetLocalZ * Scale;
-	}
+	// Feet stay on the capsule bottom. The mesh pivots at its own origin, so the
+	// offset from the pivot to the feet scales linearly: derive that offset from the
+	// known-good unscaled placement (exact at scale 1, no bounds sampling needed, so
+	// server and client always agree).
+	const float FeetOffset = -BaseCapsuleHalfHeight - BaseMeshRelativeLocation.Z;
+	const float MeshZ = -NewHalfHeight - FeetOffset * Scale;
 
 	MeshComponent->SetRelativeLocation(FVector(
 		BaseMeshRelativeLocation.X,
