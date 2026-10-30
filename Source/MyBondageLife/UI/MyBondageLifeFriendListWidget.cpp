@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "MyBondageLifeFriendListWidget.h"
+#include "MyBondageLifeFriendRowWidget.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
@@ -415,6 +416,17 @@ void UMyBondageLifeFriendListWidget::RefreshFriends()
 		return;
 	}
 
+	if (!RowWidgetClass && WidgetTree)
+	{
+		if (UMyBondageLifeFriendRowWidget* Template = Cast<UMyBondageLifeFriendRowWidget>(
+			WidgetTree->FindWidget(TEXT("W_RowTemplate"))))
+		{
+			RowWidgetClass = Template->GetClass();
+			Template->SetVisibility(ESlateVisibility::Collapsed);
+			UE_LOG(LogMyBondageLife, Log, TEXT("FriendList: using the designed row (W_RowTemplate)."));
+		}
+	}
+
 	FriendListBox->ClearChildren();
 	RowProxies.Reset();
 
@@ -431,6 +443,30 @@ void UMyBondageLifeFriendListWidget::RefreshFriends()
 
 	for (const FMyBondageLifeFriendEntry& Friend : Friends)
 	{
+		if (RowWidgetClass)
+		{
+			UMyBondageLifeFriendRowProxy* DesignedProxy = NewObject<UMyBondageLifeFriendRowProxy>(this);
+			DesignedProxy->Owner = this;
+			DesignedProxy->Account = Friend.AccountName;
+			DesignedProxy->ContractId = Friend.ContractId;
+			DesignedProxy->Role = Friend.ContractRole;
+			RowProxies.Add(DesignedProxy);
+
+			if (UMyBondageLifeFriendRowWidget* Row = CreateWidget<UMyBondageLifeFriendRowWidget>(GetOwningPlayer(), RowWidgetClass))
+			{
+				Row->SetFriendEntry(Friend, false);
+				Row->OnRowClicked.AddUniqueDynamic(this, &UMyBondageLifeFriendListWidget::HandleDesignedRowClicked);
+				Row->OnRowMenuClicked.AddUniqueDynamic(this, &UMyBondageLifeFriendListWidget::HandleDesignedRowMenuClicked);
+
+				if (UScrollBoxSlot* RowSlot = Cast<UScrollBoxSlot>(FriendListBox->AddChild(Row)))
+				{
+					RowSlot->SetPadding(FMargin(0.0f, 4.0f));
+					RowSlot->SetHorizontalAlignment(HAlign_Fill);
+				}
+				continue;
+			}
+		}
+
 		// Absolute layout: fixed row box with a canvas, so the three columns always
 		// land at fixed offsets regardless of text width.
 		USizeBox* RowSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
@@ -1111,5 +1147,29 @@ void UMyBondageLifeFriendListWidget::BuildEntryButtonOnly()
 	if (UVerticalBoxSlot* LabelSlot = Column->AddChildToVerticalBox(Label))
 	{
 		LabelSlot->SetHorizontalAlignment(HAlign_Center);
+	}
+}
+
+void UMyBondageLifeFriendListWidget::HandleDesignedRowClicked(const FString& Account)
+{
+	for (UMyBondageLifeFriendRowProxy* Proxy : RowProxies)
+	{
+		if (Proxy && Proxy->Account.Equals(Account, ESearchCase::IgnoreCase))
+		{
+			Proxy->HandleClicked();
+			return;
+		}
+	}
+}
+
+void UMyBondageLifeFriendListWidget::HandleDesignedRowMenuClicked(const FString& Account)
+{
+	for (UMyBondageLifeFriendRowProxy* Proxy : RowProxies)
+	{
+		if (Proxy && Proxy->Account.Equals(Account, ESearchCase::IgnoreCase))
+		{
+			OpenFriendMenu(Proxy->Account, Proxy->ContractId, Proxy->Role);
+			return;
+		}
 	}
 }

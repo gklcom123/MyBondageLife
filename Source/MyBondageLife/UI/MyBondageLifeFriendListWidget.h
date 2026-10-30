@@ -112,6 +112,15 @@ protected:
 	virtual void NativeDestruct() override;
 
 	bool TryAdoptBlueprintLayout();
+
+	UPROPERTY(EditDefaultsOnly, Category = "Friends")
+	TSubclassOf<class UMyBondageLifeFriendRowWidget> RowWidgetClass;
+
+	UFUNCTION()
+	void HandleDesignedRowClicked(const FString& Account);
+
+	UFUNCTION()
+	void HandleDesignedRowMenuClicked(const FString& Account);
 	bool bLayoutBuilt = false;
 
 	void BuildEntryButtonOnly();
