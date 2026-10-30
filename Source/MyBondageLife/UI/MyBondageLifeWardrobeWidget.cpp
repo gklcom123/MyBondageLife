@@ -460,11 +460,24 @@ void UMyBondageLifeWardrobeWidget::RefreshHeightLabel()
 
 void UMyBondageLifeWardrobeWidget::StepHeight(int32 Delta)
 {
-	// Height scaling is disabled for now: every pawn renders at the default size, so the
-	// buttons only keep the label on the neutral preset.
-	HeightIndex = 2;
+	const int32 NewIndex = FMath::Clamp(HeightIndex + Delta, 0, HeightPresetCount - 1);
+	if (NewIndex == HeightIndex)
+	{
+		return;
+	}
+
+	HeightIndex = NewIndex;
 	RefreshHeightLabel();
 	RefreshArrowStates();
+
+	// Persist first; the controller applies the new scale when the service confirms.
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
+		{
+			Account->RequestUpdateHeight(HeightPresets[HeightIndex]);
+		}
+	}
 }
 
 float UMyBondageLifeWardrobeWidget::GetDisplayedHeightScale() const
