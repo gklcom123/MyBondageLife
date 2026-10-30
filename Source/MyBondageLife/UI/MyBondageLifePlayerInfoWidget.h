@@ -84,6 +84,7 @@ protected:
 	virtual void NativeConstruct() override;
 
 	bool TryAdoptBlueprintLayout();
+	bool bLayoutBuilt = false;
 	void WireAdoptedLayout();
 
 	void BuildLayout();

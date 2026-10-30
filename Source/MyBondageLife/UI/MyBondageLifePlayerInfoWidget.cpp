@@ -62,13 +62,14 @@ TSharedRef<SWidget> UMyBondageLifePlayerInfoWidget::RebuildWidget()
 		WidgetTree = NewObject<UWidgetTree>(this, TEXT("WidgetTree"));
 	}
 
-	if (!IsDesignTime() && WidgetTree)
+	if (!IsDesignTime() && WidgetTree && !bLayoutBuilt)
 	{
+		bLayoutBuilt = true;
 		if (TryAdoptBlueprintLayout())
 		{
 			WireAdoptedLayout();
 		}
-		else if (!WidgetTree->RootWidget)
+		else
 		{
 			BuildLayout();
 		}
@@ -79,8 +80,12 @@ TSharedRef<SWidget> UMyBondageLifePlayerInfoWidget::RebuildWidget()
 
 void UMyBondageLifePlayerInfoWidget::BuildLayout()
 {
-	RootCanvas = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("RootCanvas"));
-	WidgetTree->RootWidget = RootCanvas;
+	RootCanvas = Cast<UCanvasPanel>(WidgetTree->RootWidget);
+	if (!RootCanvas)
+	{
+		RootCanvas = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("RootCanvas"));
+		WidgetTree->RootWidget = RootCanvas;
+	}
 	// A full screen overlay must not swallow clicks meant for the layers below it;
 	// only its children (buttons, panels) take part in hit testing.
 	RootCanvas->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
