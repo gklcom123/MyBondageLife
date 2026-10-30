@@ -147,6 +147,8 @@ void AMyBondageLifeCharacter::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(AMyBondageLifeCharacter, CharacterClass);
 	DOREPLIFETIME(AMyBondageLifeCharacter, CreatedAtUnix);
 	DOREPLIFETIME(AMyBondageLifeCharacter, HeightScale);
+	DOREPLIFETIME(AMyBondageLifeCharacter, ReplicatedMeshRelativeLocation);
+	DOREPLIFETIME(AMyBondageLifeCharacter, ReplicatedMeshScale);
 	DOREPLIFETIME(AMyBondageLifeCharacter, HairIndex);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bRestraintPoseActive);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bRunning);
@@ -349,8 +351,11 @@ void AMyBondageLifeCharacter::ApplyHeightScale()
 
 	const float Scale = FMath::Clamp(HeightScale, 0.5f, 2.0f);
 
+	// Clients mirror the authoritative transform when it has arrived.
+	const bool bUseReplicated = !HasAuthority() && !ReplicatedMeshRelativeLocation.IsZero();
+
 	// Mesh and capsule scale together so the collision shape keeps matching the body.
-	MeshComponent->SetRelativeScale3D(BaseMeshScale * Scale);
+	MeshComponent->SetRelativeScale3D(bUseReplicated ? ReplicatedMeshScale : BaseMeshScale * Scale);
 
 	const float NewHalfHeight = BaseCapsuleHalfHeight * Scale;
 	Capsule->SetCapsuleSize(BaseCapsuleRadius * Scale, NewHalfHeight, true);
@@ -362,10 +367,17 @@ void AMyBondageLifeCharacter::ApplyHeightScale()
 	const float FeetOffset = -BaseCapsuleHalfHeight - BaseMeshRelativeLocation.Z;
 	const float MeshZ = -NewHalfHeight - FeetOffset * Scale;
 
-	MeshComponent->SetRelativeLocation(FVector(
-		BaseMeshRelativeLocation.X,
-		BaseMeshRelativeLocation.Y,
-		MeshZ));
+	// The server owns the final transform; clients just mirror it so everyone sees
+	// exactly the same placement (no per-client bounds/timing differences).
+	if (HasAuthority())
+	{
+		ReplicatedMeshRelativeLocation = FVector(BaseMeshRelativeLocation.X, BaseMeshRelativeLocation.Y, MeshZ);
+		ReplicatedMeshScale = BaseMeshScale * Scale;
+	}
+
+	MeshComponent->SetRelativeLocation(bUseReplicated
+		? ReplicatedMeshRelativeLocation
+		: FVector(BaseMeshRelativeLocation.X, BaseMeshRelativeLocation.Y, MeshZ));
 }
 
 void AMyBondageLifeCharacter::OnRep_HairIndex()
@@ -774,4 +786,15 @@ void AMyBondageLifeCharacter::RefreshGagPose()
 	}
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("Animation: gag pose on (%s)."), *ActiveGagAnmi->GetName());
+}
+void AMyBondageLifeCharacter::OnRep_MeshPlacement()
+{
+	USkeletalMeshComponent* MeshComponent = GetMesh();
+	if (!MeshComponent || ReplicatedMeshRelativeLocation.IsZero())
+	{
+		return;
+	}
+
+	MeshComponent->SetRelativeScale3D(ReplicatedMeshScale);
+	MeshComponent->SetRelativeLocation(ReplicatedMeshRelativeLocation);
 }

@@ -54,6 +54,16 @@ class AMyBondageLifeCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_HeightScale, Category = "Identity", meta = (AllowPrivateAccess = "true"))
 	float HeightScale = 1.0f;
 
+	/** Server-computed mesh transform, replicated verbatim so every client matches. */
+	UPROPERTY(ReplicatedUsing = OnRep_MeshPlacement, BlueprintReadOnly, Category="Identity", meta = (AllowPrivateAccess = "true"))
+	FVector ReplicatedMeshRelativeLocation = FVector::ZeroVector;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category="Identity", meta = (AllowPrivateAccess = "true"))
+	FVector ReplicatedMeshScale = FVector::OneVector;
+
+	UFUNCTION()
+	void OnRep_MeshPlacement();
+
 	/** Hair style ID from DT_Hair (1 based). Replicated so others see the same hair. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_HairIndex, Category = "Identity", meta = (AllowPrivateAccess = "true"))
 	int32 HairIndex = 1;
