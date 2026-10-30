@@ -11,6 +11,7 @@
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Engine/SkeletalMesh.h"
 #include "Core/MyBondageLifeAccountSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -354,12 +355,21 @@ void AMyBondageLifeCharacter::ApplyHeightScale()
 	const float NewHalfHeight = BaseCapsuleHalfHeight * Scale;
 	Capsule->SetCapsuleSize(BaseCapsuleRadius * Scale, NewHalfHeight, true);
 
-	// Keep the feet on the capsule bottom: the mesh origin sits at the feet, so the
-	// relative Z only follows the capsule's change.
+	// Keep the feet on the capsule bottom. The mesh is scaled about its own origin,
+	// so its lowest point moves with the scale: align the scaled bounds to -HalfHeight
+	// instead of shifting by the capsule delta only (that made clients look sunk).
+	float MeshZ = BaseMeshRelativeLocation.Z - (NewHalfHeight - BaseCapsuleHalfHeight);
+	if (const USkeletalMesh* MeshAsset = MeshComponent->GetSkeletalMeshAsset())
+	{
+		const FBoxSphereBounds LocalBounds = MeshAsset->GetBounds();
+		const float FeetLocalZ = LocalBounds.Origin.Z - LocalBounds.BoxExtent.Z;
+		MeshZ = -NewHalfHeight - FeetLocalZ * Scale;
+	}
+
 	MeshComponent->SetRelativeLocation(FVector(
 		BaseMeshRelativeLocation.X,
 		BaseMeshRelativeLocation.Y,
-		BaseMeshRelativeLocation.Z - (NewHalfHeight - BaseCapsuleHalfHeight)));
+		MeshZ));
 }
 
 void AMyBondageLifeCharacter::OnRep_HairIndex()
