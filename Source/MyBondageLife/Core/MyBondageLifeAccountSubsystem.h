@@ -84,6 +84,10 @@ struct FMyBondageLifeFriendEntry
 	UPROPERTY(BlueprintReadOnly, Category = "Friends")
 	FDateTime ContractTrialEndsAt;
 
+	/** trial / formal, as reported by the service. */
+	UPROPERTY(BlueprintReadOnly, Category = "Friends")
+	FString ContractStatus;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Friends")
 	FString ContractId;
 };

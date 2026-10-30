@@ -628,6 +628,7 @@ void UMyBondageLifeAccountSubsystem::RefreshFriendsFromServer()
 					(*ContractObject)->TryGetStringField(TEXT("contractId"), Entry.ContractId);
 					Entry.ContractSince = ParseIsoField(*ContractObject, TEXT("since"));
 					Entry.ContractTrialEndsAt = ParseIsoField(*ContractObject, TEXT("trialEndsAt"));
+					(*ContractObject)->TryGetStringField(TEXT("status"), Entry.ContractStatus);
 				}
 
 				if (!Entry.AccountName.IsEmpty())

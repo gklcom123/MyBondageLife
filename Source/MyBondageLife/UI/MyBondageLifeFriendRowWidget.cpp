@@ -125,8 +125,10 @@ void UMyBondageLifeFriendRowWidget::SetSelected(bool bInSelected)
 	if (RoleText)
 	{
 		// 显示"对方在我的关系里是什么身份"，所以要和 ContractRole 反过来。
-		const bool bTrial = Entry.ContractTrialEndsAt.GetTicks() > 0
-			&& FDateTime::UtcNow() < Entry.ContractTrialEndsAt;
+		// The service reports the state explicitly; the timestamp is only a fallback.
+		const bool bTrial = Entry.ContractStatus.Equals(TEXT("trial"), ESearchCase::IgnoreCase)
+			|| (Entry.ContractStatus.IsEmpty() && Entry.ContractTrialEndsAt.GetTicks() > 0
+				&& FDateTime::UtcNow() < Entry.ContractTrialEndsAt);
 
 		FString RoleLabel;
 		FLinearColor RoleColor(0.35f, 0.35f, 0.38f);
