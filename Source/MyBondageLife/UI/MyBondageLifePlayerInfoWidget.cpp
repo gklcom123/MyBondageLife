@@ -964,7 +964,7 @@ void UMyBondageLifePlayerInfoWidget::BuildEntryButtonOnly()
 	{
 		EntrySlot->SetAnchors(FAnchors(0.0f, 1.0f, 0.0f, 1.0f));
 		EntrySlot->SetAlignment(FVector2D(0.0f, 1.0f));
-		EntrySlot->SetPosition(FVector2D(720.0f, -30.0f));
+		EntrySlot->SetPosition(FVector2D(EntryPositionX, EntryPositionY));
 		EntrySlot->SetAutoSize(true);
 		EntrySlot->SetZOrder(30);
 	}
@@ -973,8 +973,8 @@ void UMyBondageLifePlayerInfoWidget::BuildEntryButtonOnly()
 	OpenButton->AddChild(Column);
 
 	USizeBox* IconSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-	IconSize->SetWidthOverride(64.0f);
-	IconSize->SetHeightOverride(64.0f);
+	IconSize->SetWidthOverride(EntryIconSize);
+	IconSize->SetHeightOverride(EntryIconSize);
 	if (UVerticalBoxSlot* IconSlot = Column->AddChildToVerticalBox(IconSize))
 	{
 		IconSlot->SetHorizontalAlignment(HAlign_Center);
