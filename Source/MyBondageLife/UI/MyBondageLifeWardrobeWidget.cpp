@@ -739,6 +739,13 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 	}
 
 	SlotButtons.Reset();
+
+	// Optional designed container for the 12 cells.
+	UCanvasPanel* SlotContainer = Cast<UCanvasPanel>(WidgetTree->FindWidget(TEXT("W_SlotContainer")));
+	if (!SlotContainer)
+	{
+		SlotContainer = RestraintPage;
+	}
 	// Hint line under the slot grid.
 	USizeBox* HintSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("RestraintHint"));
 	HintSize->SetWidthOverride(1000.0f);
@@ -776,7 +783,7 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 		CellSize->SetWidthOverride(130.0f);
 		CellSize->SetHeightOverride(152.0f);
 
-		if (UCanvasPanelSlot* CellSlot = RestraintPage->AddChildToCanvas(CellSize))
+		if (UCanvasPanelSlot* CellSlot = SlotContainer->AddChildToCanvas(CellSize))
 		{
 			CellSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
 			CellSlot->SetAlignment(FVector2D(0.0f, 0.0f));
@@ -840,6 +847,9 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 		SlotLabels.Add(Label);
 	}
 
+	// A designed picker (W_Picker) wins; otherwise build the default one.
+	if (!TryAdoptPicker())
+	{
 	// --------------------------------------------------------- picker menu
 	// A dim overlay with a centred box: the old inline strip sat under the grid and
 	// was hard to use.
@@ -940,6 +950,7 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 		CancelLabel->SetFont(CancelFont);
 	}
 	CancelButton->AddChild(CancelLabel);
+	}
 }
 
 void UMyBondageLifeWardrobeWidget::RefreshRestraintSlots()
@@ -1931,4 +1942,45 @@ void UMyBondageLifeWardrobeWidget::WireAdoptedLayout()
 	}
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("Wardrobe: adopted layout wired."));
+}
+bool UMyBondageLifeWardrobeWidget::TryAdoptPicker()
+{
+	if (!WidgetTree)
+	{
+		return false;
+	}
+
+	UBorder* AdoptedBackdrop = Cast<UBorder>(WidgetTree->FindWidget(TEXT("W_Picker")));
+	if (!AdoptedBackdrop)
+	{
+		return false;
+	}
+
+	PickerBackdrop = AdoptedBackdrop;
+	PickerTitle = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_Picker_Title")));
+	PickerGrid = Cast<UCanvasPanel>(WidgetTree->FindWidget(TEXT("W_Picker_Grid")));
+
+	LockActionButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_Picker_LockAction")));
+	LockActionLabel = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_Picker_LockAction_Label")));
+
+	if (UButton* CancelButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_Picker_Cancel"))))
+	{
+		UMyBondageLifeWardrobeClickProxy* Proxy = NewObject<UMyBondageLifeWardrobeClickProxy>(this);
+		Proxy->Owner = this;
+		Proxy->bClosePicker = true;
+		ClickProxies.Add(Proxy);
+		CancelButton->OnClicked.AddUniqueDynamic(Proxy, &UMyBondageLifeWardrobeClickProxy::HandleClicked);
+	}
+
+	if (LockActionButton)
+	{
+		UMyBondageLifeWardrobeClickProxy* Proxy = NewObject<UMyBondageLifeWardrobeClickProxy>(this);
+		Proxy->Owner = this;
+		Proxy->bLockAction = true;
+		ClickProxies.Add(Proxy);
+		LockActionButton->OnClicked.AddUniqueDynamic(Proxy, &UMyBondageLifeWardrobeClickProxy::HandleClicked);
+	}
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("Wardrobe: using the designed slot picker."));
+	return true;
 }

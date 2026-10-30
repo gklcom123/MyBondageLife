@@ -97,6 +97,9 @@ protected:
 
 	/** Uses the widgets provided by /Game/UI/WBP_Wardrobe instead of building them. */
 	bool TryAdoptBlueprintLayout();
+
+	/** Uses W_Picker and friends from the designed layout when present. */
+	bool TryAdoptPicker();
 	void WireAdoptedLayout();
 
 	bool bBlueprintLayout = false;
