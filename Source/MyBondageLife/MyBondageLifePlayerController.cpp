@@ -22,6 +22,7 @@
 #include "UI/MyBondageLifePlayerInfoWidget.h"
 #include "UI/MyBondageLifeWardrobeWidget.h"
 #include "UI/MyBondageLifeWardrobeButtonWidget.h"
+#include "UI/MyBondageLifePlayerInfoEntryWidget.h"
 
 namespace
 {
@@ -1390,6 +1391,7 @@ void AMyBondageLifePlayerController::BeginPlay()
 		ShowPlayerInfo();
 		ShowFriendList();
 		ShowWardrobeButton();
+		ShowPlayerInfoEntry();
 		ShowWardrobe();
 		ShowHostInfo();
 
@@ -2079,5 +2081,25 @@ void AMyBondageLifePlayerController::ShowWardrobeButton()
 	if (WardrobeButtonWidget)
 	{
 		WardrobeButtonWidget->AddToViewport(WardrobeButtonZOrder);
+	}
+}
+
+void AMyBondageLifePlayerController::ShowPlayerInfoEntry()
+{
+	if (!IsLocalPlayerController() || PlayerInfoEntryWidget)
+	{
+		return;
+	}
+
+	if (!PlayerInfoEntryWidgetClass)
+	{
+		UClass* DesignedEntry = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_PlayerInfoEntry.WBP_PlayerInfoEntry_C"));
+		PlayerInfoEntryWidgetClass = DesignedEntry ? DesignedEntry : UMyBondageLifePlayerInfoEntryWidget::StaticClass();
+	}
+
+	PlayerInfoEntryWidget = CreateWidget<UMyBondageLifePlayerInfoEntryWidget>(this, PlayerInfoEntryWidgetClass);
+	if (PlayerInfoEntryWidget)
+	{
+		PlayerInfoEntryWidget->AddToViewport(PlayerInfoEntryZOrder);
 	}
 }

@@ -143,6 +143,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Wardrobe")
 	void ShowWardrobeButton();
 
+	/** Creates the HUD "个人信息（C）" entry. */
+	UFUNCTION(BlueprintCallable, Category = "PlayerInfo")
+	void ShowPlayerInfoEntry();
+
+	UPROPERTY(EditDefaultsOnly, Category = "PlayerInfo")
+	TSubclassOf<class UMyBondageLifePlayerInfoEntryWidget> PlayerInfoEntryWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UMyBondageLifePlayerInfoEntryWidget> PlayerInfoEntryWidget;
+
+	UPROPERTY(EditDefaultsOnly, Category = "PlayerInfo")
+	int32 PlayerInfoEntryZOrder = 12;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Wardrobe")
 	TSubclassOf<class UMyBondageLifeWardrobeButtonWidget> WardrobeButtonWidgetClass;
 
