@@ -218,12 +218,27 @@ void UMyBondageLifeLockMenuWidget::BuildLayout()
 			continue;
 		}
 
-		// Designed buttons: fill in the lock icon when the designer left an Image.
-		if (UImage* Icon = FindImageIn(Button))
+		// Designed buttons: fill the icon. If the button has no Image child we paint the
+		// texture as the button background, so the icon still shows up.
+		UTexture2D* LockTexture = LoadObject<UTexture2D>(nullptr, LockIconPath(LockType));
+		if (LockTexture)
 		{
-			if (UTexture2D* Texture = LoadObject<UTexture2D>(nullptr, LockIconPath(LockType)))
+			if (UImage* Icon = FindImageIn(Button))
 			{
-				Icon->SetBrushFromTexture(Texture, true);
+				Icon->SetBrushFromTexture(LockTexture, true);
+			}
+			else
+			{
+				FSlateBrush Brush;
+				Brush.SetResourceObject(LockTexture);
+				Brush.ImageSize = FVector2D(96.0f, 96.0f);
+				Brush.DrawAs = ESlateBrushDrawType::Image;
+
+				FButtonStyle Style = Button->GetStyle();
+				Style.SetNormal(Brush);
+				Style.SetHovered(Brush);
+				Style.SetPressed(Brush);
+				Button->SetStyle(Style);
 			}
 		}
 
