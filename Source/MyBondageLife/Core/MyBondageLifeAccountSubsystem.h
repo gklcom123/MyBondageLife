@@ -268,6 +268,8 @@ public:
 	//~ Realtime (WebSocket) -------------------------------------------------
 
 	/** Opens ws://.../realtime; called after login. */
+	virtual void Deinitialize() override;
+
 	void ConnectRealtime();
 	void DisconnectRealtime();
 

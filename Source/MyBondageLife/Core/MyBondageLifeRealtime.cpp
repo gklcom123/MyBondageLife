@@ -33,30 +33,51 @@ void UMyBondageLifeAccountSubsystem::ConnectRealtime()
 
 	RealtimeSocket = FWebSocketsModule::Get().CreateWebSocket(Url, TEXT(""));
 
-	RealtimeSocket->OnConnected().AddLambda([this]()
+	// The socket outlives the subsystem during shutdown: never call through a raw this.
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+
+	RealtimeSocket->OnConnected().AddLambda([WeakThis]()
 	{
-		bRealtimeConnected = true;
-		RealtimeRetryIndex = 0;
+		UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+		if (!Self)
+		{
+			return;
+		}
+		Self->bRealtimeConnected = true;
+		Self->RealtimeRetryIndex = 0;
 		UE_LOG(LogMyBondageLife, Log, TEXT("Realtime: connected."));
 	});
 
-	RealtimeSocket->OnConnectionError().AddLambda([this](const FString& Error)
+	RealtimeSocket->OnConnectionError().AddLambda([WeakThis](const FString& Error)
 	{
-		bRealtimeConnected = false;
+		UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+		if (!Self)
+		{
+			return;
+		}
+		Self->bRealtimeConnected = false;
 		UE_LOG(LogMyBondageLife, Warning, TEXT("Realtime: error %s"), *Error);
-		ScheduleRealtimeReconnect();
+		Self->ScheduleRealtimeReconnect();
 	});
 
-	RealtimeSocket->OnClosed().AddLambda([this](int32 Code, const FString& Reason, bool)
+	RealtimeSocket->OnClosed().AddLambda([WeakThis](int32 Code, const FString& Reason, bool)
 	{
-		bRealtimeConnected = false;
+		UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+		if (!Self)
+		{
+			return;
+		}
+		Self->bRealtimeConnected = false;
 		UE_LOG(LogMyBondageLife, Log, TEXT("Realtime: closed %d (%s)."), Code, *Reason);
-		ScheduleRealtimeReconnect();
+		Self->ScheduleRealtimeReconnect();
 	});
 
-	RealtimeSocket->OnMessage().AddLambda([this](const FString& Message)
+	RealtimeSocket->OnMessage().AddLambda([WeakThis](const FString& Message)
 	{
-		HandleRealtimeMessage(Message);
+		if (UMyBondageLifeAccountSubsystem* Self = WeakThis.Get())
+		{
+			Self->HandleRealtimeMessage(Message);
+		}
 	});
 
 	RealtimeSocket->Connect();
@@ -112,6 +133,12 @@ void UMyBondageLifeAccountSubsystem::HandleRealtimeMessage(const FString& InMess
 		Json->TryGetStringField(TEXT("code"), Code);
 		UE_LOG(LogMyBondageLife, Warning, TEXT("Realtime: server error %s"), *Code);
 	}
+}
+
+void UMyBondageLifeAccountSubsystem::Deinitialize()
+{
+	DisconnectRealtime();
+	Super::Deinitialize();
 }
 
 void UMyBondageLifeAccountSubsystem::ScheduleRealtimeReconnect()
