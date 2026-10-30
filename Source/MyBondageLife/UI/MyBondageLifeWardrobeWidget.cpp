@@ -1042,6 +1042,15 @@ void UMyBondageLifeWardrobeWidget::RefreshRestraintSlots()
 
 void UMyBondageLifeWardrobeWidget::OpenRestraintPicker(int32 SlotIndex)
 {
+	if (bFriendMode)
+	{
+		const UMyBondageLifeAccountSubsystem* Guard = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+		const AMyBondageLifeCharacter* OwnPawn = Cast<AMyBondageLifeCharacter>(GetOwningPlayerPawn());
+		if (!Guard || !Guard->CanEditRestraintsOf(FriendAccount) || (OwnPawn && OwnPawn->IsArmsRestrained()))
+		{
+			return;
+		}
+	}
 	if (RestraintPicker)
 	{
 		PickerSlot = SlotIndex;
@@ -2148,6 +2157,16 @@ void UMyBondageLifeWardrobeWidget::HandlePickerLockRequested(int32 SlotIndex)
 {
 	// The wardrobe still owns the lock menus.
 	PickerSlot = SlotIndex;
+
+	if (bFriendMode)
+	{
+		const UMyBondageLifeAccountSubsystem* Guard = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+		const AMyBondageLifeCharacter* OwnPawn = Cast<AMyBondageLifeCharacter>(GetOwningPlayerPawn());
+		if (!Guard || !Guard->CanEditRestraintsOf(FriendAccount) || (OwnPawn && OwnPawn->IsArmsRestrained()))
+		{
+			return;
+		}
+	}
 
 	// Clicking 上锁 leaves the slot popup: only the lock menu should be on screen.
 	if (RestraintPicker)
