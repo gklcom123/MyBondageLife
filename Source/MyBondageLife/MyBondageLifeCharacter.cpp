@@ -337,83 +337,16 @@ void AMyBondageLifeCharacter::OnRep_HeightScale()
 
 void AMyBondageLifeCharacter::ApplyHeightScale()
 {
-	USkeletalMeshComponent* MeshComponent = GetMesh();
-	UCapsuleComponent* Capsule = GetCapsuleComponent();
-	if (!MeshComponent || !Capsule)
+	// Actor-scale approach: scale the whole pawn uniformly. The capsule, the mesh and
+	// every attached restraint scale together, so the feet stay on the capsule bottom
+	// by construction and the value replicates with the actor transform (no custom
+	// replication, no offset maths).
+	const bool bEnabled = !bHeightScalingDisabled;
+	const float Scale = bEnabled ? FMath::Clamp(HeightScale, 0.5f, 2.0f) : 1.0f;
+
+	if (!FMath::IsNearlyEqual(GetActorScale3D().Z, Scale, 0.001f))
 	{
-		return;
-	}
-
-	// Height scaling is disabled for now: everyone renders at the default size until
-	// the placement problem is solved (the value is still stored server-side).
-	if (bHeightScalingDisabled)
-	{
-		return;
-	}
-
-	if (!bBasePoseCaptured)
-	{
-		return;
-	}
-
-	const float Scale = FMath::Clamp(HeightScale, 0.5f, 2.0f);
-
-	// Clients mirror the authoritative transform when it has arrived.
-	const bool bUseReplicated = !HasAuthority() && !ReplicatedMeshRelativeLocation.IsZero();
-
-	// Mesh and capsule scale together so the collision shape keeps matching the body.
-	MeshComponent->SetRelativeScale3D(bUseReplicated ? ReplicatedMeshScale : BaseMeshScale * Scale);
-
-	const float NewHalfHeight = BaseCapsuleHalfHeight * Scale;
-	Capsule->SetCapsuleSize(BaseCapsuleRadius * Scale, NewHalfHeight, true);
-
-	// Feet stay on the capsule bottom. The mesh pivots at its own origin, so the
-	// offset from the pivot to the feet scales linearly: derive that offset from the
-	// known-good unscaled placement (exact at scale 1, no bounds sampling needed, so
-	// server and client always agree).
-	const float FeetOffset = -BaseCapsuleHalfHeight - BaseMeshRelativeLocation.Z;
-	// +1.7 cm: the reference mesh sits slightly below the capsule bottom otherwise.
-	float MeshZ = -NewHalfHeight - FeetOffset * Scale + 1.7f;
-
-	// Plan C: per-preset correction. Five discrete presets, so a small table is both
-	// simpler and more accurate than a general formula.
-	{
-		const float* Correction = nullptr;
-		float BestDelta = 0.02f;
-		for (const TPair<float, float>& Pair : HeightZOffsets)
-		{
-			const float Delta = FMath::Abs(Pair.Key - Scale);
-			if (Delta <= BestDelta)
-			{
-				BestDelta = Delta;
-				Correction = &Pair.Value;
-			}
-		}
-		if (Correction)
-		{
-			MeshZ += *Correction;
-		}
-	}
-
-	// The server owns the final transform; clients just mirror it so everyone sees
-	// exactly the same placement (no per-client bounds/timing differences).
-	if (HasAuthority())
-	{
-		ReplicatedMeshRelativeLocation = FVector(BaseMeshRelativeLocation.X, BaseMeshRelativeLocation.Y, MeshZ);
-		ReplicatedMeshScale = BaseMeshScale * Scale;
-	}
-
-	MeshComponent->SetRelativeLocation(bUseReplicated
-		? ReplicatedMeshRelativeLocation
-		: FVector(BaseMeshRelativeLocation.X, BaseMeshRelativeLocation.Y, MeshZ));
-	// Calibration: real numbers for the scaled feet vs the capsule bottom.
-	{
-		const float FeetWorld = MeshComponent->Bounds.Origin.Z - MeshComponent->Bounds.BoxExtent.Z;
-		const float CapsuleBottom = GetActorLocation().Z - Capsule->GetScaledCapsuleHalfHeight();
-		UE_LOG(LogMyBondageLife, Warning,
-			TEXT("[Height] scale=%.2f baseZ=%.1f baseHalf=%.1f meshZ=%.1f feetZ=%.1f capBottom=%.1f delta=%.1f"),
-			Scale, BaseMeshRelativeLocation.Z, BaseCapsuleHalfHeight,
-			MeshComponent->GetRelativeLocation().Z, FeetWorld, CapsuleBottom, FeetWorld - CapsuleBottom);
+		SetActorScale3D(FVector(Scale));
 	}
 }
 
