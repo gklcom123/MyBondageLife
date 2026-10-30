@@ -527,6 +527,18 @@ void AMyBondageLifeCharacter::RefreshRestraintPose()
 	}
 
 	// The equipped items decide the pose; the debug path is only a fallback.
+	if (!bRestraintPoseActive)
+	{
+		// Stop only the montage we started: the gag slot may be playing on top.
+		if (PlayingPoseAnmi && AnimInstance->Montage_IsPlaying(PlayingPoseAnmi))
+		{
+			AnimInstance->Montage_Stop(0.2f, PlayingPoseAnmi);
+		}
+		PlayingPoseAnmi = nullptr;
+		UE_LOG(LogMyBondageLife, Log, TEXT("Animation: restraint pose off."));
+		return;
+	}
+
 	UAnimMontage* Montage = ActiveUpAnmi ? ActiveUpAnmi.Get() : Cast<UAnimMontage>(RestraintMontagePath.TryLoad());
 	if (!Montage)
 	{
@@ -534,21 +546,12 @@ void AMyBondageLifeCharacter::RefreshRestraintPose()
 		return;
 	}
 
-	if (bRestraintPoseActive)
+	if (!AnimInstance->Montage_IsPlaying(Montage))
 	{
-		if (!AnimInstance->Montage_IsPlaying(Montage))
-		{
-			// Played through the AnimBP slot, so locomotion keeps running underneath.
-			AnimInstance->Montage_Play(Montage, 1.0f);
-			UE_LOG(LogMyBondageLife, Log, TEXT("Animation: restraint pose on."));
-		}
-	}
-	else
-	{
-		// The owning client may have started a different montage than the one the
-		// data table points at now, so stop everything instead of one asset.
-		AnimInstance->Montage_Stop(0.2f, nullptr);
-		UE_LOG(LogMyBondageLife, Log, TEXT("Animation: restraint pose off."));
+		// Played through the AnimBP slot, so locomotion keeps running underneath.
+		AnimInstance->Montage_Play(Montage, 1.0f);
+		PlayingPoseAnmi = Montage;
+		UE_LOG(LogMyBondageLife, Log, TEXT("Animation: restraint pose on."));
 	}
 }
 void AMyBondageLifeCharacter::StartRunning()
@@ -635,8 +638,10 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 	bCantMove = false;
 	bInPetMode = false;
 	ActiveUpAnmi = nullptr;
+	ActiveGagAnmi = nullptr;
 
 	int32 BestSlot = MAX_int32;
+	int32 BestGagSlot = MAX_int32;
 
 	for (int32 Index = 0; Index < RestraintItemIds.Num(); ++Index)
 	{
@@ -661,6 +666,16 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 			{
 				ActiveUpAnmi = Montage;
 				BestSlot = Slot;
+			}
+		}
+
+		// Head only montage: independent of UpAnmi, lowest slot wins as well.
+		if (UAnimMontage* GagMontage = Item->GagAnmi.LoadSynchronous())
+		{
+			if (Slot < BestGagSlot)
+			{
+				ActiveGagAnmi = GagMontage;
+				BestGagSlot = Slot;
 			}
 		}
 
@@ -701,7 +716,52 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 
 	// The owning client must apply it immediately as well (replication may be a tick late).
 	RefreshRestraintPose();
+	RefreshGagPose();
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("Restraint: %d item(s) applied (arm=%d leg=%d cantmove=%d pet=%d)."),
 		RestraintItemIds.Num(), bRestraintArm ? 1 : 0, bRestraintLeg ? 1 : 0, bCantMove ? 1 : 0, bInPetMode ? 1 : 0);
+}
+
+void AMyBondageLifeCharacter::RefreshGagPose()
+{
+	USkeletalMeshComponent* MeshComponent = GetMesh();
+	UAnimInstance* AnimInstance = MeshComponent ? MeshComponent->GetAnimInstance() : nullptr;
+	if (!AnimInstance)
+	{
+		return;
+	}
+
+	if (!ActiveGagAnmi)
+	{
+		if (PlayingGagAnmi && AnimInstance->Montage_IsPlaying(PlayingGagAnmi))
+		{
+			AnimInstance->Montage_Stop(0.2f, PlayingGagAnmi);
+		}
+		PlayingGagAnmi = nullptr;
+		return;
+	}
+
+	if (PlayingGagAnmi == ActiveGagAnmi && AnimInstance->Montage_IsPlaying(ActiveGagAnmi))
+	{
+		return;
+	}
+
+	if (PlayingGagAnmi && AnimInstance->Montage_IsPlaying(PlayingGagAnmi))
+	{
+		AnimInstance->Montage_Stop(0.15f, PlayingGagAnmi);
+	}
+
+	// The montage carries its own slot (GagSlot), so it layers on top of locomotion
+	// and of the UpAnmi pose.
+	AnimInstance->Montage_Play(ActiveGagAnmi, 1.0f);
+	PlayingGagAnmi = ActiveGagAnmi;
+
+	// Hold the pose by looping its first section.
+	if (ActiveGagAnmi->CompositeSections.Num() > 0)
+	{
+		const FName SectionName = ActiveGagAnmi->CompositeSections[0].SectionName;
+		AnimInstance->Montage_SetNextSection(SectionName, SectionName, ActiveGagAnmi);
+	}
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("Animation: gag pose on (%s)."), *ActiveGagAnmi->GetName());
 }

@@ -23,6 +23,9 @@ struct FMyBondageLifeRestraintItem
 	TSoftObjectPtr<USkeletalMesh> Mesh;
 	TSoftObjectPtr<UTexture2D> Icon;
 	TSoftObjectPtr<UAnimMontage> UpAnmi;
+
+	/** Head only montage (gag). */
+	TSoftObjectPtr<UAnimMontage> GagAnmi;
 	TSoftObjectPtr<UAnimMontage> DownAnmi;
 
 	bool bRestraintArm = false;

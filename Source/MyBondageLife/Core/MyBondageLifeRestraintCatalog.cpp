@@ -191,6 +191,11 @@ void FMyBondageLifeRestraintCatalog::Refresh()
 		ReadObjectRef(RowStruct, RowData, { TEXT("DownAnmi") }, UAnimMontage::StaticClass(), Temp);
 		Item.DownAnmi = TSoftObjectPtr<UAnimMontage>(Temp.ToSoftObjectPath());
 
+		Temp.Reset();
+		ReadObjectRef(RowStruct, RowData, { TEXT("GagAnmi") }, UAnimMontage::StaticClass(), Temp);
+		Item.GagAnmi = TSoftObjectPtr<UAnimMontage>(Temp.ToSoftObjectPath());
+
+
 		UE_LOG(LogMyBondageLife, Log, TEXT("Restraint: item %s slot=%d mesh=%d icon=%d upAnmi=%d"),
 			*Item.ItemId.ToString(), Item.Slot, Item.Mesh.IsNull() ? 0 : 1, Item.Icon.IsNull() ? 0 : 1, Item.UpAnmi.IsNull() ? 0 : 1);
 

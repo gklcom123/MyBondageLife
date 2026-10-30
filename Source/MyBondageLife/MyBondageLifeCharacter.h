@@ -166,6 +166,9 @@ protected:
 	/** Picks idle / walk / run from the current speed and plays it in single-node mode. */
 	void UpdateLocomotionAnimation();
 
+	/** Plays / stops the head-only (gag) montage. */
+	void RefreshGagPose();
+
 	/** Re-applied on clients whenever the replicated hair changes. */
 	UFUNCTION()
 	void OnRep_HairIndex();
@@ -214,6 +217,15 @@ protected:
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category="Restraint", meta = (AllowPrivateAccess = "true"))
 	bool bInPetMode = false;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UAnimMontage> ActiveGagAnmi;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UAnimMontage> PlayingPoseAnmi;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UAnimMontage> PlayingGagAnmi;
 
 	/** Montage driven by the equipped items (lowest slot wins). */
 	UPROPERTY(Transient)
