@@ -1024,6 +1024,14 @@ bool UMyBondageLifeFriendListWidget::TryAdoptBlueprintLayout()
 		return false;
 	}
 
+	// Dialogs are parented to the root canvas: adopt it, otherwise BuildDialogs crashes.
+	RootCanvas = Cast<UCanvasPanel>(WidgetTree->RootWidget);
+	if (!RootCanvas)
+	{
+		RootCanvas = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("RootCanvas"));
+		WidgetTree->RootWidget = RootCanvas;
+	}
+
 	if (PanelBorder)
 	{
 		PanelBorder->SetVisibility(ESlateVisibility::Collapsed);
