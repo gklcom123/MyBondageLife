@@ -83,7 +83,7 @@ TSharedRef<SWidget> UMyBondageLifeWardrobeWidget::RebuildWidget()
 		WidgetTree = NewObject<UWidgetTree>(this, TEXT("WidgetTree"));
 	}
 
-	if (WidgetTree && !bLayoutBuilt)
+	if (!IsDesignTime() && WidgetTree && !bLayoutBuilt)
 	{
 		bLayoutBuilt = true;
 		BuildLayout();
