@@ -548,8 +548,9 @@ void AMyBondageLifeCharacter::RefreshRestraintPose()
 
 	if (!AnimInstance->Montage_IsPlaying(Montage))
 	{
-		// Played through the AnimBP slot, so locomotion keeps running underneath.
-		AnimInstance->Montage_Play(Montage, 1.0f);
+		// Played through the AnimBP slot, so locomotion keeps running underneath;
+		// bStopAllMontages = false keeps the gag slot playing on top.
+		AnimInstance->Montage_Play(Montage, 1.0f, EMontagePlayReturnType::MontageLength, 0.0f, false);
 		PlayingPoseAnmi = Montage;
 		UE_LOG(LogMyBondageLife, Log, TEXT("Animation: restraint pose on."));
 	}
@@ -753,7 +754,8 @@ void AMyBondageLifeCharacter::RefreshGagPose()
 
 	// The montage carries its own slot (GagSlot), so it layers on top of locomotion
 	// and of the UpAnmi pose.
-	AnimInstance->Montage_Play(ActiveGagAnmi, 1.0f);
+	// bStopAllMontages = false: the body pose may be playing on top of this one.
+	AnimInstance->Montage_Play(ActiveGagAnmi, 1.0f, EMontagePlayReturnType::MontageLength, 0.0f, false);
 	PlayingGagAnmi = ActiveGagAnmi;
 
 	// Hold the pose by looping its first section.
