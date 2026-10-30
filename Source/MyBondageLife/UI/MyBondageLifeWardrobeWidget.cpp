@@ -2,6 +2,7 @@
 
 #include "MyBondageLifeWardrobeWidget.h"
 #include "MyBondageLifeRestraintSlotsWidget.h"
+#include "MyBondageLifeRestraintPickerWidget.h"
 #include "MyBondageLifeCharacter.h"
 
 #include "Blueprint/WidgetTree.h"
@@ -757,6 +758,14 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 		UE_LOG(LogMyBondageLife, Log, TEXT("Wardrobe: using the designed slot grid."));
 	}
 
+	// Designed picker widget (optional): owns the whole slot popup.
+	RestraintPicker = Cast<UMyBondageLifeRestraintPickerWidget>(WidgetTree->FindWidget(TEXT("W_RestraintPicker")));
+	if (RestraintPicker)
+	{
+		RestraintPicker->OnLockRequested.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandlePickerLockRequested);
+		UE_LOG(LogMyBondageLife, Log, TEXT("Wardrobe: using the designed slot picker widget."));
+	}
+
 	if (!RestraintGrid)
 	{
 	USizeBox* HintSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("RestraintHint"));
@@ -1016,6 +1025,14 @@ void UMyBondageLifeWardrobeWidget::RefreshRestraintSlots()
 
 void UMyBondageLifeWardrobeWidget::OpenRestraintPicker(int32 SlotIndex)
 {
+	if (RestraintPicker)
+	{
+		PickerSlot = SlotIndex;
+		RestraintPicker->OpenForSlot(SlotIndex, bFriendMode ? FriendAccount : FString());
+		RefreshLockActionButton();
+		return;
+	}
+
 	if (bFriendMode)
 	{
 		const UMyBondageLifeAccountSubsystem* Guard = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
@@ -1222,6 +1239,11 @@ void UMyBondageLifeWardrobeWidget::ResetToOwnMode()
 
 void UMyBondageLifeWardrobeWidget::CloseRestraintPicker()
 {
+	if (RestraintPicker)
+	{
+		RestraintPicker->ClosePicker();
+	}
+
 	StopLockCountdown();
 	if (PickerBackdrop)
 	{
@@ -2079,4 +2101,11 @@ void UMyBondageLifeWardrobeWidget::BP_StepHair(int32 Delta)
 	{
 		HandleHairUpClicked();
 	}
+}
+
+void UMyBondageLifeWardrobeWidget::HandlePickerLockRequested(int32 SlotIndex)
+{
+	// The wardrobe still owns the lock menus.
+	PickerSlot = SlotIndex;
+	HandleLockAction();
 }

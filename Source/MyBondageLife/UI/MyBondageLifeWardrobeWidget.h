@@ -271,6 +271,12 @@ protected:
 	UFUNCTION()
 	void HandleGridSlotClicked(int32 SlotIndex);
 
+	UPROPERTY(Transient)
+	TObjectPtr<class UMyBondageLifeRestraintPickerWidget> RestraintPicker;
+
+	UFUNCTION()
+	void HandlePickerLockRequested(int32 SlotIndex);
+
 	/** Rewrites slot icons / labels from the account equipment. */
 	void RefreshRestraintSlots();
 
