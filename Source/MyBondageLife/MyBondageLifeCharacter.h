@@ -167,6 +167,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Identity")
 	void ApplyHeightScale();
 
+	/** Captures the unscaled mesh/capsule reference exactly once (constructor). */
+	void CaptureBasePose();
+
+	bool bBasePoseCaptured = false;
+
 protected:
 
 	/** Re-applied on clients whenever the replicated height changes. */
@@ -279,6 +284,8 @@ protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	virtual void BeginPlay() override;
+
+	virtual void PostInitializeComponents() override;
 
 	virtual void Tick(float DeltaSeconds) override;
 

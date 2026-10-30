@@ -80,6 +80,7 @@ AMyBondageLifeCharacter::AMyBondageLifeCharacter()
 	// Jumping is not part of the design: no input is bound and JumpMaxCount stays 0.
 	JumpMaxCount = 0;
 
+
 	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
 	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
 	GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
@@ -257,6 +258,9 @@ void AMyBondageLifeCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// Reference values must be taken before anything is scaled.
+	CaptureBasePose();
+
 	// Reference sizes for the body height multiplier: everything is scaled relative
 	// to this designed size.
 	if (const UCapsuleComponent* Capsule = GetCapsuleComponent())
@@ -340,13 +344,10 @@ void AMyBondageLifeCharacter::ApplyHeightScale()
 		return;
 	}
 
-	// Capture the designed size once, before anything is scaled.
-	if (BaseCapsuleHalfHeight <= 0.0f)
+	CaptureBasePose();
+	if (!bBasePoseCaptured)
 	{
-		BaseCapsuleHalfHeight = Capsule->GetUnscaledCapsuleHalfHeight();
-		BaseCapsuleRadius = Capsule->GetUnscaledCapsuleRadius();
-		BaseMeshRelativeLocation = MeshComponent->GetRelativeLocation();
-		BaseMeshScale = MeshComponent->GetRelativeScale3D();
+		return;
 	}
 
 	const float Scale = FMath::Clamp(HeightScale, 0.5f, 2.0f);
@@ -365,7 +366,8 @@ void AMyBondageLifeCharacter::ApplyHeightScale()
 	// known-good unscaled placement (exact at scale 1, no bounds sampling needed, so
 	// server and client always agree).
 	const float FeetOffset = -BaseCapsuleHalfHeight - BaseMeshRelativeLocation.Z;
-	const float MeshZ = -NewHalfHeight - FeetOffset * Scale;
+	// +1.7 cm: the reference mesh sits slightly below the capsule bottom otherwise.
+	const float MeshZ = -NewHalfHeight - FeetOffset * Scale + 1.7f;
 
 	// The server owns the final transform; clients just mirror it so everyone sees
 	// exactly the same placement (no per-client bounds/timing differences).
@@ -380,14 +382,12 @@ void AMyBondageLifeCharacter::ApplyHeightScale()
 		: FVector(BaseMeshRelativeLocation.X, BaseMeshRelativeLocation.Y, MeshZ));
 	// Calibration: real numbers for the scaled feet vs the capsule bottom.
 	{
-		const FVector MeshLocation = MeshComponent->GetRelativeLocation();
-		const float FeetWorld = GetActorLocation().Z + MeshLocation.Z
-			+ (MeshComponent->Bounds.Origin.Z - MeshComponent->Bounds.BoxExtent.Z - GetActorLocation().Z);
+		const float FeetWorld = MeshComponent->Bounds.Origin.Z - MeshComponent->Bounds.BoxExtent.Z;
 		const float CapsuleBottom = GetActorLocation().Z - Capsule->GetScaledCapsuleHalfHeight();
 		UE_LOG(LogMyBondageLife, Warning,
 			TEXT("[Height] scale=%.2f baseZ=%.1f baseHalf=%.1f meshZ=%.1f feetZ=%.1f capBottom=%.1f delta=%.1f"),
-			Scale, BaseMeshRelativeLocation.Z, BaseCapsuleHalfHeight, MeshLocation.Z,
-			FeetWorld, CapsuleBottom, FeetWorld - CapsuleBottom);
+			Scale, BaseMeshRelativeLocation.Z, BaseCapsuleHalfHeight,
+			MeshComponent->GetRelativeLocation().Z, FeetWorld, CapsuleBottom, FeetWorld - CapsuleBottom);
 	}
 }
 
@@ -800,6 +800,12 @@ void AMyBondageLifeCharacter::RefreshGagPose()
 }
 void AMyBondageLifeCharacter::OnRep_MeshPlacement()
 {
+	// Applying the replica before the reference exists would poison the base capture.
+	if (!bBasePoseCaptured)
+	{
+		return;
+	}
+
 	USkeletalMeshComponent* MeshComponent = GetMesh();
 	if (!MeshComponent || ReplicatedMeshRelativeLocation.IsZero())
 	{
@@ -808,4 +814,32 @@ void AMyBondageLifeCharacter::OnRep_MeshPlacement()
 
 	MeshComponent->SetRelativeScale3D(ReplicatedMeshScale);
 	MeshComponent->SetRelativeLocation(ReplicatedMeshRelativeLocation);
+}
+void AMyBondageLifeCharacter::CaptureBasePose()
+{
+	if (bBasePoseCaptured)
+	{
+		return;
+	}
+
+	USkeletalMeshComponent* RefMesh = GetMesh();
+	UCapsuleComponent* RefCapsule = GetCapsuleComponent();
+	if (!RefMesh || !RefCapsule)
+	{
+		return;
+	}
+
+	BaseCapsuleHalfHeight = RefCapsule->GetUnscaledCapsuleHalfHeight();
+	BaseCapsuleRadius = RefCapsule->GetUnscaledCapsuleRadius();
+	BaseMeshRelativeLocation = RefMesh->GetRelativeLocation();
+	BaseMeshScale = RefMesh->GetRelativeScale3D();
+	bBasePoseCaptured = true;
+}
+void AMyBondageLifeCharacter::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	// Runs after the blueprint's component values are applied but before any scaling,
+	// so this is the only place where the reference is guaranteed to be correct.
+	CaptureBasePose();
 }
