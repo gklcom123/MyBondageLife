@@ -2038,3 +2038,37 @@ void UMyBondageLifeWardrobeWidget::HandleGridSlotClicked(int32 SlotIndex)
 {
 	OpenRestraintPicker(SlotIndex);
 }
+
+void UMyBondageLifeWardrobeWidget::BP_ClosePanel()
+{
+	SetPanelOpen(false);
+}
+
+void UMyBondageLifeWardrobeWidget::BP_SelectTab(int32 TabIndex)
+{
+	SelectTab(TabIndex);
+}
+
+void UMyBondageLifeWardrobeWidget::BP_StepHeight(int32 Delta)
+{
+	if (Delta < 0)
+	{
+		HandleHeightDownClicked();
+	}
+	else if (Delta > 0)
+	{
+		HandleHeightUpClicked();
+	}
+}
+
+void UMyBondageLifeWardrobeWidget::BP_StepHair(int32 Delta)
+{
+	if (Delta < 0)
+	{
+		HandleHairDownClicked();
+	}
+	else if (Delta > 0)
+	{
+		HandleHairUpClicked();
+	}
+}

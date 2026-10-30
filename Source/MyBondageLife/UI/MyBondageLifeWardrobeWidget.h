@@ -78,6 +78,23 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Wardrobe")
 	void TogglePanel();
 
+	//~ Blueprint helpers: wire your own buttons in the designed layout ---------
+
+	/** Closes the panel (for a custom close button). */
+	UFUNCTION(BlueprintCallable, Category = "Wardrobe")
+	void BP_ClosePanel();
+
+	/** -1 / +1 body height step (for custom arrows). */
+	UFUNCTION(BlueprintCallable, Category = "Wardrobe")
+	void BP_StepHeight(int32 Delta);
+
+	/** -1 / +1 hair style step (for custom arrows). */
+	UFUNCTION(BlueprintCallable, Category = "Wardrobe")
+	void BP_StepHair(int32 Delta);
+
+	/** Switches to tab 0 / 1 / 2 (for custom tab buttons). */
+	UFUNCTION(BlueprintCallable, Category = "Wardrobe")
+	void BP_SelectTab(int32 TabIndex);
 	UFUNCTION(BlueprintPure, Category = "Wardrobe")
 	bool IsPanelOpen() const;
 
