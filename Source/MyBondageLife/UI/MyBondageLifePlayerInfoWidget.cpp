@@ -912,6 +912,9 @@ bool UMyBondageLifePlayerInfoWidget::TryAdoptBlueprintLayout()
 		PanelBorder->SetVisibility(ESlateVisibility::Collapsed);
 	}
 
+	// HUD entry (个人信息 C): built by code at the usual spot, independent of the design.
+	BuildEntryButtonOnly();
+
 	UE_LOG(LogMyBondageLife, Log, TEXT("PlayerInfo: using the designed layout."));
 	return true;
 }

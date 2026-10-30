@@ -1391,7 +1391,6 @@ void AMyBondageLifePlayerController::BeginPlay()
 		ShowPlayerInfo();
 		ShowFriendList();
 		ShowWardrobeButton();
-		ShowPlayerInfoEntry();
 		ShowWardrobe();
 		ShowHostInfo();
 
