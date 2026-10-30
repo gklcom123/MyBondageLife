@@ -16,6 +16,40 @@
 #include "Engine/Texture2D.h"
 #include "MyBondageLife.h"
 
+namespace
+{
+	/** Finds the first UButton inside a named widget (the designer may wrap it). */
+	UButton* FindButtonIn(UWidget* Root)
+	{
+		if (!Root)
+		{
+			return nullptr;
+		}
+
+		if (UButton* AsButton = Cast<UButton>(Root))
+		{
+			return AsButton;
+		}
+
+		if (UPanelWidget* Panel = Cast<UPanelWidget>(Root))
+		{
+			for (int32 Index = 0; Index < Panel->GetChildrenCount(); ++Index)
+			{
+				if (UButton* Found = FindButtonIn(Panel->GetChildAt(Index)))
+				{
+					return Found;
+				}
+			}
+		}
+
+		return nullptr;
+	}
+
+	UButton* FindNamedButton(UWidgetTree* Tree, const TCHAR* Name)
+	{
+		return Tree ? FindButtonIn(Tree->FindWidget(Name)) : nullptr;
+	}
+}
 void UMyBondageLifePickerItemProxy::HandleClicked()
 {
 	if (Owner)
@@ -57,16 +91,22 @@ void UMyBondageLifeRestraintPickerWidget::BuildLayout()
 	// Adopt the designed widgets when the blueprint provides them.
 	PickerTitle = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_Picker_Title")));
 	PickerGrid = Cast<UCanvasPanel>(WidgetTree->FindWidget(TEXT("W_Picker_Grid")));
-	LockActionButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_Picker_LockAction")));
+	LockActionButton = FindNamedButton(WidgetTree, TEXT("W_Picker_LockAction"));
+
+	RemoveButton = FindNamedButton(WidgetTree, TEXT("W_Picker_Remove"));
+	if (!RemoveButton)
+	{
+		RemoveButton = FindNamedButton(WidgetTree, TEXT("W_Picker_Unequip"));
+	}
 	LockActionLabel = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_Picker_LockAction_Label")));
-	CancelButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_Picker_Cancel")));
+	CancelButton = FindNamedButton(WidgetTree, TEXT("W_Picker_Cancel"));
 	if (!CancelButton)
 	{
-		CancelButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_Picker_CancelButton")));
+		CancelButton = FindNamedButton(WidgetTree, TEXT("W_Picker_CancelButton"));
 	}
 	if (!CancelButton)
 	{
-		CancelButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_Picker_Close")));
+		CancelButton = FindNamedButton(WidgetTree, TEXT("W_Picker_Close"));
 	}
 
 	if (!PickerTitle || !PickerGrid)
@@ -138,6 +178,10 @@ void UMyBondageLifeRestraintPickerWidget::BuildLayout()
 		if (IsValid(CancelButton))
 		{
 			CancelButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeRestraintPickerWidget::HandleCancelClicked);
+		}
+		if (IsValid(RemoveButton))
+		{
+			RemoveButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeRestraintPickerWidget::HandleRemoveClicked);
 		}
 	}
 
