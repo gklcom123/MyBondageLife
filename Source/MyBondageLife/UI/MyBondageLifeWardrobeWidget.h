@@ -274,6 +274,12 @@ protected:
 	UPROPERTY(Transient)
 	TObjectPtr<class UMyBondageLifeRestraintPickerWidget> RestraintPicker;
 
+	UPROPERTY(Transient)
+	TObjectPtr<class UMyBondageLifeLockMenuWidget> LockMenuWidget;
+
+	UFUNCTION()
+	void HandleDesignedLockChosen(int32 LockType);
+
 	UFUNCTION()
 	void HandlePickerLockRequested(int32 SlotIndex);
 

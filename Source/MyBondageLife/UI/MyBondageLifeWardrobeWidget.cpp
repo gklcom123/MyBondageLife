@@ -3,6 +3,7 @@
 #include "MyBondageLifeWardrobeWidget.h"
 #include "MyBondageLifeRestraintSlotsWidget.h"
 #include "MyBondageLifeRestraintPickerWidget.h"
+#include "UI/MyBondageLifeLockMenuWidget.h"
 #include "MyBondageLifeCharacter.h"
 
 #include "Blueprint/WidgetTree.h"
@@ -1478,7 +1479,15 @@ void UMyBondageLifeWardrobeWidget::HandleLockAction()
 }
 
 void UMyBondageLifeWardrobeWidget::OpenLockMenu()
-{
+{	if (LockMenuWidget)
+	{
+		LockMenuWidget->OpenForSlot(PickerSlot);
+		for (int32 LockType = 1; LockType <= 5; ++LockType)
+		{
+			LockMenuWidget->SetLockAvailable(LockType, IsLockTypeAllowed(LockType));
+		}
+		return;
+	}
 	if (!RestraintPage)
 	{
 		UE_LOG(LogMyBondageLife, Warning, TEXT("Lock: menu has no page."));
@@ -1616,6 +1625,11 @@ void UMyBondageLifeWardrobeWidget::OpenLockMenu()
 
 void UMyBondageLifeWardrobeWidget::CloseLockMenu()
 {
+	if (LockMenuWidget)
+	{
+		LockMenuWidget->CloseMenu();
+	}
+
 	if (LockMenuBackdrop)
 	{
 		LockMenuBackdrop->SetVisibility(ESlateVisibility::Collapsed);
@@ -2109,3 +2123,38 @@ void UMyBondageLifeWardrobeWidget::HandlePickerLockRequested(int32 SlotIndex)
 	PickerSlot = SlotIndex;
 	HandleLockAction();
 }
+void UMyBondageLifeWardrobeWidget::HandleDesignedLockChosen(int32 LockType)
+{
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+	if (!Account)
+	{
+		return;
+	}
+
+	if (LockMenuWidget)
+	{
+		LockMenuWidget->CloseMenu();
+	}
+
+	// 2 / 4 / 5 need a duration or a password: reuse the existing popup.
+	if (LockType == 2 || LockType == 4 || LockType == 5)
+	{
+		OpenLockInput(LockType);
+		return;
+	}
+
+	bClosePanelsOnNextChange = true;
+	PlayLockCue();
+
+	if (bFriendMode)
+	{
+		Account->LockRestraintFor(FriendAccount, PickerSlot, LockType, 0, FString());
+	}
+	else
+	{
+		Account->LockRestraint(PickerSlot, LockType, 0, FString());
+	}
+}
+
