@@ -8,6 +8,27 @@
 #include "Components/TextBlock.h"
 #include "MyBondageLife.h"
 
+namespace
+{
+	void CollectTexts(UWidget* Root, TArray<UTextBlock*>& Out)
+	{
+		if (!Root)
+		{
+			return;
+		}
+		if (UTextBlock* AsText = Cast<UTextBlock>(Root))
+		{
+			Out.Add(AsText);
+		}
+		if (UPanelWidget* Panel = Cast<UPanelWidget>(Root))
+		{
+			for (int32 Index = 0; Index < Panel->GetChildrenCount(); ++Index)
+			{
+				CollectTexts(Panel->GetChildAt(Index), Out);
+			}
+		}
+	}
+}
 TSharedRef<SWidget> UMyBondageLifeFriendRowWidget::RebuildWidget()
 {
 	if (!WidgetTree)
@@ -32,6 +53,17 @@ void UMyBondageLifeFriendRowWidget::BuildLayout()
 	AvatarImage = Cast<UImage>(WidgetTree->FindWidget(TEXT("W_Avatar")));
 	SelectButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_Select")));
 	MenuButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_MenuButton")));
+
+	// Positional fallback: if the design did not name the labels, use tree order
+	// (name, role/class, status), which matches the usual row layout.
+	if (!NameText || !RoleText || !StatusText)
+	{
+		TArray<UTextBlock*> Texts;
+		CollectTexts(WidgetTree->RootWidget, Texts);
+		if (!NameText && Texts.IsValidIndex(0)) { NameText = Texts[0]; }
+		if (!RoleText && Texts.IsValidIndex(1)) { RoleText = Texts[1]; }
+		if (!StatusText && Texts.IsValidIndex(2)) { StatusText = Texts[2]; }
+	}
 
 	if (IsValid(SelectButton))
 	{
