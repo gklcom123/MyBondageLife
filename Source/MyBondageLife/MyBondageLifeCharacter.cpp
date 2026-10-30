@@ -378,6 +378,17 @@ void AMyBondageLifeCharacter::ApplyHeightScale()
 	MeshComponent->SetRelativeLocation(bUseReplicated
 		? ReplicatedMeshRelativeLocation
 		: FVector(BaseMeshRelativeLocation.X, BaseMeshRelativeLocation.Y, MeshZ));
+	// Calibration: real numbers for the scaled feet vs the capsule bottom.
+	{
+		const FVector MeshLocation = MeshComponent->GetRelativeLocation();
+		const float FeetWorld = GetActorLocation().Z + MeshLocation.Z
+			+ (MeshComponent->Bounds.Origin.Z - MeshComponent->Bounds.BoxExtent.Z - GetActorLocation().Z);
+		const float CapsuleBottom = GetActorLocation().Z - Capsule->GetScaledCapsuleHalfHeight();
+		UE_LOG(LogMyBondageLife, Warning,
+			TEXT("[Height] scale=%.2f baseZ=%.1f baseHalf=%.1f meshZ=%.1f feetZ=%.1f capBottom=%.1f delta=%.1f"),
+			Scale, BaseMeshRelativeLocation.Z, BaseCapsuleHalfHeight, MeshLocation.Z,
+			FeetWorld, CapsuleBottom, FeetWorld - CapsuleBottom);
+	}
 }
 
 void AMyBondageLifeCharacter::OnRep_HairIndex()
