@@ -60,6 +60,14 @@ void UMyBondageLifeRestraintPickerWidget::BuildLayout()
 	LockActionButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_Picker_LockAction")));
 	LockActionLabel = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_Picker_LockAction_Label")));
 	CancelButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_Picker_Cancel")));
+	if (!CancelButton)
+	{
+		CancelButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_Picker_CancelButton")));
+	}
+	if (!CancelButton)
+	{
+		CancelButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_Picker_Close")));
+	}
 
 	if (!PickerTitle || !PickerGrid)
 	{
@@ -132,6 +140,10 @@ void UMyBondageLifeRestraintPickerWidget::BuildLayout()
 			CancelButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeRestraintPickerWidget::HandleCancelClicked);
 		}
 	}
+
+	UE_LOG(LogMyBondageLife, Log,
+		TEXT("Picker: adopted title=%d grid=%d lockAction=%d cancel=%d"),
+		PickerTitle ? 1 : 0, PickerGrid ? 1 : 0, LockActionButton ? 1 : 0, CancelButton ? 1 : 0);
 
 	SetVisibility(ESlateVisibility::Collapsed);
 	OnLayoutBuilt();
