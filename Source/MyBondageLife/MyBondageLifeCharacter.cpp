@@ -344,7 +344,7 @@ void AMyBondageLifeCharacter::ApplyHeightScale()
 		return;
 	}
 
-	CaptureBasePose();
+	// Never capture here: this can run after the mesh was already scaled (OnRep).
 	if (!bBasePoseCaptured)
 	{
 		return;
@@ -367,7 +367,27 @@ void AMyBondageLifeCharacter::ApplyHeightScale()
 	// server and client always agree).
 	const float FeetOffset = -BaseCapsuleHalfHeight - BaseMeshRelativeLocation.Z;
 	// +1.7 cm: the reference mesh sits slightly below the capsule bottom otherwise.
-	const float MeshZ = -NewHalfHeight - FeetOffset * Scale + 1.7f;
+	float MeshZ = -NewHalfHeight - FeetOffset * Scale + 1.7f;
+
+	// Plan C: per-preset correction. Five discrete presets, so a small table is both
+	// simpler and more accurate than a general formula.
+	{
+		const float* Correction = nullptr;
+		float BestDelta = 0.02f;
+		for (const TPair<float, float>& Pair : HeightZOffsets)
+		{
+			const float Delta = FMath::Abs(Pair.Key - Scale);
+			if (Delta <= BestDelta)
+			{
+				BestDelta = Delta;
+				Correction = &Pair.Value;
+			}
+		}
+		if (Correction)
+		{
+			MeshZ += *Correction;
+		}
+	}
 
 	// The server owns the final transform; clients just mirror it so everyone sees
 	// exactly the same placement (no per-client bounds/timing differences).

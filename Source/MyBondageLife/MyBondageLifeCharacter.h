@@ -172,6 +172,10 @@ public:
 
 	bool bBasePoseCaptured = false;
 
+	/** Per-preset Z correction (heightScale -> cm). Tuned from in-game measurements. */
+	UPROPERTY(EditDefaultsOnly, Category="Identity")
+	TMap<float, float> HeightZOffsets;
+
 protected:
 
 	/** Re-applied on clients whenever the replicated height changes. */
