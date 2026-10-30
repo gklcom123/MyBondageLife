@@ -862,12 +862,38 @@ namespace
 
 bool UMyBondageLifePlayerInfoWidget::TryAdoptBlueprintLayout()
 {
-	if (!WidgetTree || !AdoptFind<UBorder>(WidgetTree, TEXT("W_Panel")))
+	if (!WidgetTree)
 	{
 		return false;
 	}
 
+	// Accept W_Panel; if the designer used another name, fall back to the first Border
+	// found in the tree so the layout is still adopted.
 	PanelBorder = AdoptFind<UBorder>(WidgetTree, TEXT("W_Panel"));
+	if (!PanelBorder)
+	{
+		PanelBorder = AdoptFind<UBorder>(WidgetTree, TEXT("W_PlayerInfoPanel"));
+	}
+
+	// Diagnostics: what the asset actually provides.
+	if (UPanelWidget* RootPanel = Cast<UPanelWidget>(WidgetTree->RootWidget))
+	{
+		FString Names;
+		for (int32 Index = 0; Index < RootPanel->GetChildrenCount(); ++Index)
+		{
+			if (UWidget* Child = RootPanel->GetChildAt(Index))
+			{
+				Names += FString::Printf(TEXT("%s(%s) "), *Child->GetName(), *Child->GetClass()->GetName());
+			}
+		}
+		UE_LOG(LogMyBondageLife, Log, TEXT("PlayerInfo: asset root children: %s"), *Names);
+	}
+
+	if (!PanelBorder)
+	{
+		UE_LOG(LogMyBondageLife, Warning, TEXT("PlayerInfo: no Border found, using the code layout."));
+		return false;
+	}
 	NameValue = AdoptFind<UTextBlock>(WidgetTree, TEXT("W_Name"));
 	ClassValue = AdoptFind<UTextBlock>(WidgetTree, TEXT("W_Class"));
 	JoinedValue = AdoptFind<UTextBlock>(WidgetTree, TEXT("W_Joined"));
@@ -879,6 +905,12 @@ bool UMyBondageLifePlayerInfoWidget::TryAdoptBlueprintLayout()
 	ContractLabel = AdoptFind<UTextBlock>(WidgetTree, TEXT("W_Contract_Label"));
 	WardrobeButton = AdoptFindNamedButton(WidgetTree, TEXT("W_WardrobeButton"));
 	CloseButton = AdoptFindNamedButton(WidgetTree, TEXT("W_Close"));
+
+	if (PanelBorder)
+	{
+		// The panel must start closed, exactly like the code-built layout.
+		PanelBorder->SetVisibility(ESlateVisibility::Collapsed);
+	}
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("PlayerInfo: using the designed layout."));
 	return true;
@@ -906,5 +938,65 @@ void UMyBondageLifePlayerInfoWidget::WireAdoptedLayout()
 	if (IsValid(WardrobeButton))
 	{
 		WardrobeButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifePlayerInfoWidget::HandleWardrobeClicked);
+	}
+}
+void UMyBondageLifePlayerInfoWidget::BuildEntryButtonOnly()
+{
+	UCanvasPanel* Canvas = Cast<UCanvasPanel>(WidgetTree ? WidgetTree->RootWidget : nullptr);
+	if (!Canvas || OpenButton)
+	{
+		return;
+	}
+
+	OpenButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("PlayerInfoButton"));
+	FButtonStyle Transparent;
+	Transparent.Normal.DrawAs = ESlateBrushDrawType::NoDrawType;
+	Transparent.Hovered.DrawAs = ESlateBrushDrawType::NoDrawType;
+	Transparent.Pressed.DrawAs = ESlateBrushDrawType::NoDrawType;
+	Transparent.Disabled.DrawAs = ESlateBrushDrawType::NoDrawType;
+	OpenButton->SetStyle(Transparent);
+	OpenButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifePlayerInfoWidget::HandleOpenButtonClicked);
+
+	if (UCanvasPanelSlot* EntrySlot = Canvas->AddChildToCanvas(OpenButton))
+	{
+		EntrySlot->SetAnchors(FAnchors(0.0f, 1.0f, 0.0f, 1.0f));
+		EntrySlot->SetAlignment(FVector2D(0.0f, 1.0f));
+		EntrySlot->SetPosition(FVector2D(720.0f, -30.0f));
+		EntrySlot->SetAutoSize(true);
+		EntrySlot->SetZOrder(30);
+	}
+
+	UVerticalBox* Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	OpenButton->AddChild(Column);
+
+	USizeBox* IconSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	IconSize->SetWidthOverride(64.0f);
+	IconSize->SetHeightOverride(64.0f);
+	if (UVerticalBoxSlot* IconSlot = Column->AddChildToVerticalBox(IconSize))
+	{
+		IconSlot->SetHorizontalAlignment(HAlign_Center);
+	}
+
+	UImage* Icon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
+	if (UTexture2D* Texture = LoadObject<UTexture2D>(nullptr, TEXT("/Game/2DAssest/UI/UI_HeadIcon.UI_HeadIcon")))
+	{
+		Icon->SetBrushFromTexture(Texture, true);
+	}
+	IconSize->AddChild(Icon);
+
+	UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+	Label->SetText(FText::FromString(TEXT("\u4E2A\u4EBA\u4FE1\u606F\uFF08C\uFF09")));
+	Label->SetColorAndOpacity(FSlateColor(FLinearColor::White));
+	Label->SetJustification(ETextJustify::Center);
+	Label->SetShadowOffset(FVector2D(1.0f, 1.0f));
+	Label->SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.9f));
+	{
+		FSlateFontInfo LabelFont = Label->GetFont();
+		LabelFont.Size = 16;
+		Label->SetFont(LabelFont);
+	}
+	if (UVerticalBoxSlot* LabelSlot = Column->AddChildToVerticalBox(Label))
+	{
+		LabelSlot->SetHorizontalAlignment(HAlign_Center);
 	}
 }

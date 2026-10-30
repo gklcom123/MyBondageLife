@@ -87,6 +87,8 @@ protected:
 	bool bLayoutBuilt = false;
 	void WireAdoptedLayout();
 
+	void BuildEntryButtonOnly();
+
 	void BuildLayout();
 
 	/** Rewrites the three lines from the cached character. */
