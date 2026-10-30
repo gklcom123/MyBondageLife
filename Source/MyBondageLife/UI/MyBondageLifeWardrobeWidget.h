@@ -284,6 +284,9 @@ protected:
 	void HandleDesignedLockChosen(int32 LockType);
 
 	UFUNCTION()
+	void HandleDesignedLockConfirmed(int32 LockType, const FString& Text);
+
+	UFUNCTION()
 	void HandlePickerLockRequested(int32 SlotIndex);
 
 	/** Rewrites slot icons / labels from the account equipment. */

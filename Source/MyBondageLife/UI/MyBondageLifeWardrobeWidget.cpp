@@ -778,6 +778,11 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 
 	// Designed duration / password popup (optional).
 	LockInputWidget = Cast<UMyBondageLifeLockInputWidget>(WidgetTree->FindWidget(TEXT("W_LockInput")));
+	if (LockInputWidget)
+	{
+		LockInputWidget->OnConfirmed.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleDesignedLockConfirmed);
+		UE_LOG(LogMyBondageLife, Log, TEXT("Wardrobe: using the designed lock input."));
+	}
 	if (!RestraintGrid)
 	{
 	USizeBox* HintSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("RestraintHint"));
@@ -1649,7 +1654,12 @@ void UMyBondageLifeWardrobeWidget::CloseLockMenu()
 }
 
 void UMyBondageLifeWardrobeWidget::OpenLockInput(int32 InLockType)
-{
+{	if (LockInputWidget)
+	{
+		PendingLockType = InLockType;
+		LockInputWidget->OpenFor(InLockType, PickerSlot);
+		return;
+	}
 	if (!RestraintPage)
 	{
 		return;
@@ -1756,6 +1766,11 @@ void UMyBondageLifeWardrobeWidget::OpenLockInput(int32 InLockType)
 
 void UMyBondageLifeWardrobeWidget::CloseLockInput()
 {
+	if (LockInputWidget)
+	{
+		LockInputWidget->CloseInput();
+	}
+
 	if (LockInputBackdrop)
 	{
 		LockInputBackdrop->SetVisibility(ESlateVisibility::Collapsed);
@@ -2177,3 +2192,45 @@ void UMyBondageLifeWardrobeWidget::HandleDesignedLockChosen(int32 LockType)
 	}
 }
 
+
+void UMyBondageLifeWardrobeWidget::HandleDesignedLockConfirmed(int32 LockType, const FString& Text)
+{
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+	if (!Account)
+	{
+		return;
+	}
+
+	if (LockInputWidget)
+	{
+		LockInputWidget->CloseInput();
+	}
+	if (LockMenuWidget)
+	{
+		LockMenuWidget->CloseMenu();
+	}
+
+	bClosePanelsOnNextChange = true;
+
+	if (LockType == 104)
+	{
+		if (bFriendMode) { Account->UnlockRestraintFor(FriendAccount, PickerSlot, Text); }
+		else { Account->UnlockRestraint(PickerSlot, Text); }
+		return;
+	}
+
+	PlayLockCue();
+
+	if (LockType == 4)
+	{
+		if (bFriendMode) { Account->LockRestraintFor(FriendAccount, PickerSlot, 4, 0, Text); }
+		else { Account->LockRestraint(PickerSlot, 4, 0, Text); }
+		return;
+	}
+
+	const int32 Seconds = ParseDuration(Text);
+	if (bFriendMode) { Account->LockRestraintFor(FriendAccount, PickerSlot, LockType, Seconds, FString()); }
+	else { Account->LockRestraint(PickerSlot, LockType, Seconds, FString()); }
+}
