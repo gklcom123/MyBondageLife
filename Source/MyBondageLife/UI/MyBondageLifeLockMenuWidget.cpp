@@ -4,6 +4,7 @@
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
+#include "Components/CanvasPanelSlot.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/Image.h"
@@ -212,12 +213,10 @@ void UMyBondageLifeLockMenuWidget::BuildLayout()
 }
 
 void UMyBondageLifeLockMenuWidget::OpenForSlot(int32 InSlotIndex)
-{	// Bring the menu to the front of its container: the designer may have placed it
-	// under the slot popup, which would hide it.
-	if (UPanelWidget* Parent = GetParent())
+{	// Canvas panels sort by ZOrder, not by child index: force the menu on top.
+	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Slot))
 	{
-		Parent->RemoveChild(this);
-		Parent->AddChild(this);
+		CanvasSlot->SetZOrder(200);
 	}
 
 	SlotIndex = InSlotIndex;

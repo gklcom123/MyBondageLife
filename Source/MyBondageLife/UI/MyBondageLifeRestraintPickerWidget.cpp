@@ -203,6 +203,11 @@ void UMyBondageLifeRestraintPickerWidget::OpenForSlot(int32 SlotIndex, const FSt
 	PickerSlot = SlotIndex;
 	ViewAccount = InViewAccount;
 
+	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Slot))
+	{
+		CanvasSlot->SetZOrder(150);
+	}
+
 	RefreshContents();
 	SetVisibility(ESlateVisibility::Visible);
 }
