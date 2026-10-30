@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "MyBondageLifeWardrobeWidget.h"
+#include "MyBondageLifeRestraintSlotsWidget.h"
 #include "MyBondageLifeCharacter.h"
 
 #include "Blueprint/WidgetTree.h"
@@ -747,6 +748,17 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 		SlotContainer = RestraintPage;
 	}
 	// Hint line under the slot grid.
+	// Designed slot widget: the asset owns the 12 cells and the hint line.
+	RestraintGrid = Cast<UMyBondageLifeRestraintSlotsWidget>(WidgetTree->FindWidget(TEXT("W_RestraintGrid")));
+	if (RestraintGrid)
+	{
+		RestraintGrid->SetViewAccount(bFriendMode ? FriendAccount : FString());
+		RestraintGrid->OnSlotClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleGridSlotClicked);
+		UE_LOG(LogMyBondageLife, Log, TEXT("Wardrobe: using the designed slot grid."));
+	}
+
+	if (!RestraintGrid)
+	{
 	USizeBox* HintSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("RestraintHint"));
 	HintSize->SetWidthOverride(1000.0f);
 	if (UCanvasPanelSlot* HintSlot = RestraintPage->AddChildToCanvas(HintSize))
@@ -845,6 +857,8 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 			LabelSlot->SetPadding(FMargin(0.0f, 4.0f, 0.0f, 0.0f));
 		}
 		SlotLabels.Add(Label);
+	}
+
 	}
 
 	// A designed picker (W_Picker) wins; otherwise build the default one.
@@ -1983,4 +1997,9 @@ bool UMyBondageLifeWardrobeWidget::TryAdoptPicker()
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("Wardrobe: using the designed slot picker."));
 	return true;
+}
+
+void UMyBondageLifeWardrobeWidget::HandleGridSlotClicked(int32 SlotIndex)
+{
+	OpenRestraintPicker(SlotIndex);
 }

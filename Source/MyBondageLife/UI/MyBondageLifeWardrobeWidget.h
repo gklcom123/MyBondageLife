@@ -248,6 +248,12 @@ protected:
 
 	void BuildRestraintSlots();
 
+	UPROPERTY(Transient)
+	TObjectPtr<class UMyBondageLifeRestraintSlotsWidget> RestraintGrid;
+
+	UFUNCTION()
+	void HandleGridSlotClicked(int32 SlotIndex);
+
 	/** Rewrites slot icons / labels from the account equipment. */
 	void RefreshRestraintSlots();
 

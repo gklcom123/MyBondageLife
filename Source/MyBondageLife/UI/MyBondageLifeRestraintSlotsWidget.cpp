@@ -69,8 +69,27 @@ void UMyBondageLifeRestraintSlotsWidget::BuildLayout()
 	}
 	RootCanvas->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 
+	// A designed slot (W_SlotButton_N + W_SlotIcon_N + W_SlotLabel_N + W_SlotBadge_N)
+	// wins over the generated one; missing slots are still built in code.
 	for (int32 SlotIndex = 0; SlotIndex < FMyBondageLifeRestraintCatalog::SlotCount; ++SlotIndex)
 	{
+		const FString Suffix = FString::Printf(TEXT("_%d"), SlotIndex);
+		UButton* DesignedButton = Cast<UButton>(WidgetTree->FindWidget(*(FString(TEXT("W_SlotButton")) + Suffix)));
+		if (DesignedButton)
+		{
+			SlotButtons.Add(DesignedButton);
+			SlotIcons.Add(Cast<UImage>(WidgetTree->FindWidget(*(FString(TEXT("W_SlotIcon")) + Suffix))));
+			SlotLabels.Add(Cast<UTextBlock>(WidgetTree->FindWidget(*(FString(TEXT("W_SlotLabel")) + Suffix))));
+			SlotLockBadges.Add(Cast<UImage>(WidgetTree->FindWidget(*(FString(TEXT("W_SlotBadge")) + Suffix))));
+
+			UMyBondageLifeRestraintSlotClickProxy* Proxy =
+				NewObject<UMyBondageLifeRestraintSlotClickProxy>(this);
+			Proxy->Owner = this;
+			Proxy->Slot = SlotIndex;
+			ClickProxies.Add(Proxy);
+			DesignedButton->OnClicked.AddUniqueDynamic(Proxy, &UMyBondageLifeRestraintSlotClickProxy::HandleClicked);
+			continue;
+		}
 		const int32 Col = SlotIndex / 3;
 		const int32 Row = SlotIndex % 3;
 
