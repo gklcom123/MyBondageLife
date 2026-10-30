@@ -119,6 +119,39 @@ void UMyBondageLifeLockMenuWidget::BuildLayout()
 		}
 	}
 
+	// Last resort: take buttons in hierarchy order (the designer may not name them).
+	if (RowButtons.Num() < 5)
+	{
+		TArray<UButton*> AllButtons;
+		if (UPanelWidget* RootPanel = Cast<UPanelWidget>(WidgetTree->RootWidget))
+		{
+			for (int32 Index = 0; Index < RootPanel->GetChildrenCount(); ++Index)
+			{
+				if (UButton* Found = FindButtonIn(RootPanel->GetChildAt(Index)))
+				{
+					AllButtons.Add(Found);
+				}
+			}
+		}
+
+		// Skip the cancel button: it is not one of the five locks.
+		TArray<UButton*> Filtered;
+		for (UButton* Candidate : AllButtons)
+		{
+			if (Candidate && Candidate != CancelButton)
+			{
+				Filtered.Add(Candidate);
+			}
+		}
+
+		if (Filtered.Num() >= 5)
+		{
+			RowButtons = Filtered;
+		}
+	}
+
+	bool bAnyDesigned = false;
+
 	for (int32 LockType = 1; LockType <= 5; ++LockType)
 	{
 		// Several accepted spellings, plus an order-based fallback below.
@@ -140,6 +173,13 @@ void UMyBondageLifeLockMenuWidget::BuildLayout()
 		if (Button)
 		{
 			LockButtons.Add(Button);
+			bAnyDesigned = true;
+		}
+		else if (bAnyDesigned)
+		{
+			// Partial designs: leave the missing one out instead of rebuilding the old row.
+			LockButtons.Add(nullptr);
+			continue;
 		}
 		else
 		{
@@ -192,6 +232,11 @@ void UMyBondageLifeLockMenuWidget::BuildLayout()
 			Caption->SetText(LockDisplayName(LockType));
 			Caption->SetJustification(ETextJustify::Center);
 			Column->AddChildToVerticalBox(Caption);
+		}
+
+		if (LockButtons.IsValidIndex(LockType - 1) && !IsValid(LockButtons[LockType - 1]))
+		{
+			continue;
 		}
 
 		Button->SetToolTipText(LockDisplayName(LockType));
