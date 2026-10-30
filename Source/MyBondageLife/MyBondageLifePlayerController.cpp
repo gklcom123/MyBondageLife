@@ -1388,7 +1388,8 @@ void AMyBondageLifePlayerController::BeginPlay()
 		ShowChat();
 		ShowPlayerInfo();
 		ShowFriendList();
-	ShowWardrobe();
+		ShowWardrobeButton();
+		ShowWardrobe();
 		ShowHostInfo();
 
 		RefreshChatInputState();
