@@ -53,6 +53,9 @@ public:
 	TObjectPtr<UTextBlock> StatusText;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Friends", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UTextBlock> ClassText;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Friends", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UTextBlock> RoleText;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Friends", meta = (AllowPrivateAccess = "true"))

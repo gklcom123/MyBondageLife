@@ -50,19 +50,31 @@ void UMyBondageLifeFriendRowWidget::BuildLayout()
 	NameText = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_Name")));
 	StatusText = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_Status")));
 	RoleText = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_Role")));
+	ClassText = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_Class")));
 	AvatarImage = Cast<UImage>(WidgetTree->FindWidget(TEXT("W_Avatar")));
 	SelectButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_Select")));
 	MenuButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_MenuButton")));
 
 	// Positional fallback: if the design did not name the labels, use tree order
 	// (name, role/class, status), which matches the usual row layout.
-	if (!NameText || !RoleText || !StatusText)
+	if (!NameText || !ClassText || !RoleText || !StatusText)
 	{
 		TArray<UTextBlock*> Texts;
 		CollectTexts(WidgetTree->RootWidget, Texts);
+
 		if (!NameText && Texts.IsValidIndex(0)) { NameText = Texts[0]; }
-		if (!RoleText && Texts.IsValidIndex(1)) { RoleText = Texts[1]; }
-		if (!StatusText && Texts.IsValidIndex(2)) { StatusText = Texts[2]; }
+		if (Texts.Num() >= 4)
+		{
+			if (!ClassText && Texts.IsValidIndex(1)) { ClassText = Texts[1]; }
+			if (!RoleText && Texts.IsValidIndex(2)) { RoleText = Texts[2]; }
+			if (!StatusText && Texts.IsValidIndex(3)) { StatusText = Texts[3]; }
+		}
+		else
+		{
+			// Three labels: name / class / status (关系 needs its own W_Role label).
+			if (!ClassText && Texts.IsValidIndex(1)) { ClassText = Texts[1]; }
+			if (!StatusText && Texts.IsValidIndex(2)) { StatusText = Texts[2]; }
+		}
 	}
 
 	if (IsValid(SelectButton))
@@ -103,11 +115,28 @@ void UMyBondageLifeFriendRowWidget::SetSelected(bool bInSelected)
 			: FLinearColor(0.6f, 0.6f, 0.62f)));
 	}
 
+	if (ClassText)
+	{
+		ClassText->SetText(FText::FromString(
+			UMyBondageLifeAccountSubsystem::MakeCharacterClassLabel(Entry.CharacterClass)));
+		ClassText->SetColorAndOpacity(FSlateColor(FLinearColor(0.9f, 0.9f, 0.92f)));
+	}
+
 	if (RoleText)
 	{
-		RoleText->SetText(FText::FromString(Entry.CharacterClass > 0
-			? FString::Printf(TEXT("%d"), Entry.CharacterClass)
-			: FString()));
+		FString RoleLabel;
+		FLinearColor RoleColor(0.35f, 0.35f, 0.38f);
+		switch (Entry.ContractRole)
+		{
+		case EMyBondageLifeContractRole::Master:
+			RoleLabel = TEXT("\u4E3B\u4EBA"); RoleColor = FLinearColor(0.55f, 0.25f, 0.75f); break;
+		case EMyBondageLifeContractRole::Slave:
+			RoleLabel = TEXT("\u5974\u96B6"); RoleColor = FLinearColor(0.45f, 0.2f, 0.6f); break;
+		default:
+			RoleLabel = TEXT("\u65E0"); break;
+		}
+		RoleText->SetText(FText::FromString(RoleLabel));
+		RoleText->SetColorAndOpacity(FSlateColor(RoleColor));
 	}
 }
 
