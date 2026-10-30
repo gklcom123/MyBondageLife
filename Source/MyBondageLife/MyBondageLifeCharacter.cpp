@@ -527,7 +527,9 @@ void AMyBondageLifeCharacter::RefreshRestraintPose()
 	}
 
 	// The equipped items decide the pose; the debug path is only a fallback.
-	if (!bRestraintPoseActive)
+	// The pose is derived from the replicated item list, never from a stale flag:
+	// a desynced bool used to leave remote clients stuck in the old montage.
+	if (!ActiveUpAnmi)
 	{
 		// Stop only the montage we started: the gag slot may be playing on top.
 		if (PlayingPoseAnmi && AnimInstance->Montage_IsPlaying(PlayingPoseAnmi))
@@ -539,7 +541,7 @@ void AMyBondageLifeCharacter::RefreshRestraintPose()
 		return;
 	}
 
-	UAnimMontage* Montage = ActiveUpAnmi ? ActiveUpAnmi.Get() : Cast<UAnimMontage>(RestraintMontagePath.TryLoad());
+	UAnimMontage* Montage = ActiveUpAnmi.Get();
 	if (!Montage)
 	{
 		UE_LOG(LogMyBondageLife, Warning, TEXT("Animation: montage not found."));
