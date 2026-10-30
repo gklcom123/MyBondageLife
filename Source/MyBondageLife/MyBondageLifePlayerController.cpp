@@ -1659,6 +1659,9 @@ void AMyBondageLifePlayerController::ShowWardrobe()
 
 	WardrobeWidget->OnPanelOpenChanged.AddDynamic(this, &AMyBondageLifePlayerController::HandleWardrobeOpenChanged);
 	WardrobeWidget->AddToViewport(48);
+
+	// The panel is created with the HUD but must start closed.
+	WardrobeWidget->SetPanelOpen(false);
 }
 
 void AMyBondageLifePlayerController::HideWardrobe()

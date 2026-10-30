@@ -82,9 +82,20 @@ void UMyBondageLifeWardrobeButtonWidget::BuildLayout()
 		}
 
 		UImage* Icon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
-		if (IconTexture)
+		UTexture2D* ResolvedIcon = IconTexture;
+		if (!ResolvedIcon)
 		{
-			Icon->SetBrushFromTexture(IconTexture, true);
+			ResolvedIcon = LoadObject<UTexture2D>(nullptr, TEXT("/Game/2DAssest/UI/UI_Wardrobe.UI_Wardrobe"));
+		}
+		if (ResolvedIcon)
+		{
+			Icon->SetBrushFromTexture(ResolvedIcon, true);
+		}
+		else
+		{
+			// No icon configured: keep the entry transparent instead of a white block.
+			Icon->SetBrush(FSlateBrush());
+			Icon->SetVisibility(ESlateVisibility::Collapsed);
 		}
 		IconSize->AddChild(Icon);
 
