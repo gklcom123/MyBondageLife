@@ -1874,6 +1874,41 @@ namespace
 	}
 }
 
+	/** Finds the first UButton inside a widget subtree (the asset may wrap it). */
+	UButton* FindButtonIn(UWidget* Root)
+	{
+		if (!Root)
+		{
+			return nullptr;
+		}
+
+		if (UButton* AsButton = Cast<UButton>(Root))
+		{
+			return AsButton;
+		}
+
+		if (UWidgetTree* Tree = Root->GetTypedOuter<UWidgetTree>())
+		{
+		}
+
+		if (UPanelWidget* Panel = Cast<UPanelWidget>(Root))
+		{
+			for (int32 Index = 0; Index < Panel->GetChildrenCount(); ++Index)
+			{
+				if (UButton* Found = FindButtonIn(Panel->GetChildAt(Index)))
+				{
+					return Found;
+				}
+			}
+		}
+
+		return nullptr;
+	}
+
+	UButton* FindNamedButton(UWidgetTree* Tree, const TCHAR* Preferred, const TCHAR* Legacy)
+	{
+		return FindButtonIn(FindEither<UWidget>(Tree, Preferred, Legacy));
+	}
 bool UMyBondageLifeWardrobeWidget::TryAdoptBlueprintLayout()
 {
 	if (!WidgetTree)
@@ -1899,14 +1934,14 @@ bool UMyBondageLifeWardrobeWidget::TryAdoptBlueprintLayout()
 	RestraintTabLabel = FindEither<UTextBlock>(WidgetTree, TEXT("W_Tab_Restraint_Label"), TEXT("RestraintTabLabel"));
 
 	HeightValueLabel = FindEither<UTextBlock>(WidgetTree, TEXT("W_Height_Value"), TEXT("HeightValueLabel"));
-	HeightDownButton = FindEither<UButton>(WidgetTree, TEXT("W_Height_Down"), TEXT("HeightDownButton"));
-	HeightUpButton = FindEither<UButton>(WidgetTree, TEXT("W_Height_Up"), TEXT("HeightUpButton"));
+	HeightDownButton = FindNamedButton(WidgetTree, TEXT("W_Height_Down"), TEXT("HeightDownButton"));
+	HeightUpButton = FindNamedButton(WidgetTree, TEXT("W_Height_Up"), TEXT("HeightUpButton"));
 	HeightDownLabel = FindEither<UTextBlock>(WidgetTree, TEXT("W_Height_Down_Label"), TEXT("HeightDownLabel"));
 	HeightUpLabel = FindEither<UTextBlock>(WidgetTree, TEXT("W_Height_Up_Label"), TEXT("HeightUpLabel"));
 
 	HairValueLabel = FindEither<UTextBlock>(WidgetTree, TEXT("W_Hair_Value"), TEXT("HairValueLabel"));
-	HairDownButton = FindEither<UButton>(WidgetTree, TEXT("W_Hair_Down"), TEXT("HairDownButton"));
-	HairUpButton = FindEither<UButton>(WidgetTree, TEXT("W_Hair_Up"), TEXT("HairUpButton"));
+	HairDownButton = FindNamedButton(WidgetTree, TEXT("W_Hair_Down"), TEXT("HairDownButton"));
+	HairUpButton = FindNamedButton(WidgetTree, TEXT("W_Hair_Up"), TEXT("HairUpButton"));
 	HairDownLabel = FindEither<UTextBlock>(WidgetTree, TEXT("W_Hair_Down_Label"), TEXT("HairDownLabel"));
 	HairUpLabel = FindEither<UTextBlock>(WidgetTree, TEXT("W_Hair_Up_Label"), TEXT("HairUpLabel"));
 
@@ -1922,35 +1957,35 @@ void UMyBondageLifeWardrobeWidget::WireAdoptedLayout()
 		return;
 	}
 
-	if (UButton* Button = FindEither<UButton>(WidgetTree, TEXT("W_Close"), TEXT("CloseButton")))
+	if (UButton* Button = FindNamedButton(WidgetTree, TEXT("W_Close"), TEXT("CloseButton")))
 	{
 		Button->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleCloseButtonClicked);
 	}
-	if (UButton* Button = FindEither<UButton>(WidgetTree, TEXT("W_Tab_Body"), TEXT("BodyTabButton")))
+	if (UButton* Button = FindNamedButton(WidgetTree, TEXT("W_Tab_Body"), TEXT("BodyTabButton")))
 	{
 		Button->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleBodyTabClicked);
 	}
-	if (UButton* Button = FindEither<UButton>(WidgetTree, TEXT("W_Tab_Appearance"), TEXT("AppearanceTabButton")))
+	if (UButton* Button = FindNamedButton(WidgetTree, TEXT("W_Tab_Appearance"), TEXT("AppearanceTabButton")))
 	{
 		Button->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleAppearanceTabClicked);
 	}
-	if (UButton* Button = FindEither<UButton>(WidgetTree, TEXT("W_Tab_Restraint"), TEXT("RestraintTabButton")))
+	if (UButton* Button = FindNamedButton(WidgetTree, TEXT("W_Tab_Restraint"), TEXT("RestraintTabButton")))
 	{
 		Button->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleRestraintTabClicked);
 	}
-	if (UButton* Button = FindEither<UButton>(WidgetTree, TEXT("W_Height_Down"), TEXT("HeightDownButton")))
+	if (UButton* Button = FindNamedButton(WidgetTree, TEXT("W_Height_Down"), TEXT("HeightDownButton")))
 	{
 		Button->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleHeightDownClicked);
 	}
-	if (UButton* Button = FindEither<UButton>(WidgetTree, TEXT("W_Height_Up"), TEXT("HeightUpButton")))
+	if (UButton* Button = FindNamedButton(WidgetTree, TEXT("W_Height_Up"), TEXT("HeightUpButton")))
 	{
 		Button->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleHeightUpClicked);
 	}
-	if (UButton* Button = FindEither<UButton>(WidgetTree, TEXT("W_Hair_Down"), TEXT("HairDownButton")))
+	if (UButton* Button = FindNamedButton(WidgetTree, TEXT("W_Hair_Down"), TEXT("HairDownButton")))
 	{
 		Button->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleHairDownClicked);
 	}
-	if (UButton* Button = FindEither<UButton>(WidgetTree, TEXT("W_Hair_Up"), TEXT("HairUpButton")))
+	if (UButton* Button = FindNamedButton(WidgetTree, TEXT("W_Hair_Up"), TEXT("HairUpButton")))
 	{
 		Button->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleHairUpClicked);
 	}
