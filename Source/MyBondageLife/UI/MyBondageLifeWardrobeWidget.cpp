@@ -81,8 +81,9 @@ TSharedRef<SWidget> UMyBondageLifeWardrobeWidget::RebuildWidget()
 		WidgetTree = NewObject<UWidgetTree>(this, TEXT("WidgetTree"));
 	}
 
-	if (WidgetTree && !WidgetTree->RootWidget)
+	if (WidgetTree && !bLayoutBuilt)
 	{
+		bLayoutBuilt = true;
 		BuildLayout();
 	}
 
@@ -104,8 +105,13 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 		return;
 	}
 
-	RootCanvas = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("WardrobeRoot"));
-	WidgetTree->RootWidget = RootCanvas;
+	// Reuse the asset's root canvas when the widget blueprint already has one.
+	RootCanvas = Cast<UCanvasPanel>(WidgetTree->RootWidget);
+	if (!RootCanvas)
+	{
+		RootCanvas = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("WardrobeRoot"));
+		WidgetTree->RootWidget = RootCanvas;
+	}
 	RootCanvas->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 
 	// ------------------------------------------------------------ bottom entry

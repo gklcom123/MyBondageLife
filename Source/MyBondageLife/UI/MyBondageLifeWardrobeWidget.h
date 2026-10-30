@@ -100,6 +100,7 @@ protected:
 	void WireAdoptedLayout();
 
 	bool bBlueprintLayout = false;
+	bool bLayoutBuilt = false;
 
 	/** Called after the code-built layout exists: subclass in Blueprint to restyle. */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Wardrobe")
