@@ -2121,6 +2121,13 @@ void UMyBondageLifeWardrobeWidget::HandlePickerLockRequested(int32 SlotIndex)
 {
 	// The wardrobe still owns the lock menus.
 	PickerSlot = SlotIndex;
+
+	// Clicking 上锁 leaves the slot popup: only the lock menu should be on screen.
+	if (RestraintPicker)
+	{
+		RestraintPicker->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
 	HandleLockAction();
 }
 void UMyBondageLifeWardrobeWidget::HandleDesignedLockChosen(int32 LockType)
