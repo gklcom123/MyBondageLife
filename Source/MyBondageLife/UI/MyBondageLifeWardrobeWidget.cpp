@@ -91,6 +91,19 @@ TSharedRef<SWidget> UMyBondageLifeWardrobeWidget::RebuildWidget()
 
 void UMyBondageLifeWardrobeWidget::BuildLayout()
 {
+	// A designed widget blueprint wins over the code-built layout.
+	if (TryAdoptBlueprintLayout())
+	{
+		WireAdoptedLayout();
+		BuildRestraintSlots();
+		RefreshRestraintSlots();
+		RefreshHeightLabel();
+		RefreshHairLabel();
+		SelectTab(0);
+		OnLayoutBuilt();
+		return;
+	}
+
 	RootCanvas = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("WardrobeRoot"));
 	WidgetTree->RootWidget = RootCanvas;
 	RootCanvas->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
@@ -1864,4 +1877,87 @@ void UMyBondageLifeWardrobeWidget::SyncViewedAccount()
 		// it is on screen.
 		Account->RefreshRestraintsFor(FriendAccount);
 	}
+}
+
+bool UMyBondageLifeWardrobeWidget::TryAdoptBlueprintLayout()
+{
+	if (!WidgetTree)
+	{
+		return false;
+	}
+
+	// The designer asset must provide "WardrobePanel"; everything else is optional.
+	UBorder* ExistingPanel = Cast<UBorder>(WidgetTree->FindWidget(TEXT("WardrobePanel")));
+	if (!ExistingPanel)
+	{
+		return false;
+	}
+
+	PanelBorder = ExistingPanel;
+	BodyPage = Cast<UCanvasPanel>(WidgetTree->FindWidget(TEXT("WardrobeBodyPage")));
+	AppearancePage = Cast<UCanvasPanel>(WidgetTree->FindWidget(TEXT("WardrobeAppearancePage")));
+	RestraintPage = Cast<UCanvasPanel>(WidgetTree->FindWidget(TEXT("WardrobeRestraintPage")));
+
+	BodyTabLabel = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("BodyTabLabel")));
+	AppearanceTabLabel = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("AppearanceTabLabel")));
+	RestraintTabLabel = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("RestraintTabLabel")));
+
+	HeightValueLabel = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("HeightValueLabel")));
+	HeightDownButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("HeightDownButton")));
+	HeightUpButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("HeightUpButton")));
+	HeightDownLabel = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("HeightDownLabel")));
+	HeightUpLabel = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("HeightUpLabel")));
+
+	HairValueLabel = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("HairValueLabel")));
+	HairDownButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("HairDownButton")));
+	HairUpButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("HairUpButton")));
+	HairDownLabel = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("HairDownLabel")));
+	HairUpLabel = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("HairUpLabel")));
+
+	bBlueprintLayout = true;
+	UE_LOG(LogMyBondageLife, Log, TEXT("Wardrobe: using the designed widget layout."));
+	return true;
+}
+
+void UMyBondageLifeWardrobeWidget::WireAdoptedLayout()
+{
+	if (!WidgetTree)
+	{
+		return;
+	}
+
+	if (UButton* Button = Cast<UButton>(WidgetTree->FindWidget(TEXT("CloseButton"))))
+	{
+		Button->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleCloseButtonClicked);
+	}
+	if (UButton* Button = Cast<UButton>(WidgetTree->FindWidget(TEXT("BodyTabButton"))))
+	{
+		Button->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleBodyTabClicked);
+	}
+	if (UButton* Button = Cast<UButton>(WidgetTree->FindWidget(TEXT("AppearanceTabButton"))))
+	{
+		Button->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleAppearanceTabClicked);
+	}
+	if (UButton* Button = Cast<UButton>(WidgetTree->FindWidget(TEXT("RestraintTabButton"))))
+	{
+		Button->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleRestraintTabClicked);
+	}
+	if (UButton* Button = Cast<UButton>(WidgetTree->FindWidget(TEXT("HeightDownButton"))))
+	{
+		Button->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleHeightDownClicked);
+	}
+	if (UButton* Button = Cast<UButton>(WidgetTree->FindWidget(TEXT("HeightUpButton"))))
+	{
+		Button->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleHeightUpClicked);
+	}
+	if (UButton* Button = Cast<UButton>(WidgetTree->FindWidget(TEXT("HairDownButton"))))
+	{
+		Button->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleHairDownClicked);
+	}
+	if (UButton* Button = Cast<UButton>(WidgetTree->FindWidget(TEXT("HairUpButton"))))
+	{
+		Button->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleHairUpClicked);
+	}
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("Wardrobe: adopted layout wired."));
 }

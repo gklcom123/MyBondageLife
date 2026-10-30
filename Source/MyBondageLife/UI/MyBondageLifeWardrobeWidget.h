@@ -95,6 +95,12 @@ protected:
 
 	void BuildLayout();
 
+	/** Uses the widgets provided by /Game/UI/WBP_Wardrobe instead of building them. */
+	bool TryAdoptBlueprintLayout();
+	void WireAdoptedLayout();
+
+	bool bBlueprintLayout = false;
+
 	/** Called after the code-built layout exists: subclass in Blueprint to restyle. */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Wardrobe")
 	void OnLayoutBuilt();

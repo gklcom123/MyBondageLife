@@ -1637,7 +1637,9 @@ void AMyBondageLifePlayerController::ShowWardrobe()
 
 	if (!WardrobeWidgetClass)
 	{
-		WardrobeWidgetClass = UMyBondageLifeWardrobeWidget::StaticClass();
+		// Prefer the designed widget blueprint; fall back to the C++ layout.
+		UClass* DesignedClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_Wardrobe.WBP_Wardrobe_C"));
+		WardrobeWidgetClass = DesignedClass ? DesignedClass : UMyBondageLifeWardrobeWidget::StaticClass();
 	}
 
 	WardrobeWidget = CreateWidget<UMyBondageLifeWardrobeWidget>(this, WardrobeWidgetClass);
