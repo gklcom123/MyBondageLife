@@ -751,6 +751,13 @@ void AMyBondageLifePlayerController::HandleInspectPressed()
 		return;
 	}
 
+	// Any open panel owns the input: F must not stack another window on top.
+	if (PlayerInfoWidget->IsPanelOpen()
+		|| IsWardrobeOpen()
+		|| (FriendListWidget && FriendListWidget->IsPanelOpen()))
+	{
+		return;
+	}
 	const AMyBondageLifeCharacter* Target = NearbyCharacter.Get();
 
 	// Same rule as "C": switch the subject first, close only when it is already
