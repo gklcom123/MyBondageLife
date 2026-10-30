@@ -62,9 +62,16 @@ TSharedRef<SWidget> UMyBondageLifePlayerInfoWidget::RebuildWidget()
 		WidgetTree = NewObject<UWidgetTree>(this, TEXT("WidgetTree"));
 	}
 
-	if (WidgetTree && !WidgetTree->RootWidget)
+	if (!IsDesignTime() && WidgetTree)
 	{
-		BuildLayout();
+		if (TryAdoptBlueprintLayout())
+		{
+			WireAdoptedLayout();
+		}
+		else if (!WidgetTree->RootWidget)
+		{
+			BuildLayout();
+		}
 	}
 
 	return Super::RebuildWidget();
@@ -809,5 +816,90 @@ void UMyBondageLifePlayerInfoWidget::HandleWardrobeClicked()
 	if (AMyBondageLifePlayerController* Controller = Cast<AMyBondageLifePlayerController>(GetOwningPlayer()))
 	{
 		Controller->OpenFriendWardrobe(Target);
+	}
+}
+namespace
+{
+	template <typename TWidget>
+	TWidget* AdoptFind(UWidgetTree* Tree, const TCHAR* Name)
+	{
+		return Tree ? Cast<TWidget>(Tree->FindWidget(Name)) : nullptr;
+	}
+
+	UButton* AdoptFindButton(UWidget* Root)
+	{
+		if (!Root)
+		{
+			return nullptr;
+		}
+		if (UButton* AsButton = Cast<UButton>(Root))
+		{
+			return AsButton;
+		}
+		if (UPanelWidget* Panel = Cast<UPanelWidget>(Root))
+		{
+			for (int32 Index = 0; Index < Panel->GetChildrenCount(); ++Index)
+			{
+				if (UButton* Found = AdoptFindButton(Panel->GetChildAt(Index)))
+				{
+					return Found;
+				}
+			}
+		}
+		return nullptr;
+	}
+
+	UButton* AdoptFindNamedButton(UWidgetTree* Tree, const TCHAR* Name)
+	{
+		return AdoptFindButton(Tree ? Tree->FindWidget(Name) : nullptr);
+	}
+}
+
+bool UMyBondageLifePlayerInfoWidget::TryAdoptBlueprintLayout()
+{
+	if (!WidgetTree || !AdoptFind<UBorder>(WidgetTree, TEXT("W_Panel")))
+	{
+		return false;
+	}
+
+	PanelBorder = AdoptFind<UBorder>(WidgetTree, TEXT("W_Panel"));
+	NameValue = AdoptFind<UTextBlock>(WidgetTree, TEXT("W_Name"));
+	ClassValue = AdoptFind<UTextBlock>(WidgetTree, TEXT("W_Class"));
+	JoinedValue = AdoptFind<UTextBlock>(WidgetTree, TEXT("W_Joined"));
+	ContractStatusLine = AdoptFind<UTextBlock>(WidgetTree, TEXT("W_ContractLine"));
+
+	AddFriendButton = AdoptFindNamedButton(WidgetTree, TEXT("W_AddFriend"));
+	AddFriendLabel = AdoptFind<UTextBlock>(WidgetTree, TEXT("W_AddFriend_Label"));
+	ContractButton = AdoptFindNamedButton(WidgetTree, TEXT("W_Contract"));
+	ContractLabel = AdoptFind<UTextBlock>(WidgetTree, TEXT("W_Contract_Label"));
+	WardrobeButton = AdoptFindNamedButton(WidgetTree, TEXT("W_WardrobeButton"));
+	CloseButton = AdoptFindNamedButton(WidgetTree, TEXT("W_Close"));
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("PlayerInfo: using the designed layout."));
+	return true;
+}
+
+void UMyBondageLifePlayerInfoWidget::WireAdoptedLayout()
+{
+	if (!WidgetTree)
+	{
+		return;
+	}
+
+	if (IsValid(CloseButton))
+	{
+		CloseButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifePlayerInfoWidget::HandleCloseButtonClicked);
+	}
+	if (IsValid(AddFriendButton))
+	{
+		AddFriendButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifePlayerInfoWidget::HandleAddFriendClicked);
+	}
+	if (IsValid(ContractButton))
+	{
+		ContractButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifePlayerInfoWidget::HandleContractClicked);
+	}
+	if (IsValid(WardrobeButton))
+	{
+		WardrobeButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifePlayerInfoWidget::HandleWardrobeClicked);
 	}
 }

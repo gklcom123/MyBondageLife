@@ -83,6 +83,9 @@ protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	virtual void NativeConstruct() override;
 
+	bool TryAdoptBlueprintLayout();
+	void WireAdoptedLayout();
+
 	void BuildLayout();
 
 	/** Rewrites the three lines from the cached character. */

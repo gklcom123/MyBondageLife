@@ -652,7 +652,8 @@ void AMyBondageLifePlayerController::ShowPlayerInfo()
 
 	if (!PlayerInfoWidgetClass)
 	{
-		PlayerInfoWidgetClass = UMyBondageLifePlayerInfoWidget::StaticClass();
+		UClass* DesignedInfo = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_PlayerInfo.WBP_PlayerInfo_C"));
+		PlayerInfoWidgetClass = DesignedInfo ? DesignedInfo : UMyBondageLifePlayerInfoWidget::StaticClass();
 	}
 
 	PlayerInfoWidget = CreateWidget<UMyBondageLifePlayerInfoWidget>(this, PlayerInfoWidgetClass);
