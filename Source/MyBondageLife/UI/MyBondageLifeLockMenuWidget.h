@@ -81,6 +81,8 @@ protected:
 
 	void BuildLayout();
 	void HandleChoice(int32 LockType);
+
+	UFUNCTION()
 	void HandleCancel();
 
 	UPROPERTY(Transient)

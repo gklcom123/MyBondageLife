@@ -212,7 +212,14 @@ void UMyBondageLifeLockMenuWidget::BuildLayout()
 }
 
 void UMyBondageLifeLockMenuWidget::OpenForSlot(int32 InSlotIndex)
-{
+{	// Bring the menu to the front of its container: the designer may have placed it
+	// under the slot popup, which would hide it.
+	if (UPanelWidget* Parent = GetParent())
+	{
+		Parent->RemoveChild(this);
+		Parent->AddChild(this);
+	}
+
 	SlotIndex = InSlotIndex;
 
 	if (MenuTitle)
