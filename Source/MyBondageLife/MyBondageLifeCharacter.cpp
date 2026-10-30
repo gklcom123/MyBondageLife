@@ -344,7 +344,13 @@ void AMyBondageLifeCharacter::ApplyHeightScale()
 		return;
 	}
 
-	// Never capture here: this can run after the mesh was already scaled (OnRep).
+	// Height scaling is disabled for now: everyone renders at the default size until
+	// the placement problem is solved (the value is still stored server-side).
+	if (bHeightScalingDisabled)
+	{
+		return;
+	}
+
 	if (!bBasePoseCaptured)
 	{
 		return;

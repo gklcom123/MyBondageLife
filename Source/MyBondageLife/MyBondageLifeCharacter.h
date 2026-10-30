@@ -172,6 +172,10 @@ public:
 
 	bool bBasePoseCaptured = false;
 
+	/** Temporary switch: turn height scaling off so every pawn renders at 1.0. */
+	UPROPERTY(EditDefaultsOnly, Category="Identity")
+	bool bHeightScalingDisabled = true;
+
 	/** Per-preset Z correction (heightScale -> cm). Tuned from in-game measurements. */
 	UPROPERTY(EditDefaultsOnly, Category="Identity")
 	TMap<float, float> HeightZOffsets;
