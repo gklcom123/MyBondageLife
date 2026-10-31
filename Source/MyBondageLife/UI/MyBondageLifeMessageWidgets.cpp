@@ -8,6 +8,8 @@
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/Image.h"
+#include "Components/Overlay.h"
+#include "Components/OverlaySlot.h"
 #include "Components/ScrollBox.h"
 #include "Components/ScrollBoxSlot.h"
 #include "Components/SizeBox.h"
@@ -18,6 +20,7 @@
 #include "Engine/Texture2D.h"
 #include "MyBondageLife.h"
 #include "MyBondageLifePlayerController.h"
+#include "GameFramework/PlayerController.h"
 
 namespace
 {
@@ -115,12 +118,29 @@ void UMyBondageLifeMessageButtonWidget::BuildLayout()
 			IconSlot->SetHorizontalAlignment(HAlign_Center);
 		}
 
+		UOverlay* IconOverlay = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass());
+		IconSize->AddChild(IconOverlay);
+
 		UImage* Icon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
 		if (UTexture2D* IconTexture = LoadObject<UTexture2D>(nullptr, TEXT("/Game/2DAssest/UI/UI_Message.UI_Message")))
 		{
 			Icon->SetBrushFromTexture(IconTexture, true);
 		}
-		IconSize->AddChild(Icon);
+		IconOverlay->AddChildToOverlay(Icon);
+
+		// Red dot sits on the icon's top-right corner, whatever the layout does.
+		if (UTexture2D* DotTexture = LoadObject<UTexture2D>(nullptr, TEXT("/Game/2DAssest/UI/UI_Redpoint.UI_Redpoint")))
+		{
+			UImage* Dot = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("W_RedDot"));
+			Dot->SetBrushFromTexture(DotTexture, true);
+			if (UOverlaySlot* DotSlot = IconOverlay->AddChildToOverlay(Dot))
+			{
+				DotSlot->SetHorizontalAlignment(HAlign_Right);
+				DotSlot->SetVerticalAlignment(VAlign_Top);
+				DotSlot->SetPadding(FMargin(0.0f, -4.0f, -4.0f, 0.0f));
+			}
+			RedDot = Dot;
+		}
 
 		UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
 		Label->SetText(FText::FromString(TEXT("\u6D88\u606F\u901A\u77E5\uFF08Q\uFF09")));
@@ -137,22 +157,8 @@ void UMyBondageLifeMessageButtonWidget::BuildLayout()
 		{
 			LabelSlot->SetHorizontalAlignment(HAlign_Center);
 		}
-
-		if (UTexture2D* DotTexture = LoadObject<UTexture2D>(nullptr, TEXT("/Game/2DAssest/UI/UI_Redpoint.UI_Redpoint")))
-		{
-			UImage* Dot = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("W_RedDot"));
-			Dot->SetBrushFromTexture(DotTexture, true);
-			if (UCanvasPanelSlot* DotSlot = Canvas->AddChildToCanvas(Dot))
-			{
-				DotSlot->SetAnchors(FAnchors(0.0f, 1.0f, 0.0f, 1.0f));
-				DotSlot->SetAlignment(FVector2D(0.0f, 1.0f));
-				DotSlot->SetPosition(FVector2D(104.0f, -310.0f));
-				DotSlot->SetSize(FVector2D(22.0f, 22.0f));
-				DotSlot->SetZOrder(21);
-			}
-			RedDot = Dot;
-		}
 	}
+
 	if (EntryButton)
 	{
 		EntryButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeMessageButtonWidget::HandleClicked);
@@ -396,6 +402,23 @@ void UMyBondageLifeMessageCenterWidget::SetPanelOpen(bool bOpen)
 			Account->RefreshNotifications();
 		}
 		RefreshList();
+	}
+
+	// A clickable panel needs the cursor, otherwise the buttons are unreachable.
+	if (APlayerController* OwningPlayer = GetOwningPlayer())
+	{
+		OwningPlayer->SetShowMouseCursor(bOpen);
+		if (bOpen)
+		{
+			FInputModeGameAndUI InputMode;
+			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+			InputMode.SetHideCursorDuringCapture(false);
+			OwningPlayer->SetInputMode(InputMode);
+		}
+		else
+		{
+			OwningPlayer->SetInputMode(FInputModeGameOnly());
+		}
 	}
 
 	if (PanelBorder)

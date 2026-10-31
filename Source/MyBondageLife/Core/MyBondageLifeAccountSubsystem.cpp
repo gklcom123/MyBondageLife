@@ -1540,11 +1540,16 @@ void UMyBondageLifeAccountSubsystem::RefreshNotifications()
 					continue;
 				}
 
-				Item->TryGetStringField(TEXT("account"), Entry.Account);
-				Item->TryGetStringField(TEXT("characterName"), Entry.CharacterName);
+				const TSharedPtr<FJsonObject>* FromObject = nullptr;
+				if (Item->TryGetObjectField(TEXT("from"), FromObject) && FromObject && FromObject->IsValid())
+				{
+					(*FromObject)->TryGetStringField(TEXT("account"), Entry.Account);
+					(*FromObject)->TryGetStringField(TEXT("characterName"), Entry.CharacterName);
+				}
+
 				if (Entry.CharacterName.IsEmpty())
 				{
-					Entry.CharacterName = Entry.Account;
+					Entry.CharacterName = Entry.Account.IsEmpty() ? FString(TEXT("---")) : Entry.Account;
 				}
 
 				Entry.Id = TEXT("f:") + Entry.Id;
@@ -1586,20 +1591,21 @@ void UMyBondageLifeAccountSubsystem::RefreshNotifications()
 					continue;
 				}
 
-				Item->TryGetStringField(TEXT("account"), Entry.Account);
-				Item->TryGetStringField(TEXT("requesterCharacterName"), Entry.CharacterName);
-				if (Entry.CharacterName.IsEmpty())
+				const TSharedPtr<FJsonObject>* FromObject = nullptr;
+				if (Item->TryGetObjectField(TEXT("from"), FromObject) && FromObject && FromObject->IsValid())
 				{
-					Item->TryGetStringField(TEXT("characterName"), Entry.CharacterName);
+					(*FromObject)->TryGetStringField(TEXT("account"), Entry.Account);
+					(*FromObject)->TryGetStringField(TEXT("characterName"), Entry.CharacterName);
 				}
+
 				if (Entry.CharacterName.IsEmpty())
 				{
-					Entry.CharacterName = Entry.Account;
+					Entry.CharacterName = Entry.Account.IsEmpty() ? FString(TEXT("---")) : Entry.Account;
 				}
 
 				FString Kind;
-				Item->TryGetStringField(TEXT("type"), Kind);
-				const bool bTrial = Kind.Contains(TEXT("trial"), ESearchCase::IgnoreCase);
+				Item->TryGetStringField(TEXT("kind"), Kind);
+				const bool bTrial = !Kind.Equals(TEXT("formal"), ESearchCase::IgnoreCase);
 
 				Entry.Id = TEXT("c:") + Entry.Id;
 				Entry.Type = bTrial
