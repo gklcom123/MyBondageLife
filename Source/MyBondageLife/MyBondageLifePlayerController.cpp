@@ -1606,7 +1606,8 @@ void AMyBondageLifePlayerController::HandleFriendRequestReceived(const FString& 
 	}
 
 	// The dialog takes the mouse and freezes the character until it is answered.
-	bFriendRequestPending = true;
+	// Message center handles it: do not freeze the character on a pending request.
+	bFriendRequestPending = false;
 	RefreshChatInputState();
 }
 

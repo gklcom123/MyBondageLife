@@ -19,6 +19,23 @@ class UBorder;
  *
  *  Designed in /Game/UI/WBP_MessageButton: W_Entry (button), W_RedDot (any widget).
  */
+/** Routes a code-built row button to the notification it belongs to. */
+UCLASS()
+class MYBONDAGELIFE_API UMyBondageLifeMessageButtonProxy : public UObject
+{
+	GENERATED_BODY()
+
+public:
+
+	UPROPERTY()
+	TObjectPtr<class UMyBondageLifeAccountSubsystem> Subsystem;
+
+	FString NotificationId;
+	bool bAccept = false;
+
+	UFUNCTION()
+	void HandleClicked();
+};
 UCLASS()
 class MYBONDAGELIFE_API UMyBondageLifeMessageButtonWidget : public UUserWidget
 {
@@ -87,6 +104,8 @@ protected:
 	TObjectPtr<UButton> DeclineButton;
 
 	FString NotificationId;
+	FString PendingMessageText;
+	bool bHasPendingMessage = false;
 	bool bLayoutBuilt = false;
 };
 

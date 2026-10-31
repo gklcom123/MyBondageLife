@@ -14,6 +14,9 @@
 #include "Components/ScrollBoxSlot.h"
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
+#include "Components/HorizontalBox.h"
+#include "Components/HorizontalBoxSlot.h"
+#include "Components/Border.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Core/MyBondageLifeAccountSubsystem.h"
@@ -225,24 +228,27 @@ void UMyBondageLifeMessageRowWidget::BuildLayout()
 	MessageText = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_Text")));
 	if (!MessageText)
 	{
-		// Positional fallback: the design may not name the label.
-		TArray<UTextBlock*> Texts;
-		if (UPanelWidget* RootPanel = Cast<UPanelWidget>(WidgetTree->RootWidget))
+		// Positional fallback: the design may leave the label unnamed (any depth).
+		TArray<UWidget*> Stack;
+		if (WidgetTree->RootWidget)
 		{
-			for (int32 Index = 0; Index < RootPanel->GetChildrenCount() && !MessageText; ++Index)
+			Stack.Add(WidgetTree->RootWidget);
+		}
+		while (Stack.Num() > 0 && !MessageText)
+		{
+			UWidget* Current = Stack.Pop();
+			if (UTextBlock* AsText = Cast<UTextBlock>(Current))
 			{
-				if (UWidget* Child = RootPanel->GetChildAt(Index))
+				MessageText = AsText;
+				break;
+			}
+			if (UPanelWidget* Panel = Cast<UPanelWidget>(Current))
+			{
+				for (int32 Index = 0; Index < Panel->GetChildrenCount(); ++Index)
 				{
-					if (UTextBlock* AsText = Cast<UTextBlock>(Child))
+					if (UWidget* Child = Panel->GetChildAt(Index))
 					{
-						MessageText = AsText;
-					}
-					else if (UPanelWidget* Inner = Cast<UPanelWidget>(Child))
-					{
-						for (int32 Sub = 0; Sub < Inner->GetChildrenCount() && !MessageText; ++Sub)
-						{
-							MessageText = Cast<UTextBlock>(Inner->GetChildAt(Sub));
-						}
+						Stack.Add(Child);
 					}
 				}
 			}
@@ -254,6 +260,11 @@ void UMyBondageLifeMessageRowWidget::BuildLayout()
 	if (IsValid(AcceptButton))
 	{
 		AcceptButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeMessageRowWidget::HandleAccept);
+	}
+	if (bHasPendingMessage && MessageText)
+	{
+		MessageText->SetText(FText::FromString(PendingMessageText));
+		bHasPendingMessage = false;
 	}
 	if (IsValid(DeclineButton))
 	{
@@ -372,24 +383,30 @@ void UMyBondageLifeMessageCenterWidget::BuildLayout()
 			}
 		}
 	}
-	RowTemplate = Cast<UMyBondageLifeMessageRowWidget>(WidgetTree->FindWidget(TEXT("W_RowTemplate")));
-
-	// The design may not name the template: take the first message-row widget found and
-	// keep it out of sight (it is only a prototype for the list).
-	if (!RowTemplate)
+	// Every message-row instance in the asset is a prototype: hide all of them and use the
+	// first one's class to build the real list (a stray sample row used to stay visible).
 	{
 		TArray<UWidget*> Stack;
 		if (WidgetTree->RootWidget)
 		{
 			Stack.Add(WidgetTree->RootWidget);
 		}
-		while (Stack.Num() > 0 && !RowTemplate)
+		while (Stack.Num() > 0)
 		{
 			UWidget* Current = Stack.Pop();
+			if (!Current)
+			{
+				continue;
+			}
 			if (UMyBondageLifeMessageRowWidget* AsRow = Cast<UMyBondageLifeMessageRowWidget>(Current))
 			{
-				RowTemplate = AsRow;
-				break;
+				if (!RowTemplate)
+				{
+					RowTemplate = AsRow;
+					RowClass = AsRow->GetClass();
+				}
+				AsRow->SetVisibility(ESlateVisibility::Collapsed);
+				continue;
 			}
 			if (UPanelWidget* Panel = Cast<UPanelWidget>(Current))
 			{
@@ -402,19 +419,6 @@ void UMyBondageLifeMessageCenterWidget::BuildLayout()
 				}
 			}
 		}
-	}
-
-	if (RowTemplate)
-	{
-		RowTemplate->SetVisibility(ESlateVisibility::Collapsed);
-		RowClass = RowTemplate->GetClass();
-	}
-
-
-	if (!PanelBorder)
-	{
-		// No border to toggle: hide the whole widget while closed.
-		SetVisibility(ESlateVisibility::Collapsed);
 	}
 
 	if (PanelBorder)
@@ -450,6 +454,86 @@ void UMyBondageLifeMessageCenterWidget::RefreshList()
 	if (!Account || !RowClass)
 	{
 		return;
+	}
+
+	for (const FMyBondageLifeNotification& Item : Account->GetNotifications())
+	{
+		FString RowText;
+		switch (Item.Type)
+		{
+		case EMyBondageLifeNotificationType::FriendRequest:
+			RowText = FString::Printf(TEXT("\u6536\u5230\u6765\u81EA\u3010%s\u3011\u7684\u597D\u53CB\u8BF7\u6C42\uFF0C\u662F\u5426\u540C\u610F"), *Item.CharacterName);
+			break;
+		case EMyBondageLifeNotificationType::ContractTrial:
+			RowText = FString::Printf(TEXT("\u6536\u5230\u6765\u81EA\u3010%s\u3011\u7684\u7B7E\u8BA2\u4E34\u65F6\u5951\u7EA6\u8BF7\u6C42\uFF0C\u662F\u5426\u540C\u610F"), *Item.CharacterName);
+			break;
+		default:
+			RowText = FString::Printf(TEXT("\u6536\u5230\u6765\u81EA\u3010%s\u3011\u7684\u7B7E\u8BA2\u5951\u7EA6\u8BF7\u6C42\uFF0C\u662F\u5426\u540C\u610F"), *Item.CharacterName);
+			break;
+		}
+
+		// Rows are built in code: the designed row prototype could not be resolved
+		// reliably (its labels are unnamed), and a broken list is worse than a plain one.
+		UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		Row->SetVisibility(ESlateVisibility::Visible);
+
+		UBorder* RowBack = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
+		RowBack->SetBrushColor(FLinearColor(0.92f, 0.92f, 0.94f, 1.0f));
+		RowBack->SetPadding(FMargin(12.0f, 6.0f));
+		Row->AddChild(RowBack);
+		RowBack->AddChild(WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass()));
+
+		UHorizontalBox* Content = Cast<UHorizontalBox>(RowBack->GetContent());
+		if (!Content)
+		{
+			Content = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+			RowBack->AddChild(Content);
+		}
+
+		UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		Label->SetText(FText::FromString(RowText));
+		Label->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
+		if (UHorizontalBoxSlot* LabelSlot = Content->AddChildToHorizontalBox(Label))
+		{
+			LabelSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+			LabelSlot->SetVerticalAlignment(VAlign_Center);
+		}
+
+		auto MakeButton = [this, Content, &Item](const FString& Caption, bool bAccept)
+		{
+			UButton* Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
+			UTextBlock* Caption2 = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+			Caption2->SetText(FText::FromString(Caption));
+			Caption2->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
+			Button->AddChild(Caption2);
+
+			if (UHorizontalBoxSlot* ButtonSlot = Content->AddChildToHorizontalBox(Button))
+			{
+				ButtonSlot->SetPadding(FMargin(8.0f, 0.0f));
+				ButtonSlot->SetVerticalAlignment(VAlign_Center);
+			}
+
+			if (UMyBondageLifeAccountSubsystem* Subsystem = GetGameInstance()
+				? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+				: nullptr)
+			{
+				UMyBondageLifeMessageButtonProxy* Proxy = NewObject<UMyBondageLifeMessageButtonProxy>(this);
+				Proxy->Subsystem = Subsystem;
+				Proxy->NotificationId = Item.Id;
+				Proxy->bAccept = bAccept;
+				Proxy->AddToRoot();
+				Button->OnClicked.AddDynamic(Proxy, &UMyBondageLifeMessageButtonProxy::HandleClicked);
+			}
+		};
+
+		MakeButton(TEXT("\u540C\u610F"), true);
+		MakeButton(TEXT("\u62D2\u7EDD"), false);
+
+		if (UScrollBoxSlot* RowSlot = Cast<UScrollBoxSlot>(ListBox->AddChild(Row)))
+		{
+			RowSlot->SetPadding(FMargin(0.0f, 4.0f));
+		}
+		continue;
 	}
 
 	for (const FMyBondageLifeNotification& Item : Account->GetNotifications())
@@ -542,4 +626,13 @@ void UMyBondageLifeMessageCenterWidget::TogglePanel()
 bool UMyBondageLifeMessageCenterWidget::IsPanelOpen() const
 {
 	return PanelBorder != nullptr && PanelBorder->GetVisibility() == ESlateVisibility::Visible;
+}
+
+void UMyBondageLifeMessageButtonProxy::HandleClicked()
+{
+	if (Subsystem && !NotificationId.IsEmpty())
+	{
+		Subsystem->ResolveNotification(NotificationId, bAccept);
+	}
+	RemoveFromRoot();
 }
