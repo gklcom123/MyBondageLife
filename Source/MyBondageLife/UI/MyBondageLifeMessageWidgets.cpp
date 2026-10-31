@@ -12,6 +12,8 @@
 #include "Components/ScrollBoxSlot.h"
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
+#include "Components/VerticalBox.h"
+#include "Components/VerticalBoxSlot.h"
 #include "Core/MyBondageLifeAccountSubsystem.h"
 #include "Engine/Texture2D.h"
 #include "MyBondageLife.h"
@@ -79,29 +81,62 @@ void UMyBondageLifeMessageButtonWidget::BuildLayout()
 		Canvas->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 
 		USizeBox* Size = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("W_Entry"));
-		Size->SetWidthOverride(88.0f);
-		Size->SetHeightOverride(88.0f);
+		Size->SetWidthOverride(96.0f);
+		Size->SetHeightOverride(96.0f);
 		if (UCanvasPanelSlot* SizeSlot = Canvas->AddChildToCanvas(Size))
 		{
-			// Bottom-left, just above the chat box (mirrors the other HUD entries).
+			// Bottom-left, above the chat box (same pattern as the other HUD entries).
 			SizeSlot->SetAnchors(FAnchors(0.0f, 1.0f, 0.0f, 1.0f));
 			SizeSlot->SetAlignment(FVector2D(0.0f, 1.0f));
-			SizeSlot->SetPosition(FVector2D(40.0f, -300.0f));
+			SizeSlot->SetPosition(FVector2D(40.0f, -340.0f));
 			SizeSlot->SetAutoSize(true);
 			SizeSlot->SetZOrder(20);
 		}
 
 		EntryButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
-		if (UTexture2D* Icon = LoadObject<UTexture2D>(nullptr, TEXT("/Game/2DAssest/UI/UI_Message.UI_Message")))
 		{
-			FButtonStyle Style;
-			Style.Normal.SetResourceObject(Icon);
-			Style.Normal.ImageSize = FVector2D(88.0f, 88.0f);
-			Style.Hovered = Style.Normal;
-			Style.Pressed = Style.Normal;
-			EntryButton->SetStyle(Style);
+			FButtonStyle Transparent;
+			Transparent.Normal.DrawAs = ESlateBrushDrawType::NoDrawType;
+			Transparent.Hovered.DrawAs = ESlateBrushDrawType::NoDrawType;
+			Transparent.Pressed.DrawAs = ESlateBrushDrawType::NoDrawType;
+			Transparent.Disabled.DrawAs = ESlateBrushDrawType::NoDrawType;
+			EntryButton->SetStyle(Transparent);
 		}
 		Size->AddChild(EntryButton);
+
+		UVerticalBox* Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		EntryButton->AddChild(Column);
+
+		USizeBox* IconSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		IconSize->SetWidthOverride(64.0f);
+		IconSize->SetHeightOverride(64.0f);
+		if (UVerticalBoxSlot* IconSlot = Column->AddChildToVerticalBox(IconSize))
+		{
+			IconSlot->SetHorizontalAlignment(HAlign_Center);
+		}
+
+		UImage* Icon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
+		if (UTexture2D* IconTexture = LoadObject<UTexture2D>(nullptr, TEXT("/Game/2DAssest/UI/UI_Message.UI_Message")))
+		{
+			Icon->SetBrushFromTexture(IconTexture, true);
+		}
+		IconSize->AddChild(Icon);
+
+		UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		Label->SetText(FText::FromString(TEXT("\u6D88\u606F\u901A\u77E5\uFF08Q\uFF09")));
+		Label->SetColorAndOpacity(FSlateColor(FLinearColor::White));
+		Label->SetJustification(ETextJustify::Center);
+		Label->SetShadowOffset(FVector2D(1.0f, 1.0f));
+		Label->SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.9f));
+		{
+			FSlateFontInfo LabelFont = Label->GetFont();
+			LabelFont.Size = 16;
+			Label->SetFont(LabelFont);
+		}
+		if (UVerticalBoxSlot* LabelSlot = Column->AddChildToVerticalBox(Label))
+		{
+			LabelSlot->SetHorizontalAlignment(HAlign_Center);
+		}
 
 		if (UTexture2D* DotTexture = LoadObject<UTexture2D>(nullptr, TEXT("/Game/2DAssest/UI/UI_Redpoint.UI_Redpoint")))
 		{
@@ -111,14 +146,13 @@ void UMyBondageLifeMessageButtonWidget::BuildLayout()
 			{
 				DotSlot->SetAnchors(FAnchors(0.0f, 1.0f, 0.0f, 1.0f));
 				DotSlot->SetAlignment(FVector2D(0.0f, 1.0f));
-				DotSlot->SetPosition(FVector2D(96.0f, -244.0f));
-				DotSlot->SetSize(FVector2D(24.0f, 24.0f));
+				DotSlot->SetPosition(FVector2D(104.0f, -310.0f));
+				DotSlot->SetSize(FVector2D(22.0f, 22.0f));
 				DotSlot->SetZOrder(21);
 			}
 			RedDot = Dot;
 		}
 	}
-
 	if (EntryButton)
 	{
 		EntryButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeMessageButtonWidget::HandleClicked);
