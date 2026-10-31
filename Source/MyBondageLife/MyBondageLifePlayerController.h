@@ -500,4 +500,35 @@ protected:
 	bool bForceTouchControls = false;
 
 	bool ShouldUseTouchControls() const;
-};
+
+public:
+
+	// ---------------------------------------------------------------- message center
+	UFUNCTION(BlueprintCallable, Category = "Message")
+	void ShowMessageHud();
+
+	UFUNCTION(BlueprintCallable, Category = "Message")
+	void ToggleMessageCenter();
+
+	UFUNCTION(BlueprintCallable, Category = "Message")
+	bool IsMessageCenterOpen() const;
+
+	UFUNCTION()
+	void HandleNotificationAdded(const FMyBondageLifeNotification& Notification);
+
+	UFUNCTION()
+	void PollNotifications();
+
+	UPROPERTY(EditDefaultsOnly, Category = "Message")
+	TSubclassOf<class UMyBondageLifeMessageButtonWidget> MessageButtonWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Message")
+	TSubclassOf<class UMyBondageLifeMessageCenterWidget> MessageCenterWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UMyBondageLifeMessageButtonWidget> MessageButtonWidget;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UMyBondageLifeMessageCenterWidget> MessageCenterWidget;
+
+	FTimerHandle NotificationPollTimer;};

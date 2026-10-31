@@ -7,6 +7,36 @@
 #include "Interfaces/IHttpRequest.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "MyBondageLifeAccountSubsystem.generated.h"
+/** Kinds of pending notification shown in the message center. */
+UENUM(BlueprintType)
+enum class EMyBondageLifeNotificationType : uint8
+{
+	FriendRequest UMETA(DisplayName = "好友请求"),
+	ContractTrial UMETA(DisplayName = "签订临时契约"),
+	ContractFormal UMETA(DisplayName = "签订契约")
+};
+
+/** One pending notification (friend request or contract request). */
+USTRUCT(BlueprintType)
+struct FMyBondageLifeNotification
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Notification")
+	FString Id;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Notification")
+	FString Account;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Notification")
+	FString CharacterName;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Notification")
+	EMyBondageLifeNotificationType Type = EMyBondageLifeNotificationType::FriendRequest;
+};
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeNotificationsChanged);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeNotificationAdded, const FMyBondageLifeNotification&, Notification);
 
 /** Raised when the account service accepted the credentials. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeAuthSucceeded);
@@ -623,4 +653,35 @@ private:
 	double LastFriendsRefreshSeconds = 0.0;
 	double LastHeartbeatSeconds = 0.0;
 	double LastContractRefreshSeconds = 0.0;
-};
+
+public:
+
+	// ---------------------------------------------------------------- notifications
+	UFUNCTION(BlueprintCallable, Category = "Notification")
+	void RefreshNotifications();
+
+	UFUNCTION(BlueprintCallable, Category = "Notification")
+	void ResolveNotification(const FString& Id, bool bAccept);
+
+	UFUNCTION(BlueprintPure, Category = "Notification")
+	TArray<FMyBondageLifeNotification> GetNotifications() const { return PendingNotifications; }
+
+	UFUNCTION(BlueprintPure, Category = "Notification")
+	int32 GetPendingNotificationCount() const { return PendingNotifications.Num(); }
+
+	UPROPERTY(BlueprintAssignable, Category = "Notification")
+	FMyBondageLifeNotificationsChanged OnNotificationsChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Notification")
+	FMyBondageLifeNotificationAdded OnNotificationAdded;
+
+protected:
+
+	UPROPERTY(Transient)
+	TArray<FMyBondageLifeNotification> PendingNotifications;
+
+	TSet<FString> NotifiedNotificationIds;
+
+	void MergeNotifications(const TArray<FMyBondageLifeNotification>& Fetched, bool bFriendKind);
+
+public:};

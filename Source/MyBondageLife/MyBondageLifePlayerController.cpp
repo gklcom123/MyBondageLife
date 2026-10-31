@@ -14,6 +14,7 @@
 #include "Network/MyBondageLifeSessionSubsystem.h"
 #include "UI/MainSceneWidget.h"
 #include "UI/MyBondageLifeChatWidget.h"
+#include "UI/MyBondageLifeMessageWidgets.h"
 #include "UI/MyBondageLifeFriendListWidget.h"
 #include "UI/MyBondageLifeGameMenuWidget.h"
 #include "UI/MyBondageLifeHostInfoWidget.h"
@@ -1085,7 +1086,7 @@ void AMyBondageLifePlayerController::ClientFriendRequestReceived_Implementation(
 
 	if (FriendListWidget)
 	{
-		FriendListWidget->ShowFriendRequest(RequesterAccountName, RequesterCharacterName);
+		// Message center owns request prompts now (no auto popup).
 	}
 
 	// "收到来自[xxx]的好友请求" - only this client sees it.
@@ -1591,7 +1592,7 @@ void AMyBondageLifePlayerController::HandleFriendRequestReceived(const FString& 
 
 	if (FriendListWidget)
 	{
-		FriendListWidget->ShowFriendRequest(RequestId, RequesterCharacterName);
+		// Message center owns request prompts now (no auto popup).
 	}
 
 	// "收到来自[xxx]的好友请求" - only this client sees it.
@@ -1841,7 +1842,7 @@ void AMyBondageLifePlayerController::HandleContractRequestReceived(const FString
 
 	if (FriendListWidget)
 	{
-		FriendListWidget->ShowContractRequest(RequestId, RequesterCharacterName, bFormal);
+		// Message center owns request prompts now (no auto popup).
 	}
 
 	if (ChatWidget)
@@ -2109,4 +2110,119 @@ void AMyBondageLifePlayerController::ShowPlayerInfoEntry()
 	{
 		PlayerInfoEntryWidget->AddToViewport(PlayerInfoEntryZOrder);
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Message center
+// ---------------------------------------------------------------------------
+
+void AMyBondageLifePlayerController::ShowMessageHud()
+{
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+
+	if (!MessageButtonWidgetClass)
+	{
+		UClass* DesignedButton = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_MessageButton.WBP_MessageButton_C"));
+		MessageButtonWidgetClass = DesignedButton ? DesignedButton : UMyBondageLifeMessageButtonWidget::StaticClass();
+	}
+	if (!MessageCenterWidgetClass)
+	{
+		UClass* DesignedCenter = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_MessageCenter.WBP_MessageCenter_C"));
+		MessageCenterWidgetClass = DesignedCenter ? DesignedCenter : UMyBondageLifeMessageCenterWidget::StaticClass();
+	}
+
+	if (!MessageCenterWidget)
+	{
+		MessageCenterWidget = CreateWidget<UMyBondageLifeMessageCenterWidget>(this, MessageCenterWidgetClass);
+		if (MessageCenterWidget)
+		{
+			MessageCenterWidget->AddToViewport(46);
+			MessageCenterWidget->SetPanelOpen(false);
+		}
+	}
+
+	if (!MessageButtonWidget)
+	{
+		MessageButtonWidget = CreateWidget<UMyBondageLifeMessageButtonWidget>(this, MessageButtonWidgetClass);
+		if (MessageButtonWidget)
+		{
+			MessageButtonWidget->AddToViewport(13);
+
+			// Bottom-left, just above the chat box.
+			MessageButtonWidget->SetAnchorsInViewport(FAnchors(0.0f, 1.0f));
+			MessageButtonWidget->SetAlignmentInViewport(FVector2D(0.0f, 1.0f));
+			MessageButtonWidget->SetPositionInViewport(FVector2D(40.0f, -300.0f), false);
+		}
+	}
+
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
+		{
+			Account->OnNotificationAdded.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleNotificationAdded);
+			Account->RefreshNotifications();
+		}
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimer(NotificationPollTimer, this,
+			&AMyBondageLifePlayerController::PollNotifications, 5.0f, true);
+	}
+}
+
+void AMyBondageLifePlayerController::PollNotifications()
+{
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
+		{
+			Account->RefreshNotifications();
+		}
+	}
+}
+
+void AMyBondageLifePlayerController::HandleNotificationAdded(const FMyBondageLifeNotification& Notification)
+{
+	if (!ChatWidget)
+	{
+		return;
+	}
+
+	FString Kind;
+	switch (Notification.Type)
+	{
+	case EMyBondageLifeNotificationType::FriendRequest:
+		Kind = TEXT("\u597D\u53CB\u8BF7\u6C42");
+		break;
+	case EMyBondageLifeNotificationType::ContractTrial:
+		Kind = TEXT("\u7B7E\u8BA2\u4E34\u65F6\u5951\u7EA6");
+		break;
+	default:
+		Kind = TEXT("\u7B7E\u8BA2\u5951\u7EA6");
+		break;
+	}
+
+	ChatWidget->AddSystemMessage(FString::Printf(
+		TEXT("\u6536\u5230\u4E86\u6765\u81EA[%s]\u7684[%s]"), *Notification.CharacterName, *Kind));
+}
+
+void AMyBondageLifePlayerController::ToggleMessageCenter()
+{
+	if (!MessageCenterWidget)
+	{
+		ShowMessageHud();
+	}
+	if (MessageCenterWidget)
+	{
+		MessageCenterWidget->TogglePanel();
+	}
+}
+
+bool AMyBondageLifePlayerController::IsMessageCenterOpen() const
+{
+	return MessageCenterWidget && MessageCenterWidget->IsPanelOpen();
 }

@@ -1477,3 +1477,182 @@ void UMyBondageLifeAccountSubsystem::UnlockRestraint(int32 Slot, const FString& 
 			Self->RefreshRestraints();
 		});
 }
+// ---------------------------------------------------------------------------
+// Notifications (message center): friend requests + contract requests merged
+// ---------------------------------------------------------------------------
+
+void UMyBondageLifeAccountSubsystem::MergeNotifications(const TArray<FMyBondageLifeNotification>& Fetched, bool bFriendKind)
+{
+	const FString Prefix = bFriendKind ? TEXT("f:") : TEXT("c:");
+
+	// Keep the other kind, replace this one.
+	PendingNotifications.RemoveAll([&Prefix](const FMyBondageLifeNotification& Item)
+	{
+		return Item.Id.StartsWith(Prefix);
+	});
+	PendingNotifications.Append(Fetched);
+
+	// New ones: tell the UI (chat notice + red dot).
+	for (const FMyBondageLifeNotification& Item : Fetched)
+	{
+		if (!NotifiedNotificationIds.Contains(Item.Id))
+		{
+			NotifiedNotificationIds.Add(Item.Id);
+			OnNotificationAdded.Broadcast(Item);
+		}
+	}
+
+	OnNotificationsChanged.Broadcast();
+}
+
+void UMyBondageLifeAccountSubsystem::RefreshNotifications()
+{
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+
+	SendFriendApiRequest(TEXT("GET"), TEXT("/friends/requests?direction=incoming&status=pending"), nullptr,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self || !bOk || !Json.IsValid())
+			{
+				return;
+			}
+
+			const TArray<TSharedPtr<FJsonValue>>* Requests = nullptr;
+			if (!Json->TryGetArrayField(TEXT("requests"), Requests) || !Requests)
+			{
+				return;
+			}
+
+			TArray<FMyBondageLifeNotification> Fetched;
+			for (const TSharedPtr<FJsonValue>& Value : *Requests)
+			{
+				const TSharedPtr<FJsonObject> Item = Value.IsValid() ? Value->AsObject() : nullptr;
+				if (!Item.IsValid())
+				{
+					continue;
+				}
+
+				FMyBondageLifeNotification Entry;
+				Item->TryGetStringField(TEXT("requestId"), Entry.Id);
+				if (Entry.Id.IsEmpty())
+				{
+					continue;
+				}
+
+				Item->TryGetStringField(TEXT("account"), Entry.Account);
+				Item->TryGetStringField(TEXT("characterName"), Entry.CharacterName);
+				if (Entry.CharacterName.IsEmpty())
+				{
+					Entry.CharacterName = Entry.Account;
+				}
+
+				Entry.Id = TEXT("f:") + Entry.Id;
+				Entry.Type = EMyBondageLifeNotificationType::FriendRequest;
+				Fetched.Add(Entry);
+			}
+
+			Self->MergeNotifications(Fetched, true);
+		});
+
+	SendFriendApiRequest(TEXT("GET"), TEXT("/contracts/requests?direction=incoming&status=pending"), nullptr,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self || !bOk || !Json.IsValid())
+			{
+				return;
+			}
+
+			const TArray<TSharedPtr<FJsonValue>>* Requests = nullptr;
+			if (!Json->TryGetArrayField(TEXT("requests"), Requests) || !Requests)
+			{
+				return;
+			}
+
+			TArray<FMyBondageLifeNotification> Fetched;
+			for (const TSharedPtr<FJsonValue>& Value : *Requests)
+			{
+				const TSharedPtr<FJsonObject> Item = Value.IsValid() ? Value->AsObject() : nullptr;
+				if (!Item.IsValid())
+				{
+					continue;
+				}
+
+				FMyBondageLifeNotification Entry;
+				Item->TryGetStringField(TEXT("requestId"), Entry.Id);
+				if (Entry.Id.IsEmpty())
+				{
+					continue;
+				}
+
+				Item->TryGetStringField(TEXT("account"), Entry.Account);
+				Item->TryGetStringField(TEXT("requesterCharacterName"), Entry.CharacterName);
+				if (Entry.CharacterName.IsEmpty())
+				{
+					Item->TryGetStringField(TEXT("characterName"), Entry.CharacterName);
+				}
+				if (Entry.CharacterName.IsEmpty())
+				{
+					Entry.CharacterName = Entry.Account;
+				}
+
+				FString Kind;
+				Item->TryGetStringField(TEXT("type"), Kind);
+				const bool bTrial = Kind.Contains(TEXT("trial"), ESearchCase::IgnoreCase);
+
+				Entry.Id = TEXT("c:") + Entry.Id;
+				Entry.Type = bTrial
+					? EMyBondageLifeNotificationType::ContractTrial
+					: EMyBondageLifeNotificationType::ContractFormal;
+				Fetched.Add(Entry);
+			}
+
+			Self->MergeNotifications(Fetched, false);
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::ResolveNotification(const FString& Id, bool bAccept)
+{
+	FString RawId = Id;
+	FString TargetCharacterName;
+	bool bFriendKind = false;
+
+	if (Id.StartsWith(TEXT("f:")))
+	{
+		RawId = Id.RightChop(2);
+		bFriendKind = true;
+	}
+	else if (Id.StartsWith(TEXT("c:")))
+	{
+		RawId = Id.RightChop(2);
+	}
+
+	for (const FMyBondageLifeNotification& Item : PendingNotifications)
+	{
+		if (Item.Id == Id)
+		{
+			TargetCharacterName = Item.CharacterName;
+			break;
+		}
+	}
+
+	if (bFriendKind)
+	{
+		RespondToFriendRequest(RawId, bAccept, TargetCharacterName);
+	}
+	else
+	{
+		RespondToContractRequest(RawId, bAccept);
+	}
+
+	PendingNotifications.RemoveAll([&Id](const FMyBondageLifeNotification& Item)
+	{
+		return Item.Id == Id;
+	});
+	OnNotificationsChanged.Broadcast();
+
+	RefreshNotifications();
+	RefreshFriendsFromServer();
+	RefreshContractState();
+}
