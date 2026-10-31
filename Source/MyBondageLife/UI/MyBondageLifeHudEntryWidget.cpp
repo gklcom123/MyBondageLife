@@ -102,13 +102,20 @@ void UMyBondageLifeHudEntryWidget::BuildTree()
 	UImage* Icon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("W_Icon"));
 	IconOverlay->AddChildToOverlay(Icon);
 
-	UImage* Dot = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("W_RedDot"));
-	if (UOverlaySlot* DotSlot = IconOverlay->AddChildToOverlay(Dot))
+	// Small dot (14px) pinned to the icon's top-right corner.
+	USizeBox* DotSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	DotSize->SetWidthOverride(14.0f);
+	DotSize->SetHeightOverride(14.0f);
+	if (UOverlaySlot* DotSlot = IconOverlay->AddChildToOverlay(DotSize))
 	{
 		DotSlot->SetHorizontalAlignment(HAlign_Right);
 		DotSlot->SetVerticalAlignment(VAlign_Top);
+		DotSlot->SetPadding(FMargin(0.0f, -2.0f, -2.0f, 0.0f));
 	}
+
+	UImage* Dot = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("W_RedDot"));
 	Dot->SetVisibility(ESlateVisibility::Collapsed);
+	DotSize->AddChild(Dot);
 
 	UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("W_Label"));
 	Label->SetColorAndOpacity(FSlateColor(FLinearColor::White));
