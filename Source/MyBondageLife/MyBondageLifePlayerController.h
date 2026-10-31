@@ -514,10 +514,9 @@ public:
 	void ShowHudEntries();
 
 	UPROPERTY(Transient)
-	TObjectPtr<class UMyBondageLifeHudEntryWidget> InfoEntryWidget;
+	TArray<TObjectPtr<class UMyBondageLifeHudEntryWidget>> HudEntries;
 
-	UPROPERTY(Transient)
-	TObjectPtr<class UMyBondageLifeHudEntryWidget> FriendsEntryWidget;
+
 
 	UFUNCTION(BlueprintCallable, Category = "HUD")
 	bool HostInMainHud(FName HostName, UUserWidget* Widget);

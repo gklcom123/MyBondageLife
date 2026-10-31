@@ -2167,7 +2167,8 @@ void AMyBondageLifePlayerController::ShowMessageHud()
 	}
 
 
-	if (!MessageButtonWidget)
+	// The message entry is created by ShowHudEntries() from the shared HUD entry template.
+	if (false)
 	{
 		MessageButtonWidget = CreateWidget<UMyBondageLifeMessageButtonWidget>(this, MessageButtonWidgetClass);
 		if (MessageButtonWidget)
@@ -2176,9 +2177,6 @@ void AMyBondageLifePlayerController::ShowMessageHud()
 			{
 				MessageButtonWidget->AddToViewport(13);
 			}
-
-			// Bottom-left, just above the chat box.
-
 		}
 	}
 
@@ -2314,7 +2312,7 @@ bool AMyBondageLifePlayerController::HostInMainHud(FName HostName, UUserWidget* 
 
 void AMyBondageLifePlayerController::ShowHudEntries()
 {
-	if (!IsLocalPlayerController() || InfoEntryWidget || FriendsEntryWidget)
+	if (!IsLocalPlayerController() || HudEntries.Num() > 0)
 	{
 		return;
 	}
@@ -2325,29 +2323,40 @@ void AMyBondageLifePlayerController::ShowHudEntries()
 		EntryClass = Designed;
 	}
 
-	InfoEntryWidget = CreateWidget<UMyBondageLifeHudEntryWidget>(this, EntryClass);
-	if (InfoEntryWidget)
+	struct FEntrySetup
 	{
-		InfoEntryWidget->SetEntryKind(EMyBondageLifeHudEntryAction::PlayerInfo);
-		if (!HostInMainHud(TEXT("W_InfoEntryHost"), InfoEntryWidget))
-		{
-			InfoEntryWidget->AddToViewport(13);
-			InfoEntryWidget->SetAnchorsInViewport(FAnchors(0.5f, 1.0f));
-			InfoEntryWidget->SetAlignmentInViewport(FVector2D(0.5f, 1.0f));
-			InfoEntryWidget->SetPositionInViewport(FVector2D(-260.0f, -70.0f), false);
-		}
-	}
+		EMyBondageLifeHudEntryAction Action;
+		FName Host;
+		FVector2D FallbackPosition;
+	};
 
-	FriendsEntryWidget = CreateWidget<UMyBondageLifeHudEntryWidget>(this, EntryClass);
-	if (FriendsEntryWidget)
+	static const FEntrySetup Setups[] =
 	{
-		FriendsEntryWidget->SetEntryKind(EMyBondageLifeHudEntryAction::FriendList);
-		if (!HostInMainHud(TEXT("W_FriendsEntryHost"), FriendsEntryWidget))
+		{ EMyBondageLifeHudEntryAction::Message,    TEXT("W_MessageHost"),       FVector2D(20.0f, -360.0f) },
+		{ EMyBondageLifeHudEntryAction::PlayerInfo, TEXT("W_InfoEntryHost"),     FVector2D(-260.0f, -70.0f) },
+		{ EMyBondageLifeHudEntryAction::FriendList, TEXT("W_FriendsEntryHost"),  FVector2D(-90.0f, -70.0f) },
+		{ EMyBondageLifeHudEntryAction::Wardrobe,   TEXT("W_WardrobeEntryHost"), FVector2D(80.0f, -70.0f) }
+	};
+
+	for (const FEntrySetup& Setup : Setups)
+	{
+		UMyBondageLifeHudEntryWidget* Entry = CreateWidget<UMyBondageLifeHudEntryWidget>(this, EntryClass);
+		if (!Entry)
 		{
-			FriendsEntryWidget->AddToViewport(13);
-			FriendsEntryWidget->SetAnchorsInViewport(FAnchors(0.5f, 1.0f));
-			FriendsEntryWidget->SetAlignmentInViewport(FVector2D(0.5f, 1.0f));
-			FriendsEntryWidget->SetPositionInViewport(FVector2D(-90.0f, -70.0f), false);
+			continue;
 		}
+
+		Entry->SetEntryKind(Setup.Action);
+		HudEntries.Add(Entry);
+
+		if (HostInMainHud(Setup.Host, Entry))
+		{
+			continue;
+		}
+
+		Entry->AddToViewport(13);
+		Entry->SetAnchorsInViewport(FAnchors(0.5f, 1.0f));
+		Entry->SetAlignmentInViewport(FVector2D(0.5f, 1.0f));
+		Entry->SetPositionInViewport(Setup.FallbackPosition, false);
 	}
 }

@@ -77,31 +77,30 @@ TSharedRef<SWidget> UMyBondageLifeMessageButtonWidget::RebuildWidget()
 
 void UMyBondageLifeMessageButtonWidget::BuildLayout()
 {
-	EntryButton = FindButtonIn(WidgetTree->FindWidget(TEXT("W_Entry")));
+	EntryButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_Entry")));
 	RedDot = WidgetTree->FindWidget(TEXT("W_RedDot"));
 
 	if (!EntryButton)
 	{
-		UCanvasPanel* Canvas = Cast<UCanvasPanel>(WidgetTree->RootWidget);
-		if (!Canvas)
+		// Shrink-wrapped root: the widget reports exactly its content size so the HUD host
+		// can pin its bottom-left corner without any blank area.
+		UVerticalBox* Column = Cast<UVerticalBox>(WidgetTree->RootWidget);
+		if (!Column)
 		{
-			Canvas = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("MessageEntryRoot"));
-			WidgetTree->RootWidget = Canvas;
+			Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("MessageEntryRoot"));
+			WidgetTree->RootWidget = Column;
 		}
-		Canvas->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 
-		USizeBox* Size = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("W_Entry"));
-		Size->SetWidthOverride(96.0f);
-		Size->SetHeightOverride(96.0f);
-		if (UCanvasPanelSlot* SizeSlot = Canvas->AddChildToCanvas(Size))
+		USizeBox* IconSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("W_Entry"));
+		IconSize->SetWidthOverride(56.0f);
+		IconSize->SetHeightOverride(56.0f);
+		if (UVerticalBoxSlot* IconSlot = Column->AddChildToVerticalBox(IconSize))
 		{
-			// Bottom-left, above the chat box (same pattern as the other HUD entries).
-			SizeSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
-			SizeSlot->SetAlignment(FVector2D(0.0f, 1.0f));
-			SizeSlot->SetPosition(FVector2D::ZeroVector);
-			SizeSlot->SetAutoSize(true);
-			SizeSlot->SetZOrder(20);
+			IconSlot->SetHorizontalAlignment(HAlign_Center);
 		}
+
+		UOverlay* IconOverlay = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass());
+		IconSize->AddChild(IconOverlay);
 
 		EntryButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
 		{
@@ -112,21 +111,7 @@ void UMyBondageLifeMessageButtonWidget::BuildLayout()
 			Transparent.Disabled.DrawAs = ESlateBrushDrawType::NoDrawType;
 			EntryButton->SetStyle(Transparent);
 		}
-		Size->AddChild(EntryButton);
-
-		UVerticalBox* Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-		EntryButton->AddChild(Column);
-
-		USizeBox* IconSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-		IconSize->SetWidthOverride(64.0f);
-		IconSize->SetHeightOverride(64.0f);
-		if (UVerticalBoxSlot* IconSlot = Column->AddChildToVerticalBox(IconSize))
-		{
-			IconSlot->SetHorizontalAlignment(HAlign_Center);
-		}
-
-		UOverlay* IconOverlay = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass());
-		IconSize->AddChild(IconOverlay);
+		IconOverlay->AddChildToOverlay(EntryButton);
 
 		UImage* Icon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
 		if (UTexture2D* IconTexture = LoadObject<UTexture2D>(nullptr, TEXT("/Game/2DAssest/UI/UI_Message.UI_Message")))
@@ -135,7 +120,6 @@ void UMyBondageLifeMessageButtonWidget::BuildLayout()
 		}
 		IconOverlay->AddChildToOverlay(Icon);
 
-		// Red dot sits on the icon's top-right corner, whatever the layout does.
 		if (UTexture2D* DotTexture = LoadObject<UTexture2D>(nullptr, TEXT("/Game/2DAssest/UI/UI_Redpoint.UI_Redpoint")))
 		{
 			UImage* Dot = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("W_RedDot"));
@@ -144,7 +128,6 @@ void UMyBondageLifeMessageButtonWidget::BuildLayout()
 			{
 				DotSlot->SetHorizontalAlignment(HAlign_Right);
 				DotSlot->SetVerticalAlignment(VAlign_Top);
-				DotSlot->SetPadding(FMargin(0.0f, -4.0f, -4.0f, 0.0f));
 			}
 			RedDot = Dot;
 		}
