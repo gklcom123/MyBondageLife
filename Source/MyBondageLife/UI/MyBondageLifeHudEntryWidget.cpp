@@ -117,7 +117,7 @@ void UMyBondageLifeHudEntryWidget::BuildTree()
 	Label->SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.9f));
 	{
 		FSlateFontInfo LabelFont = Label->GetFont();
-		LabelFont.Size = 16;
+		LabelFont.Size = 12;
 		Label->SetFont(LabelFont);
 	}
 	if (UVerticalBoxSlot* LabelSlot = Column->AddChildToVerticalBox(Label))
