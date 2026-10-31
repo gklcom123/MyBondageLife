@@ -3,6 +3,7 @@
 #include "UI/MyBondageLifeMainHudWidget.h"
 
 #include "Blueprint/WidgetTree.h"
+#include "Components/Border.h"
 #include "Components/CanvasPanelSlot.h"
 #include "MyBondageLife.h"
 
@@ -85,6 +86,36 @@ void UMyBondageLifeMainHudWidget::BuildLayout()
 		Hosts.Add(HostName, Host);
 	}
 
+	// Placeholder art used while designing must not show in game.
+	{
+		TArray<UWidget*> Stack;
+		if (WidgetTree->RootWidget)
+		{
+			Stack.Add(WidgetTree->RootWidget);
+		}
+		while (Stack.Num() > 0)
+		{
+			UWidget* Current = Stack.Pop();
+			if (!Current)
+			{
+				continue;
+			}
+			if (Current->GetName().StartsWith(TEXT("W_Preview")))
+			{
+				Current->SetVisibility(ESlateVisibility::Collapsed);
+			}
+			if (UPanelWidget* Panel = Cast<UPanelWidget>(Current))
+			{
+				for (int32 Index = 0; Index < Panel->GetChildrenCount(); ++Index)
+				{
+					if (UWidget* Child = Panel->GetChildAt(Index))
+					{
+						Stack.Add(Child);
+					}
+				}
+			}
+		}
+	}
 	UE_LOG(LogMyBondageLife, Log, TEXT("MainHud: adopted %d/%d hosts."),
 		Hosts.Num(), UE_ARRAY_COUNT(MyBondageLifeHudHosts::Names));
 }
