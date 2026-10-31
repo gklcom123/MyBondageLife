@@ -325,6 +325,12 @@ TSharedRef<SWidget> UMyBondageLifeMessageCenterWidget::RebuildWidget()
 
 void UMyBondageLifeMessageCenterWidget::BuildLayout()
 {
+	// The prototype row must never be visible in the list area.
+	if (UWidget* NamedTemplate = WidgetTree->FindWidget(TEXT("W_RowTemplate")))
+	{
+		NamedTemplate->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
 	RootCanvas = Cast<UCanvasPanel>(WidgetTree->RootWidget);
 	PanelBorder = Cast<UBorder>(WidgetTree->FindWidget(TEXT("W_Panel")));
 	if (!PanelBorder)
@@ -447,6 +453,9 @@ void UMyBondageLifeMessageCenterWidget::RefreshList()
 	}
 
 	ListBox->ClearChildren();
+	RowProxies.Reset();
+	HidePrototypeRows();
+
 
 	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
@@ -521,7 +530,7 @@ void UMyBondageLifeMessageCenterWidget::RefreshList()
 				Proxy->Subsystem = Subsystem;
 				Proxy->NotificationId = Item.Id;
 				Proxy->bAccept = bAccept;
-				Proxy->AddToRoot();
+				RowProxies.Add(Proxy);
 				Button->OnClicked.AddDynamic(Proxy, &UMyBondageLifeMessageButtonProxy::HandleClicked);
 			}
 		};
@@ -634,5 +643,40 @@ void UMyBondageLifeMessageButtonProxy::HandleClicked()
 	{
 		Subsystem->ResolveNotification(NotificationId, bAccept);
 	}
-	RemoveFromRoot();
+}
+
+void UMyBondageLifeMessageCenterWidget::HidePrototypeRows()
+{
+	if (!WidgetTree || !WidgetTree->RootWidget)
+	{
+		return;
+	}
+
+	// Any message-row instance still sitting in the tree is a prototype (the list is built
+	// in code), so keep all of them out of sight every time the list refreshes.
+	TArray<UWidget*> Stack;
+	Stack.Add(WidgetTree->RootWidget);
+	while (Stack.Num() > 0)
+	{
+		UWidget* Current = Stack.Pop();
+		if (!Current)
+		{
+			continue;
+		}
+		if (Cast<UMyBondageLifeMessageRowWidget>(Current))
+		{
+			Current->SetVisibility(ESlateVisibility::Collapsed);
+			continue;
+		}
+		if (UPanelWidget* Panel = Cast<UPanelWidget>(Current))
+		{
+			for (int32 Index = 0; Index < Panel->GetChildrenCount(); ++Index)
+			{
+				if (UWidget* Child = Panel->GetChildAt(Index))
+				{
+					Stack.Add(Child);
+				}
+			}
+		}
+	}
 }

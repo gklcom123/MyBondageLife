@@ -62,6 +62,9 @@ protected:
 	TObjectPtr<UWidget> RedDot;
 
 	bool bLayoutBuilt = false;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UMyBondageLifeMessageButtonProxy>> RowProxies;
 };
 
 /**
@@ -107,6 +110,9 @@ protected:
 	FString PendingMessageText;
 	bool bHasPendingMessage = false;
 	bool bLayoutBuilt = false;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UMyBondageLifeMessageButtonProxy>> RowProxies;
 };
 
 /**
@@ -144,6 +150,7 @@ protected:
 
 	void BuildLayout();
 	void RefreshList();
+	void HidePrototypeRows();
 
 	UFUNCTION()
 	void HandleNotificationsChanged();
@@ -167,4 +174,7 @@ protected:
 	TSubclassOf<UMyBondageLifeMessageRowWidget> RowClass;
 
 	bool bLayoutBuilt = false;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UMyBondageLifeMessageButtonProxy>> RowProxies;
 };
