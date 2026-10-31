@@ -48,7 +48,7 @@ protected:
 
 	/** Set to true once the blueprint layout is final: the code stops overriding host positions. */
 	UPROPERTY(EditDefaultsOnly, Category = "HUD")
-	bool bUseDesignedHostLayout = false;
+	bool bUseDesignedHostLayout = true;
 
 	TMap<FName, TObjectPtr<UPanelWidget>> Hosts;
 	bool bLayoutBuilt = false;
