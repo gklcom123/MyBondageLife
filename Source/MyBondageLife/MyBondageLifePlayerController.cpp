@@ -1471,6 +1471,14 @@ void AMyBondageLifePlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
 
+	// CantMove locks the view: keep the saved rotation every frame.
+	if (bRestraintMovementBlocked)
+	{
+		SetControlRotation(FrozenControlRotation);
+	}
+
+	Super::PlayerTick(DeltaTime);
+
 	// Project every character's head each frame: the plate position is derived from
 	// the projection only, so it cannot drift when the camera rotates.
 	if (NameplateLayer)
@@ -2401,6 +2409,10 @@ void AMyBondageLifePlayerController::SetRestraintMovementBlocked(bool bBlocked)
 	{
 		SetIgnoreMoveInput(true);
 		SetIgnoreLookInput(true);
+
+		// Freezing the control rotation is the only reliable way: the camera follows the
+		// controller rotation, which input axis handlers can still write to.
+		FrozenControlRotation = GetControlRotation();
 	}
 	else
 	{
