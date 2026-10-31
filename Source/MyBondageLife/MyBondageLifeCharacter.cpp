@@ -330,7 +330,16 @@ void AMyBondageLifeCharacter::Tick(float DeltaSeconds)
 	if (bRestraintPoseActive)
 	{
 		RefreshRestraintPose();
-	ApplyRestraintMovementLimits();
+	}
+
+	// CantMove: kill any residual velocity every frame (a single speed clamp left a slow drift).
+	if (bCantMove)
+	{
+		if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+		{
+			Movement->StopMovementImmediately();
+			Movement->MaxWalkSpeed = 0.0f;
+		}
 	}
 }
 
