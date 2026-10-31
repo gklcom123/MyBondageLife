@@ -325,10 +325,18 @@ TSharedRef<SWidget> UMyBondageLifeMessageCenterWidget::RebuildWidget()
 
 void UMyBondageLifeMessageCenterWidget::BuildLayout()
 {
-	// The prototype row must never be visible in the list area.
-	if (UWidget* NamedTemplate = WidgetTree->FindWidget(TEXT("W_RowTemplate")))
+	// The prototype row is a designer-only sample: detach it so it can never appear in the
+	// panel (setting it Collapsed was undone by widget property initialisation).
+	if (UWidget* Prototype = WidgetTree->FindWidget(TEXT("W_RowTemplate")))
 	{
-		NamedTemplate->SetVisibility(ESlateVisibility::Collapsed);
+		if (UPanelWidget* PrototypeParent = Prototype->GetParent())
+		{
+			PrototypeParent->RemoveChild(Prototype);
+		}
+		else
+		{
+			Prototype->SetVisibility(ESlateVisibility::Collapsed);
+		}
 	}
 
 	RootCanvas = Cast<UCanvasPanel>(WidgetTree->RootWidget);
@@ -544,37 +552,9 @@ void UMyBondageLifeMessageCenterWidget::RefreshList()
 		}
 		continue;
 	}
-
-	for (const FMyBondageLifeNotification& Item : Account->GetNotifications())
-	{
-		UMyBondageLifeMessageRowWidget* Row = CreateWidget<UMyBondageLifeMessageRowWidget>(GetOwningPlayer(), RowClass);
-		if (!Row)
-		{
-			continue;
-		}
-
-		if (UScrollBoxSlot* RowSlot = Cast<UScrollBoxSlot>(ListBox->AddChild(Row)))
-		{
-			RowSlot->SetPadding(FMargin(0.0f, 4.0f));
-		}
-
-		FString Text;
-		switch (Item.Type)
-		{
-		case EMyBondageLifeNotificationType::FriendRequest:
-			Text = FString::Printf(TEXT("\u6536\u5230\u6765\u81EA\u3010%s\u3011\u7684\u597D\u53CB\u8BF7\u6C42\uFF0C\u662F\u5426\u540C\u610F"), *Item.CharacterName);
-			break;
-		case EMyBondageLifeNotificationType::ContractTrial:
-			Text = FString::Printf(TEXT("\u6536\u5230\u6765\u81EA\u3010%s\u3011\u7684\u7B7E\u8BA2\u4E34\u65F6\u5951\u7EA6\u8BF7\u6C42\uFF0C\u662F\u5426\u540C\u610F"), *Item.CharacterName);
-			break;
-		default:
-			Text = FString::Printf(TEXT("\u6536\u5230\u6765\u81EA\u3010%s\u3011\u7684\u7B7E\u8BA2\u5951\u7EA6\u8BF7\u6C42\uFF0C\u662F\u5426\u540C\u610F"), *Item.CharacterName);
-			break;
-		}
-
-		Row->SetNotification(Item.Id, Text, Item.Type != EMyBondageLifeNotificationType::FriendRequest);
-	}
 }
+
+
 
 void UMyBondageLifeMessageCenterWidget::HandleNotificationsChanged()
 {
