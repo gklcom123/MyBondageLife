@@ -915,6 +915,9 @@ bool UMyBondageLifePlayerInfoWidget::TryAdoptBlueprintLayout()
 		}
 
 		PanelBorder->SetVisibility(ESlateVisibility::Collapsed);
+
+	// Interaction hint row ("按[F]…"): the panel owns it, the C entry comes from the HUD.
+	BuildEntryButtonOnly();
 	}
 
 	// HUD entry (个人信息 C): built by code at the usual spot, independent of the design.
@@ -997,6 +1000,11 @@ void UMyBondageLifePlayerInfoWidget::BuildEntryButtonOnly()
 		return;
 	}
 	OpenButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("PlayerInfoButton"));
+	if (bSuppressOwnEntry)
+	{
+		return;
+	}
+
 	FButtonStyle Transparent;
 	Transparent.Normal.DrawAs = ESlateBrushDrawType::NoDrawType;
 	Transparent.Hovered.DrawAs = ESlateBrushDrawType::NoDrawType;

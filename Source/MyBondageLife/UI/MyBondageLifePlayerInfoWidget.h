@@ -87,6 +87,10 @@ protected:
 	bool bLayoutBuilt = false;
 	void WireAdoptedLayout();
 
+	/** The main HUD owns the C entry now; only the interaction hint is built here. */
+	UPROPERTY(EditDefaultsOnly, Category = "HUD")
+	bool bSuppressOwnEntry = true;
+
 	void BuildEntryButtonOnly();
 
 	void BuildLayout();
