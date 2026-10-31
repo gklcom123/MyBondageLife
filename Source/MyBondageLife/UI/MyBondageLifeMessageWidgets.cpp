@@ -316,13 +316,105 @@ void UMyBondageLifeMessageCenterWidget::BuildLayout()
 {
 	RootCanvas = Cast<UCanvasPanel>(WidgetTree->RootWidget);
 	PanelBorder = Cast<UBorder>(WidgetTree->FindWidget(TEXT("W_Panel")));
+	if (!PanelBorder)
+	{
+		// Fallback: first Border in the tree (the designer may have named it differently).
+		TArray<UWidget*> Stack;
+		if (WidgetTree->RootWidget)
+		{
+			Stack.Add(WidgetTree->RootWidget);
+		}
+		while (Stack.Num() > 0 && !PanelBorder)
+		{
+			UWidget* Current = Stack.Pop();
+			if (UBorder* AsBorder = Cast<UBorder>(Current))
+			{
+				PanelBorder = AsBorder;
+				break;
+			}
+			if (UPanelWidget* Panel = Cast<UPanelWidget>(Current))
+			{
+				for (int32 Index = 0; Index < Panel->GetChildrenCount(); ++Index)
+				{
+					if (UWidget* Child = Panel->GetChildAt(Index))
+					{
+						Stack.Add(Child);
+					}
+				}
+			}
+		}
+	}
 	ListBox = Cast<UScrollBox>(WidgetTree->FindWidget(TEXT("W_List")));
+	if (!ListBox)
+	{
+		TArray<UWidget*> BoxStack;
+		if (WidgetTree->RootWidget)
+		{
+			BoxStack.Add(WidgetTree->RootWidget);
+		}
+		while (BoxStack.Num() > 0 && !ListBox)
+		{
+			UWidget* Current = BoxStack.Pop();
+			if (UScrollBox* AsBox = Cast<UScrollBox>(Current))
+			{
+				ListBox = AsBox;
+				break;
+			}
+			if (UPanelWidget* Panel = Cast<UPanelWidget>(Current))
+			{
+				for (int32 Index = 0; Index < Panel->GetChildrenCount(); ++Index)
+				{
+					if (UWidget* Child = Panel->GetChildAt(Index))
+					{
+						BoxStack.Add(Child);
+					}
+				}
+			}
+		}
+	}
 	RowTemplate = Cast<UMyBondageLifeMessageRowWidget>(WidgetTree->FindWidget(TEXT("W_RowTemplate")));
+
+	// The design may not name the template: take the first message-row widget found and
+	// keep it out of sight (it is only a prototype for the list).
+	if (!RowTemplate)
+	{
+		TArray<UWidget*> Stack;
+		if (WidgetTree->RootWidget)
+		{
+			Stack.Add(WidgetTree->RootWidget);
+		}
+		while (Stack.Num() > 0 && !RowTemplate)
+		{
+			UWidget* Current = Stack.Pop();
+			if (UMyBondageLifeMessageRowWidget* AsRow = Cast<UMyBondageLifeMessageRowWidget>(Current))
+			{
+				RowTemplate = AsRow;
+				break;
+			}
+			if (UPanelWidget* Panel = Cast<UPanelWidget>(Current))
+			{
+				for (int32 Index = 0; Index < Panel->GetChildrenCount(); ++Index)
+				{
+					if (UWidget* Child = Panel->GetChildAt(Index))
+					{
+						Stack.Add(Child);
+					}
+				}
+			}
+		}
+	}
 
 	if (RowTemplate)
 	{
-		RowClass = RowTemplate->GetClass();
 		RowTemplate->SetVisibility(ESlateVisibility::Collapsed);
+		RowClass = RowTemplate->GetClass();
+	}
+
+
+	if (!PanelBorder)
+	{
+		// No border to toggle: hide the whole widget while closed.
+		SetVisibility(ESlateVisibility::Collapsed);
 	}
 
 	if (PanelBorder)
