@@ -71,7 +71,8 @@ void UMyBondageLifeMainHudWidget::BuildLayout()
 		if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Host->Slot))
 		{
 			const FHostLayout* Layout = DefaultLayout.Find(HostName);
-			const bool bUntouched = CanvasSlot->GetSize() == FVector2D::ZeroVector;
+			const bool bUntouched = CanvasSlot->GetAutoSize()
+				|| CanvasSlot->GetSize().X < 2.0f || CanvasSlot->GetSize().Y < 2.0f;
 			if (Layout && bUntouched)
 			{
 				CanvasSlot->SetAnchors(FAnchors(Layout->Anchor.X, Layout->Anchor.Y));
