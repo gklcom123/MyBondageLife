@@ -2090,6 +2090,12 @@ void AMyBondageLifePlayerController::SyncRestraintsFromServer()
 
 void AMyBondageLifePlayerController::ShowWardrobeButton()
 {
+	if (true)
+	{
+		// The main HUD owns the wardrobe entry now (shared HUD entry template).
+		return;
+	}
+
 	if (!IsLocalPlayerController() || WardrobeButtonWidget)
 	{
 		return;

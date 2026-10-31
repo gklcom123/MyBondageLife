@@ -46,6 +46,13 @@ TSharedRef<SWidget> UMyBondageLifeHudEntryWidget::RebuildWidget()
 		WidgetTree = NewObject<UWidgetTree>(this, TEXT("WidgetTree"));
 	}
 
+	// The tree must exist *before* Super builds the slate widget, otherwise a root that we
+	// create afterwards never reaches the screen (that is why the entries were invisible).
+	if (!IsDesignTime() && WidgetTree)
+	{
+		BuildTree();
+	}
+
 	TSharedRef<SWidget> BuiltWidget = Super::RebuildWidget();
 
 	if (!IsDesignTime() && WidgetTree && !bLayoutBuilt)
@@ -57,6 +64,68 @@ TSharedRef<SWidget> UMyBondageLifeHudEntryWidget::RebuildWidget()
 	return BuiltWidget;
 }
 
+
+void UMyBondageLifeHudEntryWidget::BuildTree()
+{
+	// Shrink-wrapped root: the widget's own size is exactly its content (icon + caption).
+	UVerticalBox* Column = Cast<UVerticalBox>(WidgetTree->RootWidget);
+	if (Column)
+	{
+		return;
+	}
+
+	Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("HudEntryRoot"));
+	WidgetTree->RootWidget = Column;
+
+	USizeBox* IconSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("W_Entry"));
+	IconSize->SetWidthOverride(56.0f);
+	IconSize->SetHeightOverride(56.0f);
+	if (UVerticalBoxSlot* IconSlot = Column->AddChildToVerticalBox(IconSize))
+	{
+		IconSlot->SetHorizontalAlignment(HAlign_Center);
+	}
+
+	UOverlay* IconOverlay = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass());
+	IconSize->AddChild(IconOverlay);
+
+	UButton* Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
+	{
+		FButtonStyle Transparent;
+		Transparent.Normal.DrawAs = ESlateBrushDrawType::NoDrawType;
+		Transparent.Hovered.DrawAs = ESlateBrushDrawType::NoDrawType;
+		Transparent.Pressed.DrawAs = ESlateBrushDrawType::NoDrawType;
+		Transparent.Disabled.DrawAs = ESlateBrushDrawType::NoDrawType;
+		Button->SetStyle(Transparent);
+	}
+	IconOverlay->AddChildToOverlay(Button);
+
+	UImage* Icon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("W_Icon"));
+	IconOverlay->AddChildToOverlay(Icon);
+
+	UImage* Dot = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("W_RedDot"));
+	if (UOverlaySlot* DotSlot = IconOverlay->AddChildToOverlay(Dot))
+	{
+		DotSlot->SetHorizontalAlignment(HAlign_Right);
+		DotSlot->SetVerticalAlignment(VAlign_Top);
+	}
+	Dot->SetVisibility(ESlateVisibility::Collapsed);
+
+	UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("W_Label"));
+	Label->SetColorAndOpacity(FSlateColor(FLinearColor::White));
+	Label->SetJustification(ETextJustify::Center);
+	Label->SetShadowOffset(FVector2D(1.0f, 1.0f));
+	Label->SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.9f));
+	{
+		FSlateFontInfo LabelFont = Label->GetFont();
+		LabelFont.Size = 16;
+		Label->SetFont(LabelFont);
+	}
+	if (UVerticalBoxSlot* LabelSlot = Column->AddChildToVerticalBox(Label))
+	{
+		LabelSlot->SetHorizontalAlignment(HAlign_Center);
+	}
+}
+
 void UMyBondageLifeHudEntryWidget::BuildLayout()
 {
 	EntryButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_Entry")));
@@ -64,67 +133,10 @@ void UMyBondageLifeHudEntryWidget::BuildLayout()
 	EntryLabel = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_Label")));
 	RedDot = Cast<UImage>(WidgetTree->FindWidget(TEXT("W_RedDot")));
 
-	if (!EntryButton)
+	if (EntryButton)
 	{
-		// One template for every entry: a shrink-wrapped column of icon + caption, so the
-		// widget's own size is exactly its content (never a full-screen blank box).
-		UVerticalBox* Column = Cast<UVerticalBox>(WidgetTree->RootWidget);
-		if (!Column)
-		{
-			Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("HudEntryRoot"));
-			WidgetTree->RootWidget = Column;
-		}
-
-		USizeBox* IconSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("W_Entry"));
-		IconSize->SetWidthOverride(56.0f);
-		IconSize->SetHeightOverride(56.0f);
-		if (UVerticalBoxSlot* IconSlot = Column->AddChildToVerticalBox(IconSize))
-		{
-			IconSlot->SetHorizontalAlignment(HAlign_Center);
-		}
-
-		UOverlay* IconOverlay = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass());
-		IconSize->AddChild(IconOverlay);
-
-		EntryButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
-		{
-			FButtonStyle Transparent;
-			Transparent.Normal.DrawAs = ESlateBrushDrawType::NoDrawType;
-			Transparent.Hovered.DrawAs = ESlateBrushDrawType::NoDrawType;
-			Transparent.Pressed.DrawAs = ESlateBrushDrawType::NoDrawType;
-			Transparent.Disabled.DrawAs = ESlateBrushDrawType::NoDrawType;
-			EntryButton->SetStyle(Transparent);
-		}
-		IconOverlay->AddChildToOverlay(EntryButton);
-
-		EntryIcon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("W_Icon"));
-		IconOverlay->AddChildToOverlay(EntryIcon);
-
-		RedDot = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("W_RedDot"));
-		if (UOverlaySlot* DotSlot = IconOverlay->AddChildToOverlay(RedDot))
-		{
-			DotSlot->SetHorizontalAlignment(HAlign_Right);
-			DotSlot->SetVerticalAlignment(VAlign_Top);
-		}
-		RedDot->SetVisibility(ESlateVisibility::Collapsed);
-
-		EntryLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("W_Label"));
-		EntryLabel->SetColorAndOpacity(FSlateColor(FLinearColor::White));
-		EntryLabel->SetJustification(ETextJustify::Center);
-		EntryLabel->SetShadowOffset(FVector2D(1.0f, 1.0f));
-		EntryLabel->SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.9f));
-		{
-			FSlateFontInfo LabelFont = EntryLabel->GetFont();
-			LabelFont.Size = 16;
-			EntryLabel->SetFont(LabelFont);
-		}
-		if (UVerticalBoxSlot* LabelSlot = Column->AddChildToVerticalBox(EntryLabel))
-		{
-			LabelSlot->SetHorizontalAlignment(HAlign_Center);
-		}
+		EntryButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeHudEntryWidget::HandleClicked);
 	}
-
-	EntryButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeHudEntryWidget::HandleClicked);
 
 	if (UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()

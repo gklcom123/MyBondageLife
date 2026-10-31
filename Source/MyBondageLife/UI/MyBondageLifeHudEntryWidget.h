@@ -51,6 +51,7 @@ public:
 protected:
 
 	void BuildLayout();
+	void BuildTree();
 	void RefreshAppearance();
 
 	UFUNCTION()
