@@ -143,22 +143,23 @@ void UMyBondageLifeRestraintStatusWidget::UpdateStates(float InDeltaTime)
 	// Breathing: 1.0 +- 0.1 (0.9 .. 1.1).
 	const float Pulse = 1.0f + 0.1f * FMath::Sin(PulseTime * 4.0f);
 
-	auto Apply = [Pulse](UImage* Icon, bool bActive)
+	// The whole unit (icon + caption) pulses together.
+	auto ApplyUnit = [this, Pulse](int32 Index, bool bActive)
 	{
-		if (!Icon)
+		if (!Units.IsValidIndex(Index) || !Units[Index])
 		{
 			return;
 		}
 
-		Icon->SetVisibility(bActive ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+		Units[Index]->SetVisibility(bActive ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 		if (bActive)
 		{
-			Icon->SetRenderScale(FVector2D(Pulse, Pulse));
+			Units[Index]->SetRenderScale(FVector2D(Pulse, Pulse));
 		}
 	};
 
-	Apply(GagIcon, bGag);
-	Apply(ArmIcon, bArm);
-	Apply(LegIcon, bLeg);
-	Apply(CantMoveIcon, bCantMove);
+	ApplyUnit(0, bGag);
+	ApplyUnit(1, bArm);
+	ApplyUnit(2, bLeg);
+	ApplyUnit(3, bCantMove);
 }
