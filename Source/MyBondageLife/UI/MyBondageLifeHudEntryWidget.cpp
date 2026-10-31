@@ -76,8 +76,9 @@ void UMyBondageLifeHudEntryWidget::BuildLayout()
 		EntryButton->SetStyle(Transparent);
 		if (UCanvasPanelSlot* EntrySlot = Canvas->AddChildToCanvas(EntryButton))
 		{
-			EntrySlot->SetAnchors(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
-			EntrySlot->SetOffsets(FMargin(0.0f));
+			EntrySlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
+			EntrySlot->SetPosition(FVector2D::ZeroVector);
+			EntrySlot->SetAutoSize(true);
 		}
 
 		UVerticalBox* Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());

@@ -96,9 +96,9 @@ void UMyBondageLifeMessageButtonWidget::BuildLayout()
 		if (UCanvasPanelSlot* SizeSlot = Canvas->AddChildToCanvas(Size))
 		{
 			// Bottom-left, above the chat box (same pattern as the other HUD entries).
-			SizeSlot->SetAnchors(FAnchors(0.0f, 1.0f, 0.0f, 1.0f));
+			SizeSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
 			SizeSlot->SetAlignment(FVector2D(0.0f, 1.0f));
-			SizeSlot->SetPosition(FVector2D(40.0f, -340.0f));
+			SizeSlot->SetPosition(FVector2D::ZeroVector);
 			SizeSlot->SetAutoSize(true);
 			SizeSlot->SetZOrder(20);
 		}

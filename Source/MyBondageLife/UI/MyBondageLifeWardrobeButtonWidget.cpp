@@ -63,9 +63,9 @@ void UMyBondageLifeWardrobeButtonWidget::BuildLayout()
 
 		if (UCanvasPanelSlot* EntrySlot = RootCanvas->AddChildToCanvas(EntryButton))
 		{
-			EntrySlot->SetAnchors(FAnchors(0.0f, 1.0f, 0.0f, 1.0f));
+			EntrySlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
 			EntrySlot->SetAlignment(FVector2D(0.0f, 1.0f));
-			EntrySlot->SetPosition(FVector2D(EntryPositionX, EntryPositionY));
+			EntrySlot->SetPosition(FVector2D::ZeroVector);
 			EntrySlot->SetAutoSize(true);
 			EntrySlot->SetZOrder(20);
 		}
