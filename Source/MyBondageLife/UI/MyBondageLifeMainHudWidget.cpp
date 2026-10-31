@@ -4,6 +4,7 @@
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
+#include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "MyBondageLife.h"
 
@@ -151,8 +152,49 @@ bool UMyBondageLifeMainHudWidget::HostWidget(FName HostName, UUserWidget* Widget
 		return false;
 	}
 
-	Host->AddChild(Widget);
-	UE_LOG(LogMyBondageLife, Log, TEXT("MainHud: hosted %s into %s"), *Widget->GetName(), *HostName.ToString());
+	// Give the host an inner canvas so the content can be pinned to its bottom-left
+	// corner: the designed box is the anchor, the widget keeps its natural size.
+	UCanvasPanel* InnerCanvas = nullptr;
+	if (UBorder* BorderHost = Cast<UBorder>(Host))
+	{
+		BorderHost->SetPadding(FMargin(0.0f));
+		BorderHost->SetHorizontalAlignment(HAlign_Fill);
+		BorderHost->SetVerticalAlignment(VAlign_Fill);
+
+		InnerCanvas = Cast<UCanvasPanel>(BorderHost->GetContent());
+		if (!InnerCanvas)
+		{
+			InnerCanvas = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass());
+			BorderHost->AddChild(InnerCanvas);
+		}
+	}
+
+	if (InnerCanvas)
+	{
+		const bool bFill = HostName == TEXT("W_ChatHost");
+		if (UCanvasPanelSlot* ChildSlot = InnerCanvas->AddChildToCanvas(Widget))
+		{
+			if (bFill)
+			{
+				ChildSlot->SetAnchors(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
+				ChildSlot->SetOffsets(FMargin(0.0f));
+			}
+			else
+			{
+				// Bottom-left of the host = the widget's own origin.
+				ChildSlot->SetAnchors(FAnchors(0.0f, 1.0f, 0.0f, 1.0f));
+				ChildSlot->SetAlignment(FVector2D(0.0f, 1.0f));
+				ChildSlot->SetPosition(FVector2D::ZeroVector);
+				ChildSlot->SetAutoSize(true);
+			}
+		}
+	}
+	else
+	{
+		Host->AddChild(Widget);
+	}
+
 	Widget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	UE_LOG(LogMyBondageLife, Log, TEXT("MainHud: hosted %s into %s"), *Widget->GetName(), *HostName.ToString());
 	return true;
 }
