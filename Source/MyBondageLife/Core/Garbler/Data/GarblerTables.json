@@ -1,0 +1,3086 @@
+{
+ "version": 1,
+ "generator": "Source/MyBondageLife/Core/Garbler/Tools/generate_tables.py",
+ "notes": [
+  "zh: 中文拼音音素(声母 + 韵母)",
+  "en: 英文 IPA 音素",
+  "muffle: 0=不影响 1=轻 2=重 3=完全抑制; 多堵嘴同时佩戴时取 muffle 最大的 sound"
+ ],
+ "zhInitials": [
+  "b",
+  "p",
+  "m",
+  "f",
+  "d",
+  "t",
+  "n",
+  "l",
+  "g",
+  "k",
+  "h",
+  "j",
+  "q",
+  "x",
+  "zh",
+  "ch",
+  "sh",
+  "r",
+  "z",
+  "c",
+  "s",
+  "y",
+  "w"
+ ],
+ "zhFinals": [
+  "a",
+  "o",
+  "e",
+  "i",
+  "u",
+  "v",
+  "er",
+  "ai",
+  "ei",
+  "ao",
+  "ou",
+  "an",
+  "en",
+  "ang",
+  "eng",
+  "ong",
+  "ia",
+  "ie",
+  "iao",
+  "iu",
+  "ian",
+  "in",
+  "iang",
+  "ing",
+  "iong",
+  "ua",
+  "uo",
+  "uai",
+  "ui",
+  "uan",
+  "un",
+  "uang",
+  "ueng",
+  "ve",
+  "van",
+  "vn"
+ ],
+ "enPhonemes": [
+  "p",
+  "b",
+  "m",
+  "w",
+  "f",
+  "v",
+  "θ",
+  "ð",
+  "t",
+  "d",
+  "s",
+  "z",
+  "n",
+  "ɫ",
+  "ɹ",
+  "ʃ",
+  "ʒ",
+  "dʒ",
+  "tʃ",
+  "j",
+  "k",
+  "ɡ",
+  "ŋ",
+  "h",
+  "eɪ",
+  "ə",
+  "ɔ",
+  "æ",
+  "i",
+  "ɛ",
+  "ɝ",
+  "ɪə",
+  "aɪ",
+  "ɪ",
+  "oʊ",
+  "u",
+  "ɑ",
+  "ʊ",
+  "aʊ",
+  "ɔɪ"
+ ],
+ "profiles": [
+  {
+   "id": "RingGag",
+   "displayName": "开口环",
+   "aliases": [
+    "ring",
+    "ring gag",
+    "o ring",
+    "开口器",
+    "开口环",
+    "张口"
+   ],
+   "description": "嘴被撑开: 双唇音失效, 元音清楚。",
+   "silent": false,
+   "fallbackSounds": [
+    "h",
+    "a",
+    "e",
+    "h",
+    "w"
+   ],
+   "zh": {
+    "b": {
+     "muffle": 2,
+     "sound": "w"
+    },
+    "p": {
+     "muffle": 2,
+     "sound": "w"
+    },
+    "m": {
+     "muffle": 1,
+     "sound": "m"
+    },
+    "f": {
+     "muffle": 2,
+     "sound": "h"
+    },
+    "d": {
+     "muffle": 1,
+     "sound": "d"
+    },
+    "t": {
+     "muffle": 1,
+     "sound": "t"
+    },
+    "n": {
+     "muffle": 1,
+     "sound": "n"
+    },
+    "l": {
+     "muffle": 1,
+     "sound": "l"
+    },
+    "g": {
+     "muffle": 1,
+     "sound": "g"
+    },
+    "k": {
+     "muffle": 1,
+     "sound": "k"
+    },
+    "h": {
+     "muffle": 0,
+     "sound": "h"
+    },
+    "j": {
+     "muffle": 2,
+     "sound": "sh"
+    },
+    "q": {
+     "muffle": 2,
+     "sound": "sh"
+    },
+    "x": {
+     "muffle": 1,
+     "sound": "sh"
+    },
+    "zh": {
+     "muffle": 1,
+     "sound": "sh"
+    },
+    "ch": {
+     "muffle": 1,
+     "sound": "sh"
+    },
+    "sh": {
+     "muffle": 1,
+     "sound": "sh"
+    },
+    "r": {
+     "muffle": 1,
+     "sound": "r"
+    },
+    "z": {
+     "muffle": 1,
+     "sound": "s"
+    },
+    "c": {
+     "muffle": 1,
+     "sound": "s"
+    },
+    "s": {
+     "muffle": 1,
+     "sound": "s"
+    },
+    "y": {
+     "muffle": 0,
+     "sound": "y"
+    },
+    "w": {
+     "muffle": 1,
+     "sound": "w"
+    },
+    "a": {
+     "muffle": 1,
+     "sound": "ah"
+    },
+    "o": {
+     "muffle": 1,
+     "sound": "oh"
+    },
+    "e": {
+     "muffle": 1,
+     "sound": "eh"
+    },
+    "i": {
+     "muffle": 1,
+     "sound": "ih"
+    },
+    "u": {
+     "muffle": 1,
+     "sound": "oo"
+    },
+    "v": {
+     "muffle": 1,
+     "sound": "yu"
+    },
+    "er": {
+     "muffle": 1,
+     "sound": "err"
+    },
+    "ai": {
+     "muffle": 1,
+     "sound": "ai"
+    },
+    "ei": {
+     "muffle": 1,
+     "sound": "ei"
+    },
+    "ao": {
+     "muffle": 1,
+     "sound": "aw"
+    },
+    "ou": {
+     "muffle": 1,
+     "sound": "oh"
+    },
+    "an": {
+     "muffle": 1,
+     "sound": "ahn"
+    },
+    "en": {
+     "muffle": 1,
+     "sound": "ehn"
+    },
+    "ang": {
+     "muffle": 1,
+     "sound": "ahng"
+    },
+    "eng": {
+     "muffle": 1,
+     "sound": "ehng"
+    },
+    "ong": {
+     "muffle": 1,
+     "sound": "ohng"
+    },
+    "ia": {
+     "muffle": 1,
+     "sound": "yah"
+    },
+    "ie": {
+     "muffle": 1,
+     "sound": "yeh"
+    },
+    "iao": {
+     "muffle": 1,
+     "sound": "yaw"
+    },
+    "iu": {
+     "muffle": 1,
+     "sound": "yoo"
+    },
+    "ian": {
+     "muffle": 1,
+     "sound": "yahn"
+    },
+    "in": {
+     "muffle": 1,
+     "sound": "ihn"
+    },
+    "iang": {
+     "muffle": 1,
+     "sound": "yahng"
+    },
+    "ing": {
+     "muffle": 1,
+     "sound": "ihng"
+    },
+    "iong": {
+     "muffle": 1,
+     "sound": "yohng"
+    },
+    "ua": {
+     "muffle": 1,
+     "sound": "wah"
+    },
+    "uo": {
+     "muffle": 1,
+     "sound": "woh"
+    },
+    "uai": {
+     "muffle": 1,
+     "sound": "wai"
+    },
+    "ui": {
+     "muffle": 1,
+     "sound": "way"
+    },
+    "uan": {
+     "muffle": 1,
+     "sound": "wahn"
+    },
+    "un": {
+     "muffle": 1,
+     "sound": "wuhn"
+    },
+    "uang": {
+     "muffle": 1,
+     "sound": "wahng"
+    },
+    "ueng": {
+     "muffle": 1,
+     "sound": "wuhng"
+    },
+    "ve": {
+     "muffle": 1,
+     "sound": "yweh"
+    },
+    "van": {
+     "muffle": 1,
+     "sound": "ywahn"
+    },
+    "vn": {
+     "muffle": 1,
+     "sound": "yuhn"
+    }
+   },
+   "en": {
+    "p": {
+     "muffle": 2,
+     "sound": "w"
+    },
+    "b": {
+     "muffle": 2,
+     "sound": "w"
+    },
+    "m": {
+     "muffle": 1,
+     "sound": "m"
+    },
+    "w": {
+     "muffle": 1,
+     "sound": "w"
+    },
+    "f": {
+     "muffle": 2,
+     "sound": "h"
+    },
+    "v": {
+     "muffle": 2,
+     "sound": "w"
+    },
+    "θ": {
+     "muffle": 2,
+     "sound": "h"
+    },
+    "ð": {
+     "muffle": 2,
+     "sound": "h"
+    },
+    "t": {
+     "muffle": 1,
+     "sound": "t"
+    },
+    "d": {
+     "muffle": 1,
+     "sound": "d"
+    },
+    "s": {
+     "muffle": 1,
+     "sound": "s"
+    },
+    "z": {
+     "muffle": 1,
+     "sound": "z"
+    },
+    "n": {
+     "muffle": 1,
+     "sound": "n"
+    },
+    "ɫ": {
+     "muffle": 1,
+     "sound": "l"
+    },
+    "ɹ": {
+     "muffle": 1,
+     "sound": "r"
+    },
+    "ʃ": {
+     "muffle": 2,
+     "sound": "sh"
+    },
+    "ʒ": {
+     "muffle": 2,
+     "sound": "sh"
+    },
+    "dʒ": {
+     "muffle": 2,
+     "sound": "j"
+    },
+    "tʃ": {
+     "muffle": 2,
+     "sound": "ch"
+    },
+    "j": {
+     "muffle": 0,
+     "sound": "y"
+    },
+    "k": {
+     "muffle": 1,
+     "sound": "k"
+    },
+    "ɡ": {
+     "muffle": 1,
+     "sound": "g"
+    },
+    "ŋ": {
+     "muffle": 1,
+     "sound": "ng"
+    },
+    "h": {
+     "muffle": 0,
+     "sound": "h"
+    },
+    "eɪ": {
+     "muffle": 1,
+     "sound": "ay"
+    },
+    "ə": {
+     "muffle": 0,
+     "sound": "a"
+    },
+    "ɔ": {
+     "muffle": 0,
+     "sound": "aw"
+    },
+    "æ": {
+     "muffle": 0,
+     "sound": "a"
+    },
+    "i": {
+     "muffle": 0,
+     "sound": "ee"
+    },
+    "ɛ": {
+     "muffle": 0,
+     "sound": "eh"
+    },
+    "ɝ": {
+     "muffle": 0,
+     "sound": "er"
+    },
+    "ɪə": {
+     "muffle": 0,
+     "sound": "err"
+    },
+    "aɪ": {
+     "muffle": 0,
+     "sound": "y"
+    },
+    "ɪ": {
+     "muffle": 0,
+     "sound": "ih"
+    },
+    "oʊ": {
+     "muffle": 0,
+     "sound": "oh"
+    },
+    "u": {
+     "muffle": 0,
+     "sound": "oo"
+    },
+    "ɑ": {
+     "muffle": 0,
+     "sound": "ah"
+    },
+    "ʊ": {
+     "muffle": 0,
+     "sound": "oo"
+    },
+    "aʊ": {
+     "muffle": 0,
+     "sound": "ow"
+    },
+    "ɔɪ": {
+     "muffle": 0,
+     "sound": "oy"
+    }
+   }
+  },
+  {
+   "id": "BallGag",
+   "displayName": "口球",
+   "aliases": [
+    "ball",
+    "ball gag",
+    "口球",
+    "球塞"
+   ],
+   "description": "口球顶住舌头: 塞音塌成鼻音, 元音被压扁。",
+   "silent": false,
+   "fallbackSounds": [
+    "m",
+    "m",
+    "h",
+    "mh",
+    "n"
+   ],
+   "zh": {
+    "b": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "p": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "m": {
+     "muffle": 2,
+     "sound": "m"
+    },
+    "f": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "d": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "t": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "n": {
+     "muffle": 2,
+     "sound": "n"
+    },
+    "l": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "g": {
+     "muffle": 3,
+     "sound": "ng"
+    },
+    "k": {
+     "muffle": 3,
+     "sound": "ng"
+    },
+    "h": {
+     "muffle": 2,
+     "sound": ""
+    },
+    "j": {
+     "muffle": 3,
+     "sound": "sh"
+    },
+    "q": {
+     "muffle": 3,
+     "sound": "sh"
+    },
+    "x": {
+     "muffle": 3,
+     "sound": "sh"
+    },
+    "zh": {
+     "muffle": 3,
+     "sound": "sh"
+    },
+    "ch": {
+     "muffle": 3,
+     "sound": "sh"
+    },
+    "sh": {
+     "muffle": 2,
+     "sound": "sh"
+    },
+    "r": {
+     "muffle": 3,
+     "sound": "w"
+    },
+    "z": {
+     "muffle": 3,
+     "sound": "s"
+    },
+    "c": {
+     "muffle": 3,
+     "sound": "s"
+    },
+    "s": {
+     "muffle": 2,
+     "sound": "s"
+    },
+    "y": {
+     "muffle": 1,
+     "sound": "y"
+    },
+    "w": {
+     "muffle": 1,
+     "sound": "w"
+    },
+    "a": {
+     "muffle": 2,
+     "sound": "ah"
+    },
+    "o": {
+     "muffle": 2,
+     "sound": "oh"
+    },
+    "e": {
+     "muffle": 2,
+     "sound": "eh"
+    },
+    "i": {
+     "muffle": 2,
+     "sound": "ih"
+    },
+    "u": {
+     "muffle": 2,
+     "sound": "oo"
+    },
+    "v": {
+     "muffle": 2,
+     "sound": "yu"
+    },
+    "er": {
+     "muffle": 2,
+     "sound": "err"
+    },
+    "ai": {
+     "muffle": 2,
+     "sound": "ai"
+    },
+    "ei": {
+     "muffle": 2,
+     "sound": "ei"
+    },
+    "ao": {
+     "muffle": 2,
+     "sound": "aw"
+    },
+    "ou": {
+     "muffle": 2,
+     "sound": "oh"
+    },
+    "an": {
+     "muffle": 2,
+     "sound": "ahn"
+    },
+    "en": {
+     "muffle": 2,
+     "sound": "ehn"
+    },
+    "ang": {
+     "muffle": 2,
+     "sound": "ahng"
+    },
+    "eng": {
+     "muffle": 2,
+     "sound": "ehng"
+    },
+    "ong": {
+     "muffle": 2,
+     "sound": "ohng"
+    },
+    "ia": {
+     "muffle": 2,
+     "sound": "yah"
+    },
+    "ie": {
+     "muffle": 2,
+     "sound": "yeh"
+    },
+    "iao": {
+     "muffle": 2,
+     "sound": "yaw"
+    },
+    "iu": {
+     "muffle": 2,
+     "sound": "yoo"
+    },
+    "ian": {
+     "muffle": 2,
+     "sound": "yahn"
+    },
+    "in": {
+     "muffle": 2,
+     "sound": "ihn"
+    },
+    "iang": {
+     "muffle": 2,
+     "sound": "yahng"
+    },
+    "ing": {
+     "muffle": 2,
+     "sound": "ihng"
+    },
+    "iong": {
+     "muffle": 2,
+     "sound": "yohng"
+    },
+    "ua": {
+     "muffle": 2,
+     "sound": "wah"
+    },
+    "uo": {
+     "muffle": 2,
+     "sound": "woh"
+    },
+    "uai": {
+     "muffle": 2,
+     "sound": "wai"
+    },
+    "ui": {
+     "muffle": 2,
+     "sound": "way"
+    },
+    "uan": {
+     "muffle": 2,
+     "sound": "wahn"
+    },
+    "un": {
+     "muffle": 2,
+     "sound": "wuhn"
+    },
+    "uang": {
+     "muffle": 2,
+     "sound": "wahng"
+    },
+    "ueng": {
+     "muffle": 2,
+     "sound": "wuhng"
+    },
+    "ve": {
+     "muffle": 2,
+     "sound": "yweh"
+    },
+    "van": {
+     "muffle": 2,
+     "sound": "ywahn"
+    },
+    "vn": {
+     "muffle": 2,
+     "sound": "yuhn"
+    }
+   },
+   "en": {
+    "p": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "b": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "m": {
+     "muffle": 2,
+     "sound": "m"
+    },
+    "w": {
+     "muffle": 2,
+     "sound": "w"
+    },
+    "f": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "v": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "θ": {
+     "muffle": 3,
+     "sound": "h"
+    },
+    "ð": {
+     "muffle": 3,
+     "sound": "h"
+    },
+    "t": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "d": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "s": {
+     "muffle": 2,
+     "sound": "ss"
+    },
+    "z": {
+     "muffle": 3,
+     "sound": "ss"
+    },
+    "n": {
+     "muffle": 2,
+     "sound": "n"
+    },
+    "ɫ": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "ɹ": {
+     "muffle": 2,
+     "sound": "r"
+    },
+    "ʃ": {
+     "muffle": 3,
+     "sound": "sh"
+    },
+    "ʒ": {
+     "muffle": 3,
+     "sound": "sh"
+    },
+    "dʒ": {
+     "muffle": 3,
+     "sound": "jh"
+    },
+    "tʃ": {
+     "muffle": 3,
+     "sound": "sh"
+    },
+    "j": {
+     "muffle": 2,
+     "sound": "y"
+    },
+    "k": {
+     "muffle": 3,
+     "sound": "ng"
+    },
+    "ɡ": {
+     "muffle": 3,
+     "sound": "ng"
+    },
+    "ŋ": {
+     "muffle": 2,
+     "sound": "ng"
+    },
+    "h": {
+     "muffle": 2,
+     "sound": ""
+    },
+    "eɪ": {
+     "muffle": 2,
+     "sound": "ay"
+    },
+    "ə": {
+     "muffle": 2,
+     "sound": "ah"
+    },
+    "ɔ": {
+     "muffle": 2,
+     "sound": "aw"
+    },
+    "æ": {
+     "muffle": 2,
+     "sound": "ah"
+    },
+    "i": {
+     "muffle": 2,
+     "sound": "ee"
+    },
+    "ɛ": {
+     "muffle": 2,
+     "sound": "eh"
+    },
+    "ɝ": {
+     "muffle": 2,
+     "sound": "er"
+    },
+    "ɪə": {
+     "muffle": 2,
+     "sound": "err"
+    },
+    "aɪ": {
+     "muffle": 2,
+     "sound": "y"
+    },
+    "ɪ": {
+     "muffle": 2,
+     "sound": "ih"
+    },
+    "oʊ": {
+     "muffle": 2,
+     "sound": "oh"
+    },
+    "u": {
+     "muffle": 2,
+     "sound": "oo"
+    },
+    "ɑ": {
+     "muffle": 2,
+     "sound": "ah"
+    },
+    "ʊ": {
+     "muffle": 2,
+     "sound": "oo"
+    },
+    "aʊ": {
+     "muffle": 2,
+     "sound": "ow"
+    },
+    "ɔɪ": {
+     "muffle": 2,
+     "sound": "oy"
+    }
+   }
+  },
+  {
+   "id": "PanelGag",
+   "displayName": "面板口枷",
+   "aliases": [
+    "panel",
+    "panel gag",
+    "muzzle",
+    "面板",
+    "口枷",
+    "口罩"
+   ],
+   "description": "面板压住整张嘴: 只剩沉闷鼻音。",
+   "silent": false,
+   "fallbackSounds": [
+    "m",
+    "m",
+    "n",
+    "mh"
+   ],
+   "zh": {
+    "b": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "p": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "m": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "f": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "d": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "t": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "n": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "l": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "g": {
+     "muffle": 3,
+     "sound": "ng"
+    },
+    "k": {
+     "muffle": 3,
+     "sound": "ng"
+    },
+    "h": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "j": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "q": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "x": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "zh": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "ch": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "sh": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "r": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "z": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "c": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "s": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "y": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "w": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "a": {
+     "muffle": 3,
+     "sound": "uhm"
+    },
+    "o": {
+     "muffle": 3,
+     "sound": "ohm"
+    },
+    "e": {
+     "muffle": 3,
+     "sound": "ehm"
+    },
+    "i": {
+     "muffle": 3,
+     "sound": "ihm"
+    },
+    "u": {
+     "muffle": 3,
+     "sound": "uhm"
+    },
+    "v": {
+     "muffle": 3,
+     "sound": "yuhm"
+    },
+    "er": {
+     "muffle": 3,
+     "sound": "uhm"
+    },
+    "ai": {
+     "muffle": 3,
+     "sound": "aim"
+    },
+    "ei": {
+     "muffle": 3,
+     "sound": "eim"
+    },
+    "ao": {
+     "muffle": 3,
+     "sound": "aum"
+    },
+    "ou": {
+     "muffle": 3,
+     "sound": "ohm"
+    },
+    "an": {
+     "muffle": 3,
+     "sound": "ahn"
+    },
+    "en": {
+     "muffle": 3,
+     "sound": "ehn"
+    },
+    "ang": {
+     "muffle": 3,
+     "sound": "ahng"
+    },
+    "eng": {
+     "muffle": 3,
+     "sound": "ehng"
+    },
+    "ong": {
+     "muffle": 3,
+     "sound": "ohng"
+    },
+    "ia": {
+     "muffle": 3,
+     "sound": "yahm"
+    },
+    "ie": {
+     "muffle": 3,
+     "sound": "yehm"
+    },
+    "iao": {
+     "muffle": 3,
+     "sound": "yawm"
+    },
+    "iu": {
+     "muffle": 3,
+     "sound": "yoom"
+    },
+    "ian": {
+     "muffle": 3,
+     "sound": "yahn"
+    },
+    "in": {
+     "muffle": 3,
+     "sound": "ihn"
+    },
+    "iang": {
+     "muffle": 3,
+     "sound": "yahng"
+    },
+    "ing": {
+     "muffle": 3,
+     "sound": "ihng"
+    },
+    "iong": {
+     "muffle": 3,
+     "sound": "yohng"
+    },
+    "ua": {
+     "muffle": 3,
+     "sound": "wahm"
+    },
+    "uo": {
+     "muffle": 3,
+     "sound": "wohm"
+    },
+    "uai": {
+     "muffle": 3,
+     "sound": "waim"
+    },
+    "ui": {
+     "muffle": 3,
+     "sound": "waym"
+    },
+    "uan": {
+     "muffle": 3,
+     "sound": "wahn"
+    },
+    "un": {
+     "muffle": 3,
+     "sound": "wuhn"
+    },
+    "uang": {
+     "muffle": 3,
+     "sound": "wahng"
+    },
+    "ueng": {
+     "muffle": 3,
+     "sound": "wuhng"
+    },
+    "ve": {
+     "muffle": 3,
+     "sound": "ywehm"
+    },
+    "van": {
+     "muffle": 3,
+     "sound": "ywahn"
+    },
+    "vn": {
+     "muffle": 3,
+     "sound": "yuhn"
+    }
+   },
+   "en": {
+    "p": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "b": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "m": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "w": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "f": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "v": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "θ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ð": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "t": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "d": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "s": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "z": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "n": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "ɫ": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "ɹ": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "ʃ": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "ʒ": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "dʒ": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "tʃ": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "j": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "k": {
+     "muffle": 3,
+     "sound": "ng"
+    },
+    "ɡ": {
+     "muffle": 3,
+     "sound": "ng"
+    },
+    "ŋ": {
+     "muffle": 3,
+     "sound": "ng"
+    },
+    "h": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "eɪ": {
+     "muffle": 3,
+     "sound": "aym"
+    },
+    "ə": {
+     "muffle": 3,
+     "sound": "ahm"
+    },
+    "ɔ": {
+     "muffle": 3,
+     "sound": "awm"
+    },
+    "æ": {
+     "muffle": 3,
+     "sound": "ahm"
+    },
+    "i": {
+     "muffle": 3,
+     "sound": "eem"
+    },
+    "ɛ": {
+     "muffle": 3,
+     "sound": "ehm"
+    },
+    "ɝ": {
+     "muffle": 3,
+     "sound": "erm"
+    },
+    "ɪə": {
+     "muffle": 3,
+     "sound": "errm"
+    },
+    "aɪ": {
+     "muffle": 3,
+     "sound": "ym"
+    },
+    "ɪ": {
+     "muffle": 3,
+     "sound": "ihm"
+    },
+    "oʊ": {
+     "muffle": 3,
+     "sound": "ohm"
+    },
+    "u": {
+     "muffle": 3,
+     "sound": "oom"
+    },
+    "ɑ": {
+     "muffle": 3,
+     "sound": "ahm"
+    },
+    "ʊ": {
+     "muffle": 3,
+     "sound": "oom"
+    },
+    "aʊ": {
+     "muffle": 3,
+     "sound": "owm"
+    },
+    "ɔɪ": {
+     "muffle": 3,
+     "sound": "oym"
+    }
+   }
+  },
+  {
+   "id": "CleaveGag",
+   "displayName": "布条封口",
+   "aliases": [
+    "cleave",
+    "cleave gag",
+    "tape",
+    "布条",
+    "胶带",
+    "封口"
+   ],
+   "description": "布条/胶带绕嘴: 声母全消失, 只剩 m 音。",
+   "silent": false,
+   "fallbackSounds": [
+    "m",
+    "m",
+    "mh"
+   ],
+   "zh": {
+    "b": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "p": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "m": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "f": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "d": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "t": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "n": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "l": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "g": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "k": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "h": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "j": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "q": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "x": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "zh": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ch": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "sh": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "r": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "z": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "c": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "s": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "y": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "w": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "a": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "o": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "e": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "i": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "u": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "v": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "er": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ai": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ei": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ao": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ou": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "an": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "en": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ang": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "eng": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ong": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ia": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ie": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "iao": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "iu": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ian": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "in": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "iang": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ing": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "iong": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ua": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "uo": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "uai": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ui": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "uan": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "un": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "uang": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ueng": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ve": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "van": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "vn": {
+     "muffle": 3,
+     "sound": "m"
+    }
+   },
+   "en": {
+    "p": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "b": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "m": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "w": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "f": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "v": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "θ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ð": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "t": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "d": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "s": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "z": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "n": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "ɫ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ɹ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ʃ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ʒ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "dʒ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "tʃ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "j": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "k": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ɡ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ŋ": {
+     "muffle": 3,
+     "sound": "ng"
+    },
+    "h": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "eɪ": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ə": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ɔ": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "æ": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "i": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ɛ": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ɝ": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ɪə": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "aɪ": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ɪ": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "oʊ": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "u": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ɑ": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ʊ": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "aʊ": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ɔɪ": {
+     "muffle": 3,
+     "sound": "m"
+    }
+   }
+  },
+  {
+   "id": "StuffGag",
+   "displayName": "填塞",
+   "aliases": [
+    "stuff",
+    "stuffing",
+    "sock",
+    "panty",
+    "填塞",
+    "袜子",
+    "内裤"
+   ],
+   "description": "嘴里被塞满: 比封口更闷。",
+   "silent": false,
+   "fallbackSounds": [
+    "mh",
+    "m",
+    "n"
+   ],
+   "zh": {
+    "b": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "p": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "m": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "f": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "d": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "t": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "n": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "l": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "g": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "k": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "h": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "j": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "q": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "x": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "zh": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ch": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "sh": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "r": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "z": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "c": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "s": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "y": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "w": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "a": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "o": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "e": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "i": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "u": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "v": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "er": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ai": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ei": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ao": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ou": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "an": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "en": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ang": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "eng": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ong": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ia": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ie": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "iao": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "iu": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ian": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "in": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "iang": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ing": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "iong": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ua": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "uo": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "uai": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ui": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "uan": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "un": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "uang": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ueng": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ve": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "van": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "vn": {
+     "muffle": 3,
+     "sound": "mh"
+    }
+   },
+   "en": {
+    "p": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "b": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "m": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "w": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "f": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "v": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "θ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ð": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "t": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "d": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "s": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "z": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "n": {
+     "muffle": 3,
+     "sound": "n"
+    },
+    "ɫ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ɹ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ʃ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ʒ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "dʒ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "tʃ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "j": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "k": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ɡ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ŋ": {
+     "muffle": 3,
+     "sound": "ng"
+    },
+    "h": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "eɪ": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ə": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ɔ": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "æ": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "i": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ɛ": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ɝ": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ɪə": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "aɪ": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ɪ": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "oʊ": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "u": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ɑ": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ʊ": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "aʊ": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ɔɪ": {
+     "muffle": 3,
+     "sound": "mh"
+    }
+   }
+  },
+  {
+   "id": "HoodGag",
+   "displayName": "密封头套",
+   "aliases": [
+    "hood",
+    "sealed",
+    "silent",
+    "头套",
+    "密封",
+    "无声"
+   ],
+   "description": "完全听不见: 只会留下 …… / mnm 这类残响。",
+   "silent": true,
+   "fallbackSounds": [
+    ""
+   ],
+   "zh": {
+    "b": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "p": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "m": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "f": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "d": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "t": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "n": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "l": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "g": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "k": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "h": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "j": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "q": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "x": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "zh": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ch": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "sh": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "r": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "z": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "c": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "s": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "y": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "w": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "a": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "o": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "e": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "i": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "u": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "v": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "er": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ai": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ei": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ao": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ou": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "an": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "en": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ang": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "eng": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ong": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ia": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ie": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "iao": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "iu": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ian": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "in": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "iang": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ing": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "iong": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ua": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "uo": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "uai": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ui": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "uan": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "un": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "uang": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ueng": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ve": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "van": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "vn": {
+     "muffle": 3,
+     "sound": ""
+    }
+   },
+   "en": {
+    "p": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "b": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "m": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "w": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "f": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "v": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "θ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ð": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "t": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "d": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "s": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "z": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "n": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ɫ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ɹ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ʃ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ʒ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "dʒ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "tʃ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "j": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "k": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ɡ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ŋ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "h": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "eɪ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ə": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ɔ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "æ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "i": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ɛ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ɝ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ɪə": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "aɪ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ɪ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "oʊ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "u": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ɑ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ʊ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "aʊ": {
+     "muffle": 3,
+     "sound": ""
+    },
+    "ɔɪ": {
+     "muffle": 3,
+     "sound": ""
+    }
+   }
+  }
+ ],
+ "graphemesEn": [
+  {
+   "g": "tion",
+   "p": [
+    "ʃ",
+    "ə",
+    "n"
+   ]
+  },
+  {
+   "g": "sion",
+   "p": [
+    "ʒ",
+    "ə",
+    "n"
+   ]
+  },
+  {
+   "g": "ough",
+   "p": [
+    "ɔ"
+   ]
+  },
+  {
+   "g": "augh",
+   "p": [
+    "ɔ"
+   ]
+  },
+  {
+   "g": "eigh",
+   "p": [
+    "eɪ"
+   ]
+  },
+  {
+   "g": "igh",
+   "p": [
+    "aɪ"
+   ]
+  },
+  {
+   "g": "tch",
+   "p": [
+    "tʃ"
+   ]
+  },
+  {
+   "g": "dge",
+   "p": [
+    "dʒ"
+   ]
+  },
+  {
+   "g": "sch",
+   "p": [
+    "s",
+    "k"
+   ]
+  },
+  {
+   "g": "ch",
+   "p": [
+    "tʃ"
+   ]
+  },
+  {
+   "g": "sh",
+   "p": [
+    "ʃ"
+   ]
+  },
+  {
+   "g": "th",
+   "p": [
+    "θ"
+   ]
+  },
+  {
+   "g": "ph",
+   "p": [
+    "f"
+   ]
+  },
+  {
+   "g": "wh",
+   "p": [
+    "w"
+   ]
+  },
+  {
+   "g": "ck",
+   "p": [
+    "k"
+   ]
+  },
+  {
+   "g": "ng",
+   "p": [
+    "ŋ"
+   ]
+  },
+  {
+   "g": "qu",
+   "p": [
+    "k",
+    "w"
+   ]
+  },
+  {
+   "g": "ee",
+   "p": [
+    "i"
+   ]
+  },
+  {
+   "g": "ea",
+   "p": [
+    "i"
+   ]
+  },
+  {
+   "g": "oo",
+   "p": [
+    "u"
+   ]
+  },
+  {
+   "g": "ou",
+   "p": [
+    "aʊ"
+   ]
+  },
+  {
+   "g": "ow",
+   "p": [
+    "aʊ"
+   ]
+  },
+  {
+   "g": "oa",
+   "p": [
+    "oʊ"
+   ]
+  },
+  {
+   "g": "oi",
+   "p": [
+    "ɔɪ"
+   ]
+  },
+  {
+   "g": "oy",
+   "p": [
+    "ɔɪ"
+   ]
+  },
+  {
+   "g": "ai",
+   "p": [
+    "eɪ"
+   ]
+  },
+  {
+   "g": "ay",
+   "p": [
+    "eɪ"
+   ]
+  },
+  {
+   "g": "au",
+   "p": [
+    "ɔ"
+   ]
+  },
+  {
+   "g": "aw",
+   "p": [
+    "ɔ"
+   ]
+  },
+  {
+   "g": "ie",
+   "p": [
+    "i"
+   ]
+  },
+  {
+   "g": "ei",
+   "p": [
+    "eɪ"
+   ]
+  },
+  {
+   "g": "ey",
+   "p": [
+    "eɪ"
+   ]
+  },
+  {
+   "g": "ar",
+   "p": [
+    "ɑ",
+    "ɹ"
+   ]
+  },
+  {
+   "g": "er",
+   "p": [
+    "ɝ"
+   ]
+  },
+  {
+   "g": "ir",
+   "p": [
+    "ɝ"
+   ]
+  },
+  {
+   "g": "ur",
+   "p": [
+    "ɝ"
+   ]
+  },
+  {
+   "g": "or",
+   "p": [
+    "ɔ",
+    "ɹ"
+   ]
+  },
+  {
+   "g": "a",
+   "p": [
+    "æ"
+   ]
+  },
+  {
+   "g": "b",
+   "p": [
+    "b"
+   ]
+  },
+  {
+   "g": "c",
+   "p": [
+    "k"
+   ]
+  },
+  {
+   "g": "d",
+   "p": [
+    "d"
+   ]
+  },
+  {
+   "g": "e",
+   "p": [
+    "ɛ"
+   ]
+  },
+  {
+   "g": "f",
+   "p": [
+    "f"
+   ]
+  },
+  {
+   "g": "g",
+   "p": [
+    "ɡ"
+   ]
+  },
+  {
+   "g": "h",
+   "p": [
+    "h"
+   ]
+  },
+  {
+   "g": "i",
+   "p": [
+    "ɪ"
+   ]
+  },
+  {
+   "g": "j",
+   "p": [
+    "dʒ"
+   ]
+  },
+  {
+   "g": "k",
+   "p": [
+    "k"
+   ]
+  },
+  {
+   "g": "l",
+   "p": [
+    "ɫ"
+   ]
+  },
+  {
+   "g": "m",
+   "p": [
+    "m"
+   ]
+  },
+  {
+   "g": "n",
+   "p": [
+    "n"
+   ]
+  },
+  {
+   "g": "o",
+   "p": [
+    "ɔ"
+   ]
+  },
+  {
+   "g": "p",
+   "p": [
+    "p"
+   ]
+  },
+  {
+   "g": "q",
+   "p": [
+    "k"
+   ]
+  },
+  {
+   "g": "r",
+   "p": [
+    "ɹ"
+   ]
+  },
+  {
+   "g": "s",
+   "p": [
+    "s"
+   ]
+  },
+  {
+   "g": "t",
+   "p": [
+    "t"
+   ]
+  },
+  {
+   "g": "u",
+   "p": [
+    "ʊ"
+   ]
+  },
+  {
+   "g": "v",
+   "p": [
+    "v"
+   ]
+  },
+  {
+   "g": "w",
+   "p": [
+    "w"
+   ]
+  },
+  {
+   "g": "x",
+   "p": [
+    "ks"
+   ]
+  },
+  {
+   "g": "y",
+   "p": [
+    "j"
+   ]
+  },
+  {
+   "g": "z",
+   "p": [
+    "z"
+   ]
+  }
+ ],
+ "digitsZh": {
+  "0": "ling",
+  "1": "yi",
+  "2": "er",
+  "3": "san",
+  "4": "si",
+  "5": "wu",
+  "6": "liu",
+  "7": "qi",
+  "8": "ba",
+  "9": "jiu"
+ },
+ "digitsEn": {
+  "0": [
+   "z",
+   "ɪə",
+   "ɹ",
+   "oʊ"
+  ],
+  "1": [
+   "w",
+   "ʊ",
+   "n"
+  ],
+  "2": [
+   "t",
+   "u"
+  ],
+  "3": [
+   "θ",
+   "ɹ",
+   "i"
+  ],
+  "4": [
+   "f",
+   "ɔ",
+   "ɹ"
+  ],
+  "5": [
+   "f",
+   "aɪ",
+   "v"
+  ],
+  "6": [
+   "s",
+   "ɪ",
+   "k",
+   "s"
+  ],
+  "7": [
+   "s",
+   "ɛ",
+   "v",
+   "ə",
+   "n"
+  ],
+  "8": [
+   "eɪ",
+   "t"
+  ],
+  "9": [
+   "n",
+   "aɪ",
+   "n"
+  ]
+ }
+}
