@@ -4,6 +4,7 @@
 
 #include "Core/MyBondageLifeHairCatalog.h"
 #include "Core/MyBondageLifeRestraintCatalog.h"
+#include "Core/Garbler/MyBondageLifeGagTypeMap.h"
 #include "Animation/AnimMontage.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimInstance.h"
@@ -747,6 +748,33 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("Restraint: %d item(s) applied (arm=%d leg=%d cantmove=%d pet=%d)."),
 		RestraintItemIds.Num(), bRestraintArm ? 1 : 0, bRestraintLeg ? 1 : 0, bCantMove ? 1 : 0, bInPetMode ? 1 : 0);
+}
+
+FName AMyBondageLifeCharacter::GetGagProfileId() const
+{
+	// 找第一件"算作堵嘴"的已穿戴道具，用它的 Enum_GagType 决定用哪个混淆档位。
+	for (int32 Index = 0; Index < RestraintItemIds.Num(); ++Index)
+	{
+		const FMyBondageLifeRestraintItem* Item = FMyBondageLifeRestraintCatalog::Find(RestraintItemIds[Index]);
+		if (!Item || !Item->bInGag)
+		{
+			continue;
+		}
+
+		if (Item->bHasGagType)
+		{
+			const FName Profile = FMyBondageLifeGagTypeMap::ToProfileId(Item->GagType);
+			if (!Profile.IsNone())
+			{
+				return Profile;
+			}
+		}
+
+		// 旧数据没配 GagType：退回默认口球档位，避免"戴着却还能正常说话"。
+		return FMyBondageLifeGagTypeMap::GetDefaultProfileId();
+	}
+
+	return NAME_None;
 }
 
 void AMyBondageLifeCharacter::RefreshGagPose()

@@ -3,6 +3,7 @@
 #include "MyBondageLifePlayerController.h"
 
 #include "Core/MyBondageLifeAccountSubsystem.h"
+#include "Core/Garbler/MyBondageLifeGarbler.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Engine/World.h"
@@ -493,7 +494,8 @@ void AMyBondageLifePlayerController::ServerSendChatMessage_Implementation(const 
 
 	// Character name only, matching the nameplate.
 	FString RoleName;
-	if (const AMyBondageLifeCharacter* SenderCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	const AMyBondageLifeCharacter* SenderCharacter = Cast<AMyBondageLifeCharacter>(GetPawn());
+	if (SenderCharacter)
 	{
 		RoleName = SenderCharacter->GetCharacterName().ToString();
 	}
@@ -503,6 +505,25 @@ void AMyBondageLifePlayerController::ServerSendChatMessage_Implementation(const 
 	}
 
 	const FString SenderName = RoleName;
+
+	// 嘴里塞着东西时，正文换成堵嘴后的发音再广播。
+	// 放在服务端做：所有客户端（包括自己）看到的是同一份文本，客户端也绕不过去。
+	FString OutgoingMessage = TrimmedMessage;
+	if (SenderCharacter && SenderCharacter->GetGagActive())
+	{
+		const FName GagProfile = SenderCharacter->GetGagProfileId();
+		if (!GagProfile.IsNone())
+		{
+			FMyBondageLifeGarblerOptions GarblerOptions;
+			const FString Garbled = FMyBondageLifeGarbler::Garble(TrimmedMessage, { GagProfile }, GarblerOptions);
+			if (!Garbled.IsEmpty())
+			{
+				OutgoingMessage = Garbled;
+			}
+			UE_LOG(LogMyBondageLife, Log, TEXT("Chat: gagged [%s] %s -> %s"),
+				*GagProfile.ToString(), *TrimmedMessage, *OutgoingMessage);
+		}
+	}
 
 	UWorld* World = GetWorld();
 	if (!World)
@@ -517,7 +538,7 @@ void AMyBondageLifePlayerController::ServerSendChatMessage_Implementation(const 
 		{
 			const APlayerState* SenderState = GetPlayerState<APlayerState>();
 			const FString SenderAccount = SenderState ? SenderState->GetPlayerName() : FString();
-			OtherController->ClientReceiveChatMessage(SenderAccount, SenderName, TrimmedMessage);
+			OtherController->ClientReceiveChatMessage(SenderAccount, SenderName, OutgoingMessage);
 		}
 	}
 }

@@ -244,3 +244,39 @@ const FString 混淆 = FMyBondageLifeGarbler::Garble(TEXT("你好，今天天气
 ```
 
 然后把 `GarblerTables.json` / `HanziPinyin.json` 放到 `Config/Garbler/`（`Config` 目录本身会被打进包）。
+
+---
+
+## 六、已经接入游戏的地方
+
+聊天发送链路（服务端权威，所有客户端看到同一份文本）：
+
+```
+玩家按回车提交
+  └─ UMyBondageLifeChatWidget::OnMessageSubmitted
+       └─ AMyBondageLifePlayerController::ServerSendChatMessage(原文)      // Server RPC
+            ├─ GetPawn() -> AMyBondageLifeCharacter
+            ├─ GetGagActive()          // = bRestraintInGag：任一穿戴件带 InGag? 就为 true
+            ├─ GetGagProfileId()       // 扫 RestraintItemIds，找到带 InGag 的那件
+            │     └─ FMyBondageLifeGagTypeMap::ToProfileId(GagType)
+            │           ├─ 优先用 Enum_GagType 的显示名匹配档位（"口球" -> BallGag）
+            │           └─ 显示名对不上时按顺序 0..5 兜底
+            ├─ FMyBondageLifeGarbler::Garble(原文, {档位}, Options)
+            └─ ClientReceiveChatMessage(混淆后的文本)  -> 所有人（含自己）
+```
+
+| 文件 | 作用 |
+|---|---|
+| `Core/MyBondageLifeRestraintCatalog.*` | 从 `DT_Restraint` 读 `GagType` / `Muffle`（旧表没有这两列也能跑） |
+| `Core/Garbler/MyBondageLifeGagTypeMap.*` | `Enum_GagType` -> 档位 id |
+| `MyBondageLifeCharacter::GetGagProfileId()` | 当前穿戴里哪件算堵嘴、对应哪个档位 |
+| `MyBondageLifePlayerController::ServerSendChatMessage_Implementation` | 真正调用 `Garble` 的地方 |
+
+### 几点约定
+
+- **`Muffle` 列目前只读取、不使用。** 听感由 `GagType` 决定的档位给出；以后若想「同一档位里再微调强度」，
+  可以把它接成 `muffleBias`。
+- **旧数据兜底**：口部道具没配 `GagType`（或表里根本没这列）时按默认 `BallGag` 处理，
+  避免「戴着却还能正常说话」。
+- **`GagType` 的 0 是合法值**（0 = 开口环），所以不能用 0 表示「未设置」——判断依据是这一列**存不存在**。
+- 混淆只发生在**发送时**：输入框里仍是原文，聊天记录里是混淆后的文本。

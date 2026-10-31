@@ -185,6 +185,13 @@ public:
 	UFUNCTION(BlueprintPure, Category="Restraint")
 	bool GetGagActive() const { return bRestraintInGag; }
 
+	/**
+	 *  当前嘴部拘束对应的混淆档位（Garbler 的 id，如 "BallGag"）。
+	 *  没戴 / 没配 GagType 时：没戴返回 None，配了旧数据则回退到默认口球档位。
+	 */
+	UFUNCTION(BlueprintPure, Category="Restraint")
+	FName GetGagProfileId() const;
+
 	UFUNCTION(BlueprintPure, Category="Restraint")
 	bool GetArmActive() const { return bRestraintArm; }
 

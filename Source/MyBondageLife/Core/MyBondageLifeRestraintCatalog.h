@@ -33,6 +33,15 @@ struct FMyBondageLifeRestraintItem
 	bool bRestraintLeg = false;
 	bool bCantMove = false;
 	bool bInPetMode = false;
+
+	/** Enum_GagType 的整数值（只对口部道具有效）。 */
+	int32 GagType = 0;
+
+	/** 该行是否真的带 GagType 列；旧数据可能没有这一列。 */
+	bool bHasGagType = false;
+
+	/** 行里配置的 Muffle 值（目前只读取、不使用，留给以后做强度微调）。 */
+	int32 Muffle = 0;
 };
 
 /**

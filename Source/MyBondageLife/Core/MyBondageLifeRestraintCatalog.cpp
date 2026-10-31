@@ -39,6 +39,19 @@ namespace
 		return false;
 	}
 
+	/** True when a property with one of the accepted prefixes exists at all. */
+	bool HasProperty(const UScriptStruct* RowStruct, std::initializer_list<const TCHAR*> Prefixes)
+	{
+		for (TFieldIterator<FProperty> It(RowStruct); It; ++It)
+		{
+			if (MatchesName(*It, Prefixes))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
 	int32 ReadInt(const UScriptStruct* RowStruct, const uint8* RowData, std::initializer_list<const TCHAR*> Prefixes)
 	{
 		for (TFieldIterator<FProperty> It(RowStruct); It; ++It)
@@ -175,6 +188,11 @@ void FMyBondageLifeRestraintCatalog::Refresh()
 		Item.bRestraintLeg = ReadBool(RowStruct, RowData, { TEXT("RestranitLeg"), TEXT("RestraintLeg"), TEXT("RestranitLeg?"), TEXT("RestraintLeg?") });
 		Item.bCantMove = ReadBool(RowStruct, RowData, { TEXT("CantMove"), TEXT("CantMove?") });
 		Item.bInPetMode = ReadBool(RowStruct, RowData, { TEXT("InPetMode") });
+
+		// 口部道具的枚举类型（Enum_GagType）。旧表没有这一列时 bHasGagType 为 false。
+		Item.bHasGagType = HasProperty(RowStruct, { TEXT("GagType") });
+		Item.GagType = Item.bHasGagType ? ReadInt(RowStruct, RowData, { TEXT("GagType") }) : 0;
+		Item.Muffle = ReadInt(RowStruct, RowData, { TEXT("Muffle") });
 
 		FSoftObjectPtr Temp;
 		ReadObjectRef(RowStruct, RowData, { TEXT("Mesh") }, USkeletalMesh::StaticClass(), Temp);
