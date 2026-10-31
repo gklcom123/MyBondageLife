@@ -543,8 +543,6 @@ public:
 	UPROPERTY(Transient)
 	bool bRestraintMovementBlocked = false;
 
-	FRotator FrozenControlRotation = FRotator::ZeroRotator;
-
 	UPROPERTY(Transient)
 	bool bMessageCenterOpen = false;
 

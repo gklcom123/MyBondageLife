@@ -326,7 +326,6 @@ void AMyBondageLifePlayerController::SetGameplayInputBlocked(bool bBlocked)
 		// SetIgnore*Input are counters, so repeated blocking would leave them above
 		// zero and the pawn would never respond again. Resetting clears them.
 		ResetIgnoreMoveInput();
-		ResetIgnoreLookInput();
 	}
 
 	if (APawn* ControlledPawn = GetPawn())
@@ -1471,12 +1470,6 @@ void AMyBondageLifePlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
 
-	// CantMove locks the view: keep the saved rotation every frame.
-	if (bRestraintMovementBlocked)
-	{
-		SetControlRotation(FrozenControlRotation);
-	}
-
 
 	// Project every character's head each frame: the plate position is derived from
 	// the projection only, so it cannot drift when the camera rotates.
@@ -2406,16 +2399,11 @@ void AMyBondageLifePlayerController::SetRestraintMovementBlocked(bool bBlocked)
 	// Cannot move and cannot turn: drop both axes while the restraint is worn.
 	if (bBlocked)
 	{
+		// Movement only: looking around with the camera stays allowed.
 		SetIgnoreMoveInput(true);
-		SetIgnoreLookInput(true);
-
-		// Freezing the control rotation is the only reliable way: the camera follows the
-		// controller rotation, which input axis handlers can still write to.
-		FrozenControlRotation = GetControlRotation();
 	}
 	else
 	{
 		ResetIgnoreMoveInput();
-		ResetIgnoreLookInput();
 	}
 }
