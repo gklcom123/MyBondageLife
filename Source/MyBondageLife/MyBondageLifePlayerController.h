@@ -510,6 +510,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Message")
 	void ToggleMessageCenter();
 
+	UFUNCTION()
+	void HandleMessageKeyPressed();
+
 	UFUNCTION(BlueprintCallable, Category = "Message")
 	bool IsMessageCenterOpen() const;
 

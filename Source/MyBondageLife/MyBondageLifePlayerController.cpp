@@ -1439,6 +1439,8 @@ void AMyBondageLifePlayerController::SetupInputComponent()
 	// 衣柜面板：B 键与底部入口同效。
 	InputComponent->BindKey(EKeys::B, IE_Pressed, this, &AMyBondageLifePlayerController::HandleWardrobeKeyPressed);
 
+	InputComponent->BindKey(EKeys::Q, IE_Pressed, this, &AMyBondageLifePlayerController::HandleMessageKeyPressed);
+
 	// 束缚姿势改由装备的拘束（UpAnmi）驱动，F9 临时开关已移除。
 
 	// F: inspect the nearby player.
@@ -2225,4 +2227,15 @@ void AMyBondageLifePlayerController::ToggleMessageCenter()
 bool AMyBondageLifePlayerController::IsMessageCenterOpen() const
 {
 	return MessageCenterWidget && MessageCenterWidget->IsPanelOpen();
+}
+
+void AMyBondageLifePlayerController::HandleMessageKeyPressed()
+{
+	// "Q" belongs to the chat text while typing.
+	if (bChatTextInput || IsGameMenuOpen())
+	{
+		return;
+	}
+
+	ToggleMessageCenter();
 }
