@@ -327,6 +327,7 @@ void AMyBondageLifePlayerController::SetGameplayInputBlocked(bool bBlocked)
 		// SetIgnore*Input are counters, so repeated blocking would leave them above
 		// zero and the pawn would never respond again. Resetting clears them.
 		ResetIgnoreMoveInput();
+		ResetIgnoreLookInput();   // look was blocked above as well; must be cleared too
 	}
 
 	if (APawn* ControlledPawn = GetPawn())
