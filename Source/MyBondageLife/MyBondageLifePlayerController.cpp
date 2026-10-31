@@ -1400,6 +1400,7 @@ void AMyBondageLifePlayerController::BeginPlay()
 		ShowPlayerInfo();
 		ShowFriendList();
 		ShowWardrobeButton();
+	ShowMessageHud();
 		ShowWardrobe();
 		ShowHostInfo();
 
@@ -2141,7 +2142,7 @@ void AMyBondageLifePlayerController::ShowMessageHud()
 		MessageCenterWidget = CreateWidget<UMyBondageLifeMessageCenterWidget>(this, MessageCenterWidgetClass);
 		if (MessageCenterWidget)
 		{
-			MessageCenterWidget->AddToViewport(46);
+			MessageCenterWidget->AddToViewport(60);
 			MessageCenterWidget->SetPanelOpen(false);
 		}
 	}
