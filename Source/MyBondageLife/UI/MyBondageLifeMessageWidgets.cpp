@@ -83,6 +83,10 @@ void UMyBondageLifeMessageButtonWidget::BuildLayout()
 		Size->SetHeightOverride(88.0f);
 		if (UCanvasPanelSlot* SizeSlot = Canvas->AddChildToCanvas(Size))
 		{
+			// Bottom-left, just above the chat box (mirrors the other HUD entries).
+			SizeSlot->SetAnchors(FAnchors(0.0f, 1.0f, 0.0f, 1.0f));
+			SizeSlot->SetAlignment(FVector2D(0.0f, 1.0f));
+			SizeSlot->SetPosition(FVector2D(40.0f, -300.0f));
 			SizeSlot->SetAutoSize(true);
 			SizeSlot->SetZOrder(20);
 		}
@@ -105,8 +109,9 @@ void UMyBondageLifeMessageButtonWidget::BuildLayout()
 			Dot->SetBrushFromTexture(DotTexture, true);
 			if (UCanvasPanelSlot* DotSlot = Canvas->AddChildToCanvas(Dot))
 			{
-				DotSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
-				DotSlot->SetPosition(FVector2D(56.0f, -6.0f));
+				DotSlot->SetAnchors(FAnchors(0.0f, 1.0f, 0.0f, 1.0f));
+				DotSlot->SetAlignment(FVector2D(0.0f, 1.0f));
+				DotSlot->SetPosition(FVector2D(96.0f, -244.0f));
 				DotSlot->SetSize(FVector2D(24.0f, 24.0f));
 				DotSlot->SetZOrder(21);
 			}

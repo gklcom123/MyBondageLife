@@ -2137,6 +2137,7 @@ void AMyBondageLifePlayerController::ShowMessageHud()
 		MessageCenterWidgetClass = DesignedCenter ? DesignedCenter : UMyBondageLifeMessageCenterWidget::StaticClass();
 	}
 
+
 	if (!MessageCenterWidget)
 	{
 		MessageCenterWidget = CreateWidget<UMyBondageLifeMessageCenterWidget>(this, MessageCenterWidgetClass);
@@ -2147,6 +2148,7 @@ void AMyBondageLifePlayerController::ShowMessageHud()
 		}
 	}
 
+
 	if (!MessageButtonWidget)
 	{
 		MessageButtonWidget = CreateWidget<UMyBondageLifeMessageButtonWidget>(this, MessageButtonWidgetClass);
@@ -2155,9 +2157,7 @@ void AMyBondageLifePlayerController::ShowMessageHud()
 			MessageButtonWidget->AddToViewport(13);
 
 			// Bottom-left, just above the chat box.
-			MessageButtonWidget->SetAnchorsInViewport(FAnchors(0.0f, 1.0f));
-			MessageButtonWidget->SetAlignmentInViewport(FVector2D(0.0f, 1.0f));
-			MessageButtonWidget->SetPositionInViewport(FVector2D(40.0f, -300.0f), false);
+
 		}
 	}
 
@@ -2215,6 +2215,7 @@ void AMyBondageLifePlayerController::HandleNotificationAdded(const FMyBondageLif
 
 void AMyBondageLifePlayerController::ToggleMessageCenter()
 {
+
 	if (!MessageCenterWidget)
 	{
 		ShowMessageHud();
