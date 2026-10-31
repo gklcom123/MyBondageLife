@@ -223,6 +223,31 @@ TSharedRef<SWidget> UMyBondageLifeMessageRowWidget::RebuildWidget()
 void UMyBondageLifeMessageRowWidget::BuildLayout()
 {
 	MessageText = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_Text")));
+	if (!MessageText)
+	{
+		// Positional fallback: the design may not name the label.
+		TArray<UTextBlock*> Texts;
+		if (UPanelWidget* RootPanel = Cast<UPanelWidget>(WidgetTree->RootWidget))
+		{
+			for (int32 Index = 0; Index < RootPanel->GetChildrenCount() && !MessageText; ++Index)
+			{
+				if (UWidget* Child = RootPanel->GetChildAt(Index))
+				{
+					if (UTextBlock* AsText = Cast<UTextBlock>(Child))
+					{
+						MessageText = AsText;
+					}
+					else if (UPanelWidget* Inner = Cast<UPanelWidget>(Child))
+					{
+						for (int32 Sub = 0; Sub < Inner->GetChildrenCount() && !MessageText; ++Sub)
+						{
+							MessageText = Cast<UTextBlock>(Inner->GetChildAt(Sub));
+						}
+					}
+				}
+			}
+		}
+	}
 	AcceptButton = FindButtonIn(WidgetTree->FindWidget(TEXT("W_Accept")));
 	DeclineButton = FindButtonIn(WidgetTree->FindWidget(TEXT("W_Decline")));
 
@@ -404,21 +429,10 @@ void UMyBondageLifeMessageCenterWidget::SetPanelOpen(bool bOpen)
 		RefreshList();
 	}
 
-	// A clickable panel needs the cursor, otherwise the buttons are unreachable.
-	if (APlayerController* OwningPlayer = GetOwningPlayer())
+	// The controller owns the input mode: just report the new state.
+	if (AMyBondageLifePlayerController* OwningController = Cast<AMyBondageLifePlayerController>(GetOwningPlayer()))
 	{
-		OwningPlayer->SetShowMouseCursor(bOpen);
-		if (bOpen)
-		{
-			FInputModeGameAndUI InputMode;
-			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-			InputMode.SetHideCursorDuringCapture(false);
-			OwningPlayer->SetInputMode(InputMode);
-		}
-		else
-		{
-			OwningPlayer->SetInputMode(FInputModeGameOnly());
-		}
+		OwningController->SetMessageCenterOpen(bOpen);
 	}
 
 	if (PanelBorder)

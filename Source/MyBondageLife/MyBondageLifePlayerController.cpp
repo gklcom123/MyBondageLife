@@ -619,7 +619,7 @@ void AMyBondageLifePlayerController::RefreshChatInputState()
 	}
 
 	const bool bBlocked = bChatTextInput || bAltMouseMode || bPlayerInfoOpen || bFriendPanelOpen
-		|| bFriendRequestPending || bWardrobeOpen || bSocialModalOpen;
+		|| bFriendRequestPending || bWardrobeOpen || bSocialModalOpen || bMessageCenterOpen;
 
 	SetGameplayInputBlocked(bBlocked);
 
@@ -632,7 +632,7 @@ void AMyBondageLifePlayerController::RefreshChatInputState()
 
 		// Alt and the panels free the mouse; typing keeps the cursor hidden.
 		bShowMouseCursor = bAltMouseMode || bPlayerInfoOpen || bFriendPanelOpen
-			|| bFriendRequestPending || bWardrobeOpen || bSocialModalOpen;
+			|| bFriendRequestPending || bWardrobeOpen || bSocialModalOpen || bMessageCenterOpen;
 	}
 	else
 	{
@@ -2240,4 +2240,15 @@ void AMyBondageLifePlayerController::HandleMessageKeyPressed()
 	}
 
 	ToggleMessageCenter();
+}
+
+void AMyBondageLifePlayerController::SetMessageCenterOpen(bool bOpen)
+{
+	if (bMessageCenterOpen == bOpen)
+	{
+		return;
+	}
+
+	bMessageCenterOpen = bOpen;
+	RefreshChatInputState();
 }

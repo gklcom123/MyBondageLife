@@ -510,6 +510,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Message")
 	void ToggleMessageCenter();
 
+	UFUNCTION(BlueprintCallable, Category = "Message")
+	void SetMessageCenterOpen(bool bOpen);
+
+	UPROPERTY(Transient)
+	bool bMessageCenterOpen = false;
+
 	UFUNCTION()
 	void HandleMessageKeyPressed();
 
