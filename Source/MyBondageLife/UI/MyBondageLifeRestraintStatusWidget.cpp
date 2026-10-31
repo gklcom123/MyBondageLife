@@ -5,6 +5,7 @@
 #include "Blueprint/WidgetTree.h"
 #include "Components/Image.h"
 #include "Components/SizeBox.h"
+#include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "MyBondageLifeCharacter.h"
@@ -41,15 +42,22 @@ void UMyBondageLifeRestraintStatusWidget::BuildLayout()
 			WidgetTree->RootWidget = Column;
 		}
 
-		auto MakeIcon = [this, Column](const TCHAR* Name, UTexture2D* Texture) -> UImage*
+		auto MakeIcon = [this, Column](const TCHAR* Name, const TCHAR* Caption, const FLinearColor& CaptionColor, UTexture2D* Texture) -> UImage*
 		{
-			USizeBox* Size = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-			Size->SetWidthOverride(56.0f);
-			Size->SetHeightOverride(56.0f);
-			if (UVerticalBoxSlot* Slot = Column->AddChildToVerticalBox(Size))
+			// Icon + red caption are one unit: a column that pulses as a whole.
+			UVerticalBox* Unit = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+			if (UVerticalBoxSlot* UnitSlot = Column->AddChildToVerticalBox(Unit))
 			{
-				Slot->SetHorizontalAlignment(HAlign_Left);
-				Slot->SetPadding(FMargin(0.0f, 4.0f));
+				UnitSlot->SetHorizontalAlignment(HAlign_Left);
+				UnitSlot->SetPadding(FMargin(0.0f, 6.0f));
+			}
+
+			USizeBox* Size = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+			Size->SetWidthOverride(112.0f);
+			Size->SetHeightOverride(112.0f);
+			if (UVerticalBoxSlot* SizeSlot = Unit->AddChildToVerticalBox(Size))
+			{
+				SizeSlot->SetHorizontalAlignment(HAlign_Center);
 			}
 
 			UImage* Icon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), Name);
@@ -57,26 +65,47 @@ void UMyBondageLifeRestraintStatusWidget::BuildLayout()
 			{
 				Icon->SetBrushFromTexture(Texture, true);
 			}
-			Icon->SetVisibility(ESlateVisibility::Collapsed);
 			Size->AddChild(Icon);
+
+			UTextBlock* Text = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+			Text->SetText(FText::FromString(Caption));
+			Text->SetColorAndOpacity(FSlateColor(CaptionColor));
+			Text->SetJustification(ETextJustify::Center);
+			Text->SetShadowOffset(FVector2D(1.0f, 1.0f));
+			Text->SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.9f));
+			{
+				FSlateFontInfo Font = Text->GetFont();
+				Font.Size = 16;
+				Text->SetFont(Font);
+			}
+			if (UVerticalBoxSlot* TextSlot = Unit->AddChildToVerticalBox(Text))
+			{
+				TextSlot->SetHorizontalAlignment(HAlign_Center);
+			}
+
+			Unit->SetVisibility(ESlateVisibility::Collapsed);
+			Unit->SetRenderScale(FVector2D(1.0f, 1.0f));
+			Units.Add(Unit);
 			return Icon;
 		};
 
+		const FLinearColor CaptionRed(0.95f, 0.15f, 0.15f);
+
 		if (!GagIcon)
 		{
-			GagIcon = MakeIcon(TEXT("W_StatusGag"), GagTexture);
+			GagIcon = MakeIcon(TEXT("W_StatusGag"), TEXT("\u8BF4\u8BDD\u53D7\u9650"), CaptionRed, GagTexture);
 		}
 		if (!ArmIcon)
 		{
-			ArmIcon = MakeIcon(TEXT("W_StatusArm"), ArmTexture);
+			ArmIcon = MakeIcon(TEXT("W_StatusArm"), TEXT("\u53CC\u624B\u53D7\u9650"), CaptionRed, ArmTexture);
 		}
 		if (!LegIcon)
 		{
-			LegIcon = MakeIcon(TEXT("W_StatusLeg"), LegTexture);
+			LegIcon = MakeIcon(TEXT("W_StatusLeg"), TEXT("\u53CC\u811A\u53D7\u9650"), CaptionRed, LegTexture);
 		}
 		if (!CantMoveIcon)
 		{
-			CantMoveIcon = MakeIcon(TEXT("W_StatusCantMove"), CantMoveTexture);
+			CantMoveIcon = MakeIcon(TEXT("W_StatusCantMove"), TEXT("\u7981\u6B62\u79FB\u52A8"), CaptionRed, CantMoveTexture);
 		}
 	}
 

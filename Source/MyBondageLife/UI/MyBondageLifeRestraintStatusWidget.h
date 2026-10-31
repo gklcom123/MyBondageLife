@@ -43,6 +43,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Status") TObjectPtr<UTexture2D> LegTexture;
 	UPROPERTY(EditDefaultsOnly, Category = "Status") TObjectPtr<UTexture2D> CantMoveTexture;
 
+	TArray<TObjectPtr<class UWidget>> Units;
+
 	float PulseTime = 0.0f;
 	bool bLayoutBuilt = false;
 };
