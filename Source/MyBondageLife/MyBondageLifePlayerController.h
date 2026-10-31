@@ -536,6 +536,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Message")
 	void SetMessageCenterOpen(bool bOpen);
 
+	/** CantMove restraint: blocks movement and turning. */
+	UFUNCTION(BlueprintCallable, Category = "Restraint")
+	void SetRestraintMovementBlocked(bool bBlocked);
+
+	UPROPERTY(Transient)
+	bool bRestraintMovementBlocked = false;
+
 	UPROPERTY(Transient)
 	bool bMessageCenterOpen = false;
 

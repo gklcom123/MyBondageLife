@@ -22,6 +22,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "MyBondageLife.h"
+#include "MyBondageLifePlayerController.h"
 #include "Net/UnrealNetwork.h"
 
 namespace
@@ -281,6 +282,7 @@ void AMyBondageLifeCharacter::BeginPlay()
 	ApplyAnimBlueprintOverride();
 	RestraintMontagePath.TryLoad();   // warm the asset so the first toggle does not hitch
 	RefreshRestraintPose();
+	ApplyRestraintMovementLimits();
 
 	// Remember the designed camera distance: the wheel zoom keeps the range at
 	// 0.5x - 1.5x of it.
@@ -328,6 +330,7 @@ void AMyBondageLifeCharacter::Tick(float DeltaSeconds)
 	if (bRestraintPoseActive)
 	{
 		RefreshRestraintPose();
+	ApplyRestraintMovementLimits();
 	}
 }
 
@@ -432,11 +435,13 @@ void AMyBondageLifeCharacter::SetRestraintPose(bool bActive)
 
 	bRestraintPoseActive = bActive;
 	RefreshRestraintPose();
+	ApplyRestraintMovementLimits();
 }
 
 void AMyBondageLifeCharacter::OnRep_RestraintPose()
 {
 	RefreshRestraintPose();
+	ApplyRestraintMovementLimits();
 }
 
 void AMyBondageLifeCharacter::ApplyAnimBlueprintOverride()
@@ -586,10 +591,26 @@ void AMyBondageLifeCharacter::OnRep_Running()
 
 void AMyBondageLifeCharacter::ApplyMoveSpeed()
 {
-	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+	UCharacterMovementComponent* Movement = GetCharacterMovement();
+	if (!Movement)
 	{
-		Movement->MaxWalkSpeed = bRunning ? RunSpeed : WalkSpeed;
+		return;
 	}
+
+	// Leg restraints make running impossible; CantMove stops the pawn entirely.
+	if (bCantMove)
+	{
+		Movement->MaxWalkSpeed = 0.0f;
+		SetRunning(false);
+		return;
+	}
+
+	if (bRestraintLeg)
+	{
+		SetRunning(false);
+	}
+
+	Movement->MaxWalkSpeed = bRunning ? RunSpeed : WalkSpeed;
 }
 
 // ---------------------------------------------------------------------------
@@ -712,6 +733,7 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 
 	// The owning client must apply it immediately as well (replication may be a tick late).
 	RefreshRestraintPose();
+	ApplyRestraintMovementLimits();
 	RefreshGagPose();
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("Restraint: %d item(s) applied (arm=%d leg=%d cantmove=%d pet=%d)."),
@@ -806,4 +828,15 @@ void AMyBondageLifeCharacter::PostInitializeComponents()
 	// Runs after the blueprint's component values are applied but before any scaling,
 	// so this is the only place where the reference is guaranteed to be correct.
 	CaptureBasePose();
+}
+
+void AMyBondageLifeCharacter::ApplyRestraintMovementLimits()
+{
+	ApplyMoveSpeed();
+
+	// CantMove also stops the camera/character from turning: drop look input on the owner.
+	if (AMyBondageLifePlayerController* PC = Cast<AMyBondageLifePlayerController>(GetController()))
+	{
+		PC->SetRestraintMovementBlocked(bCantMove);
+	}
 }

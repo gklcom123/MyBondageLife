@@ -2386,3 +2386,25 @@ void AMyBondageLifePlayerController::ShowHudEntries()
 		}
 	}
 }
+
+void AMyBondageLifePlayerController::SetRestraintMovementBlocked(bool bBlocked)
+{
+	if (bRestraintMovementBlocked == bBlocked)
+	{
+		return;
+	}
+
+	bRestraintMovementBlocked = bBlocked;
+
+	// Cannot move and cannot turn: drop both axes while the restraint is worn.
+	if (bBlocked)
+	{
+		SetIgnoreMoveInput(true);
+		SetIgnoreLookInput(true);
+	}
+	else
+	{
+		ResetIgnoreMoveInput();
+		ResetIgnoreLookInput();
+	}
+}

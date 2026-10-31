@@ -353,6 +353,9 @@ protected:
 	/** Writes the matching max walk speed into the movement component. */
 	void ApplyMoveSpeed();
 
+	/** Restraint-driven movement limits: legs force walking, CantMove blocks movement. */
+	void ApplyRestraintMovementLimits();
+
 	UFUNCTION(Server, Reliable)
 	void ServerSetRunning(bool bNewRunning);
 
