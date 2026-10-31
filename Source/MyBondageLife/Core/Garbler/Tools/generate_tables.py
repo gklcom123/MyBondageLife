@@ -249,9 +249,38 @@ PROFILES = [
     {
         "id": "BallGag",
         "displayName": "口球",
-        "aliases": ["ball", "ball gag", "口球", "球塞"],
+        "aliases": ["ball", "ballgag", "ball gag", "口球", "球塞"],
         "silent": False,
         "description": "口球顶住舌头: 塞音塌成鼻音, 元音被压扁。",
+    },
+    # 同一风格的"更狠"变体: 只写和基准档位不同的音素, 其余继承 BallGag。
+    # 想再加一档 (比如 口球 XL 的加强版) 就再复制这段、改几处 sound 即可。
+    {
+        "id": "BallGagXL",
+        "displayName": "大号口球",
+        "aliases": ["ballgagxl", "ball gag xl", "ballxl", "球xl", "口球xl", "大号口球"],
+        "silent": False,
+        "base": "BallGag",
+        "description": "更大号的口球: 比标准口球再闷一档, 元音全部糊住。",
+        "fallbackSounds": ["m", "m", "mh", "n"],
+        # 大号口球只改"共鸣位置": 声母/口型动作和标准口球一样, 但所有元音都顶到鼻腔 (ng)。
+        "overrideZh": {
+            "a": (3, "ahng"), "o": (3, "ohng"), "e": (3, "ehng"), "i": (3, "ihng"),
+            "u": (3, "oong"), "v": (3, "yung"), "er": (3, "erng"),
+            "ai": (3, "aing"), "ei": (3, "eing"), "ao": (3, "awng"), "ou": (3, "ohng"),
+            "an": (3, "ahng"), "en": (3, "ehng"), "ang": (3, "ahng"), "eng": (3, "ehng"), "ong": (3, "ohng"),
+            "ia": (3, "yahng"), "ie": (3, "yehng"), "iao": (3, "yawng"), "iu": (3, "yoong"),
+            "ian": (3, "yahn"), "in": (3, "ihn"), "iang": (3, "yahng"), "ing": (3, "ihng"), "iong": (3, "yohng"),
+            "ua": (3, "wahng"), "uo": (3, "wohng"), "uai": (3, "waing"), "ui": (3, "wayng"),
+            "uan": (3, "wahn"), "un": (3, "wuhn"), "uang": (3, "wahng"), "ueng": (3, "wuhng"),
+            "ve": (3, "ywehng"), "van": (3, "ywahn"), "vn": (3, "yuhn"),
+        },
+        "overrideEn": {
+            "eɪ": (3, "ayng"), "ə": (3, "ahng"), "ɔ": (3, "awng"), "æ": (3, "ahng"),
+            "i": (3, "eeng"), "ɛ": (3, "ehng"), "ɝ": (3, "erng"), "ɪə": (3, "errng"),
+            "aɪ": (3, "yng"), "ɪ": (3, "ihng"), "oʊ": (3, "ohng"), "u": (3, "oong"),
+            "ɑ": (3, "ahng"), "ʊ": (3, "oong"), "aʊ": (3, "owng"), "ɔɪ": (3, "oyng"),
+        },
     },
     {
         "id": "PanelGag",
@@ -320,6 +349,22 @@ def build_table():
     profiles_out = []
     for meta in PROFILES:
         pid = meta["id"]
+
+        # 变体档位: 只写"和基准档位不一样"的音素, 其余从 base 继承(运行时合并)。
+        if meta.get("base"):
+            profiles_out.append({
+                "id": pid,
+                "base": meta["base"],
+                "displayName": meta["displayName"],
+                "aliases": meta["aliases"],
+                "description": meta["description"],
+                "silent": meta["silent"],
+                "fallbackSounds": meta["fallbackSounds"],
+                "zh": {k: {"muffle": m, "sound": s} for k, (m, s) in meta["overrideZh"].items()},
+                "en": {k: {"muffle": m, "sound": s} for k, (m, s) in meta["overrideEn"].items()},
+            })
+            continue
+
         phonemes = {}
         for p, (muf, snd) in ZH_INITIAL_SOUNDS[pid].items():
             phonemes[p] = {"muffle": muf, "sound": snd}

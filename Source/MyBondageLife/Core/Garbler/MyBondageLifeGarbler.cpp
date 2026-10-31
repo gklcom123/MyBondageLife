@@ -281,6 +281,11 @@ bool FMyBondageLifeGarbler::LoadTables(const FString& Json)
 		Obj->TryGetStringField(TEXT("displayName"), Profile.DisplayName);
 		Obj->TryGetStringField(TEXT("description"), Profile.Description);
 		Obj->TryGetBoolField(TEXT("silent"), Profile.bSilent);
+		FString BaseId;
+		if (Obj->TryGetStringField(TEXT("base"), BaseId) && !BaseId.IsEmpty())
+		{
+			Profile.Base = FName(*BaseId);
+		}
 
 		if (const TArray<TSharedPtr<FJsonValue>>* Aliases = nullptr; Obj->TryGetArrayField(TEXT("aliases"), Aliases))
 		{
@@ -354,6 +359,59 @@ bool FMyBondageLifeGarbler::LoadTables(const FString& Json)
 		UE_LOG(LogGarbler, Error, TEXT("音素表里没有任何档位。"));
 		return false;
 	}
+
+	// ---- 解析档位继承 ----
+	// 变体档位（如 BallGagXL）只写与基准档位不同的音素，其余在这里补齐。
+	// 多跑几轮以支持 base 定义在变体之后、以及多层继承。
+	TSet<FName> Merged;
+	for (int32 Pass = 0; Pass < 8; ++Pass)
+	{
+		bool bProgress = false;
+		for (int32 Index = 0; Index < Profiles.Num(); ++Index)
+		{
+			FMyBondageLifeGagProfile& Profile = Profiles[Index];
+			if (Profile.Base.IsNone() || Merged.Contains(Profile.Id))
+			{
+				continue;
+			}
+
+			const int32* BaseIndex = ProfileIndex.Find(Profile.Base.ToString());
+			if (!BaseIndex || *BaseIndex == Index)
+			{
+				Merged.Add(Profile.Id);
+				continue;
+			}
+
+			const FMyBondageLifeGagProfile& BaseProfile = Profiles[*BaseIndex];
+			if (!BaseProfile.Base.IsNone() && !Merged.Contains(BaseProfile.Id))
+			{
+				continue;	// 等基准档位先合并完
+			}
+
+			// 只补缺失的音素，变体自己写的条目优先。
+			for (const TPair<FString, FMyBondageLifeGagRule>& Pair : BaseProfile.Zh)
+			{
+				if (!Profile.Zh.Contains(Pair.Key))
+				{
+					Profile.Zh.Add(Pair.Key, Pair.Value);
+				}
+			}
+			for (const TPair<FString, FMyBondageLifeGagRule>& Pair : BaseProfile.En)
+			{
+				if (!Profile.En.Contains(Pair.Key))
+				{
+					Profile.En.Add(Pair.Key, Pair.Value);
+				}
+			}
+			Merged.Add(Profile.Id);
+			bProgress = true;
+		}
+		if (!bProgress)
+		{
+			break;
+		}
+	}
+
 	return true;
 }
 

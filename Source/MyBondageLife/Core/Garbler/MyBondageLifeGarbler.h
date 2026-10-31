@@ -26,6 +26,12 @@ struct FMyBondageLifeGagProfile
 	TArray<FString> Aliases;
 	TArray<FString> FallbackSounds;
 
+	/**
+	 *  变体档位继承自哪个档位（"BallGagXL" 的 Base 是 "BallGag"）。
+	 *  变体只需要写和基准不一样的音素，加载时会自动补全其余部分。
+	 */
+	FName Base;
+
 	/** 完全无声（只剩 …… / mnm 这种残响）。 */
 	bool bSilent = false;
 

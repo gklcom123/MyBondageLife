@@ -24,7 +24,27 @@ def load():
         tables = json.load(f)
     with open(os.path.join(DATA_DIR, "HanziPinyin.json"), encoding="utf-8") as f:
         pinyin = json.load(f)
+    _resolve_bases(tables)
     return tables, pinyin
+
+
+def _resolve_bases(tables):
+    """变体档位只写了差异部分，这里把 base 档位的音素合并进来（与 C++ 行为一致）。"""
+    by_id = {p["id"]: p for p in tables["profiles"]}
+
+    def merge(profile, seen):
+        base_id = profile.get("base")
+        if not base_id or base_id in seen or base_id not in by_id:
+            return
+        parent = by_id[base_id]
+        merge(parent, seen | {profile["id"]})
+        for lang in ("zh", "en"):
+            merged = dict(parent.get(lang, {}))
+            merged.update(profile.get(lang, {}))
+            profile[lang] = merged
+
+    for profile in tables["profiles"]:
+        merge(profile, set())
 
 
 class Garbler:

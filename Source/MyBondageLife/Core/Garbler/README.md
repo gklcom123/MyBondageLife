@@ -87,16 +87,50 @@ Config/Garbler/HanziPinyin.json
 
 `muffle` 打平时，由 `profiles` 数组里的先后顺序裁决（靠前的赢），所以结果是稳定的。
 
-### 内置的 6 个档位
+### 内置的 7 个档位
 
-| id | 名称 | 听感 |
-|---|---|---|
-| `RingGag` | 开口环 | 双唇音失效、元音清楚，最轻 |
-| `BallGag` | 口球 | 塞音塌成鼻音、元音被压扁（默认推荐） |
-| `PanelGag` | 面板口枷 | 元音都带上鼻音尾巴 |
-| `CleaveGag` | 布条封口 | 声母全消失，只剩 m |
-| `StuffGag` | 填塞 | 比封口更闷、带气声 |
-| `HoodGag` | 密封头套 | `silent: true`，只剩 `……` / `m..` |
+| id | 名称 | 听感 | 「你好世界」 |
+|---|---|---|---|
+| `RingGag` | 开口环 | 双唇音失效、元音清楚，最轻 | `nihhawshihshyeh` |
+| `BallGag` | 口球 | 塞音塌成鼻音、元音被压扁（默认推荐） | `nihawshihshyeh` |
+| `BallGagXL` | 大号口球 | 与口球同样的辅音，元音全部顶到鼻腔 | `nihngawngshihngshyehng` |
+| `PanelGag` | 面板口枷 | 元音被中和并带上 m 尾巴 | `nihmaumnihmnyehm` |
+| `CleaveGag` | 布条封口 | 声母全消失，只剩 m | `nmmmm` |
+| `StuffGag` | 填塞 | 比封口更闷、带气声 | `nmmhmmh` |
+| `HoodGag` | 密封头套 | `silent: true`，只剩 `……` / `m..` | `m....` |
+
+### 档位继承（做"同款但更狠"的变体）
+
+变体档位**只写和基准档位不同的音素**，其余在加载时从 `base` 补齐：
+
+```jsonc
+{
+  "id": "BallGagXL",
+  "base": "BallGag",              // 继承 BallGag 的全部 99 条
+  "displayName": "大号口球",
+  "aliases": ["球xl", "大号口球"],
+  "silent": false,
+  "fallbackSounds": ["m", "m", "mh", "n"],
+  "zh": { "a": {"muffle":3,"sound":"ahng"}, "i": {"muffle":3,"sound":"ihng"} },  // 只写差异
+  "en": { "æ": {"muffle":3,"sound":"ahng"} }
+}
+```
+
+所以再加一档（比如「口球 XL 加强版」）只需要复制这 10 行、改几处 `sound`，不用再写 99 条。
+支持多层继承（A ← B ← C），也支持 `base` 写在变体后面，加载时会自动排序合并。
+
+> 注意：`base` 只补**缺失**的音素，变体自己写的条目永远优先。
+
+### 同一时间只戴一件时，配置就是一列"档位名"
+
+```
+DT_Restraint 行 "Ballgag"    -> BallGag
+另一行        "Ballgag_XL"  -> BallGagXL
+第三行        "RingGag_01"  -> RingGag
+```
+
+`muffle` 完全不用你填：它只用于「两件以上同时戴、争同一个音素」时决定谁更狠。
+单件生效时，决定听感的只有该档位的 `sound`。
 
 ---
 
