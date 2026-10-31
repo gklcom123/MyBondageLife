@@ -325,6 +325,11 @@ TSharedRef<SWidget> UMyBondageLifeMessageCenterWidget::RebuildWidget()
 
 void UMyBondageLifeMessageCenterWidget::BuildLayout()
 {
+	// Close button of the designed panel.
+	if (UButton* CloseButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_Close"))))
+	{
+		CloseButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeMessageCenterWidget::HandleCloseClicked);
+	}
 	// The prototype row is a designer-only sample: detach it so it can never appear in the
 	// panel (setting it Collapsed was undone by widget property initialisation).
 	if (UWidget* Prototype = WidgetTree->FindWidget(TEXT("W_RowTemplate")))
@@ -468,7 +473,7 @@ void UMyBondageLifeMessageCenterWidget::RefreshList()
 	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
 		: nullptr;
-	if (!Account || !RowClass)
+	if (!Account)
 	{
 		return;
 	}
