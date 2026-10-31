@@ -29,6 +29,7 @@ struct FMyBondageLifeRestraintItem
 	TSoftObjectPtr<UAnimMontage> DownAnmi;
 
 	bool bRestraintArm = false;
+	bool bInGag = false;
 	bool bRestraintLeg = false;
 	bool bCantMove = false;
 	bool bInPetMode = false;

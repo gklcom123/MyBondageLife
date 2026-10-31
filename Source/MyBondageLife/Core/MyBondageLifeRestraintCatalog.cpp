@@ -171,6 +171,7 @@ void FMyBondageLifeRestraintCatalog::Refresh()
 
 		// The struct has a typo ("RestranitArm?"), so accept both spellings.
 		Item.bRestraintArm = ReadBool(RowStruct, RowData, { TEXT("RestranitArm"), TEXT("RestraintArm") });
+		Item.bInGag = ReadBool(RowStruct, RowData, { TEXT("InGag"), TEXT("InGag?") });
 		Item.bRestraintLeg = ReadBool(RowStruct, RowData, { TEXT("RestranitLeg"), TEXT("RestraintLeg") });
 		Item.bCantMove = ReadBool(RowStruct, RowData, { TEXT("CantMove") });
 		Item.bInPetMode = ReadBool(RowStruct, RowData, { TEXT("InPetMode") });

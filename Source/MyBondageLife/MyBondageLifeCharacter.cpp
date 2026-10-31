@@ -156,6 +156,7 @@ void AMyBondageLifeCharacter::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(AMyBondageLifeCharacter, RestraintSlots);
 	DOREPLIFETIME(AMyBondageLifeCharacter, RestraintItemIds);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bRestraintArm);
+	DOREPLIFETIME(AMyBondageLifeCharacter, bRestraintInGag);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bRestraintLeg);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bCantMove);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bInPetMode);
@@ -627,6 +628,7 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 	RestraintComponents.Reset();
 
 	bRestraintArm = false;
+	bRestraintInGag = false;
 	bRestraintLeg = false;
 	bCantMove = false;
 	bInPetMode = false;
@@ -646,6 +648,7 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 
 		// The derived states are a logical OR across every worn item.
 		bRestraintArm |= Item->bRestraintArm;
+		bRestraintInGag |= Item->bInGag;
 		bRestraintLeg |= Item->bRestraintLeg;
 		bCantMove |= Item->bCantMove;
 		bInPetMode |= Item->bInPetMode;

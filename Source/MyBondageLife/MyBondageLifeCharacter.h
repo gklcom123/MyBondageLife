@@ -180,7 +180,35 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category="Identity")
 	TMap<float, float> HeightZOffsets;
 
+public:
+
+	UFUNCTION(BlueprintPure, Category="Restraint")
+	bool GetGagActive() const { return bRestraintInGag; }
+
+	UFUNCTION(BlueprintPure, Category="Restraint")
+	bool GetArmActive() const { return bRestraintArm; }
+
+	UFUNCTION(BlueprintPure, Category="Restraint")
+	bool GetLegActive() const { return bRestraintLeg; }
+
+	UFUNCTION(BlueprintPure, Category="Restraint")
+	bool GetCantMoveActive() const { return bCantMove; }
+
 protected:
+
+	UFUNCTION(BlueprintPure, Category="Restraint")
+	bool IsRestraintArmActivePublic() const { return bRestraintArm; }
+
+	UFUNCTION(BlueprintPure, Category="Restraint")
+	bool IsRestraintLegActivePublic() const { return bRestraintLeg; }
+
+	UFUNCTION(BlueprintPure, Category="Restraint")
+	bool IsRestraintCantMoveActivePublic() const { return bCantMove; }
+
+protected:
+	UFUNCTION(BlueprintPure, Category="Restraint")
+	bool IsRestraintGagActive() const { return bRestraintInGag; }
+
 
 	/** Re-applied on clients whenever the replicated height changes. */
 	UFUNCTION()
@@ -231,6 +259,9 @@ protected:
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category="Restraint", meta = (AllowPrivateAccess = "true"))
 	bool bRestraintArm = false;
+
+	UPROPERTY(ReplicatedUsing = OnRep_Restraints, BlueprintReadOnly, Category="Restraint")
+	bool bRestraintInGag = false;
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category="Restraint", meta = (AllowPrivateAccess = "true"))
 	bool bRestraintLeg = false;

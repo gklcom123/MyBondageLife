@@ -17,7 +17,8 @@ namespace MyBondageLifeHudHosts
 		TEXT("W_InfoEntryHost"),
 		TEXT("W_FriendsEntryHost"),
 		TEXT("W_WardrobeEntryHost"),
-		TEXT("W_RoomInfoHost")
+		TEXT("W_RoomInfoHost"),
+		TEXT("W_StatusHost")
 	};
 }
 

@@ -17,6 +17,7 @@
 #include "UI/MyBondageLifeMessageWidgets.h"
 #include "UI/MyBondageLifeMainHudWidget.h"
 #include "UI/MyBondageLifeHudEntryWidget.h"
+#include "UI/MyBondageLifeRestraintStatusWidget.h"
 #include "UI/MyBondageLifeFriendListWidget.h"
 #include "UI/MyBondageLifeGameMenuWidget.h"
 #include "UI/MyBondageLifeHostInfoWidget.h"
@@ -2364,5 +2365,24 @@ void AMyBondageLifePlayerController::ShowHudEntries()
 		Entry->SetAnchorsInViewport(FAnchors(0.5f, 1.0f));
 		Entry->SetAlignmentInViewport(FVector2D(0.5f, 1.0f));
 		Entry->SetPositionInViewport(Setup.FallbackPosition, false);
+	}
+	// Restraint status icons (gag / arms / legs / cannot move) live in the HUD too.
+	if (!RestraintStatusWidget)
+	{
+		UClass* StatusClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_RestraintStatus.WBP_RestraintStatus_C"));
+		if (!StatusClass)
+		{
+			StatusClass = UMyBondageLifeRestraintStatusWidget::StaticClass();
+		}
+
+		RestraintStatusWidget = CreateWidget<UMyBondageLifeRestraintStatusWidget>(this, StatusClass);
+		if (RestraintStatusWidget)
+		{
+			if (!HostInMainHud(TEXT("W_StatusHost"), RestraintStatusWidget))
+			{
+				RestraintStatusWidget->AddToViewport(14);
+				RestraintStatusWidget->SetPositionInViewport(FVector2D(20.0f, 20.0f), false);
+			}
+		}
 	}
 }

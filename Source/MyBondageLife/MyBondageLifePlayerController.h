@@ -516,6 +516,9 @@ public:
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<class UMyBondageLifeHudEntryWidget>> HudEntries;
 
+	UPROPERTY(Transient)
+	TObjectPtr<class UMyBondageLifeRestraintStatusWidget> RestraintStatusWidget;
+
 
 
 	UFUNCTION(BlueprintCallable, Category = "HUD")
