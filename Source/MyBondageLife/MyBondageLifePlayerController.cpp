@@ -16,6 +16,7 @@
 #include "UI/MyBondageLifeChatWidget.h"
 #include "UI/MyBondageLifeMessageWidgets.h"
 #include "UI/MyBondageLifeMainHudWidget.h"
+#include "UI/MyBondageLifeHudEntryWidget.h"
 #include "UI/MyBondageLifeFriendListWidget.h"
 #include "UI/MyBondageLifeGameMenuWidget.h"
 #include "UI/MyBondageLifeHostInfoWidget.h"
@@ -1402,12 +1403,15 @@ void AMyBondageLifePlayerController::BeginPlay()
 	if (bInSession)
 	{
 		// Nameplates and the chat box only exist while in a room.
+		// The HUD hosts must exist before anything is placed inside them.
+		ShowMainHud();
+		ShowHudEntries();
+
 		ShowNameplateLayer();
 		ShowChat();
 		ShowPlayerInfo();
 		ShowFriendList();
-		ShowMainHud();
-	ShowWardrobeButton();
+		ShowWardrobeButton();
 	ShowMessageHud();
 		ShowWardrobe();
 		ShowHostInfo();
@@ -2304,4 +2308,44 @@ bool AMyBondageLifePlayerController::HostInMainHud(FName HostName, UUserWidget* 
 	}
 
 	return MainHudWidget->HostWidget(HostName, Widget);
+}
+
+void AMyBondageLifePlayerController::ShowHudEntries()
+{
+	if (!IsLocalPlayerController() || InfoEntryWidget || FriendsEntryWidget)
+	{
+		return;
+	}
+
+	UClass* EntryClass = UMyBondageLifeHudEntryWidget::StaticClass();
+	if (UClass* Designed = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_HudEntry.WBP_HudEntry_C")))
+	{
+		EntryClass = Designed;
+	}
+
+	InfoEntryWidget = CreateWidget<UMyBondageLifeHudEntryWidget>(this, EntryClass);
+	if (InfoEntryWidget)
+	{
+		InfoEntryWidget->SetEntryKind(EMyBondageLifeHudEntryAction::PlayerInfo);
+		if (!HostInMainHud(TEXT("W_InfoEntryHost"), InfoEntryWidget))
+		{
+			InfoEntryWidget->AddToViewport(13);
+			InfoEntryWidget->SetAnchorsInViewport(FAnchors(0.5f, 1.0f));
+			InfoEntryWidget->SetAlignmentInViewport(FVector2D(0.5f, 1.0f));
+			InfoEntryWidget->SetPositionInViewport(FVector2D(-260.0f, -70.0f), false);
+		}
+	}
+
+	FriendsEntryWidget = CreateWidget<UMyBondageLifeHudEntryWidget>(this, EntryClass);
+	if (FriendsEntryWidget)
+	{
+		FriendsEntryWidget->SetEntryKind(EMyBondageLifeHudEntryAction::FriendList);
+		if (!HostInMainHud(TEXT("W_FriendsEntryHost"), FriendsEntryWidget))
+		{
+			FriendsEntryWidget->AddToViewport(13);
+			FriendsEntryWidget->SetAnchorsInViewport(FAnchors(0.5f, 1.0f));
+			FriendsEntryWidget->SetAlignmentInViewport(FVector2D(0.5f, 1.0f));
+			FriendsEntryWidget->SetPositionInViewport(FVector2D(-90.0f, -70.0f), false);
+		}
+	}
 }

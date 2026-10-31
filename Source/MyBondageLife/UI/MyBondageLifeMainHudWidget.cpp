@@ -3,6 +3,7 @@
 #include "UI/MyBondageLifeMainHudWidget.h"
 
 #include "Blueprint/WidgetTree.h"
+#include "Components/CanvasPanelSlot.h"
 #include "MyBondageLife.h"
 
 namespace MyBondageLifeHudHosts
@@ -38,12 +39,49 @@ void UMyBondageLifeMainHudWidget::BuildLayout()
 {
 	Hosts.Reset();
 
+	// Sensible default layout, so the HUD is usable even before the design is arranged.
+	// (The designer can still move things afterwards; code only applies it when the host
+	// is untouched, i.e. has no size yet.)
+	struct FHostLayout
+	{
+		FVector2D Anchor;
+		FVector2D Alignment;
+		FVector2D Position;
+		FVector2D Size;
+	};
+
+	static const TMap<FName, FHostLayout> DefaultLayout =
+	{
+		{ TEXT("W_ChatHost"),          { FVector2D(0.0f, 1.0f), FVector2D(0.0f, 1.0f), FVector2D(20.0f, -270.0f),  FVector2D(560.0f, 240.0f) } },
+		{ TEXT("W_MessageHost"),       { FVector2D(0.0f, 1.0f), FVector2D(0.0f, 1.0f), FVector2D(20.0f, -360.0f),  FVector2D(220.0f, 90.0f)  } },
+		{ TEXT("W_InfoEntryHost"),     { FVector2D(0.5f, 1.0f), FVector2D(0.5f, 1.0f), FVector2D(-260.0f, -70.0f), FVector2D(150.0f, 70.0f)  } },
+		{ TEXT("W_FriendsEntryHost"),  { FVector2D(0.5f, 1.0f), FVector2D(0.5f, 1.0f), FVector2D(-90.0f, -70.0f),  FVector2D(150.0f, 70.0f)  } },
+		{ TEXT("W_WardrobeEntryHost"), { FVector2D(0.5f, 1.0f), FVector2D(0.5f, 1.0f), FVector2D(80.0f, -70.0f),   FVector2D(150.0f, 70.0f)  } },
+		{ TEXT("W_RoomInfoHost"),      { FVector2D(1.0f, 0.0f), FVector2D(1.0f, 0.0f), FVector2D(-240.0f, 18.0f),  FVector2D(220.0f, 50.0f)  } },
+	};
+
 	for (const FName& HostName : MyBondageLifeHudHosts::Names)
 	{
-		if (UPanelWidget* Host = Cast<UPanelWidget>(WidgetTree->FindWidget(HostName)))
+		UPanelWidget* Host = Cast<UPanelWidget>(WidgetTree->FindWidget(HostName));
+		if (!Host)
 		{
-			Hosts.Add(HostName, Host);
+			continue;
 		}
+
+		if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Host->Slot))
+		{
+			const FHostLayout* Layout = DefaultLayout.Find(HostName);
+			const bool bUntouched = CanvasSlot->GetSize() == FVector2D::ZeroVector;
+			if (Layout && bUntouched)
+			{
+				CanvasSlot->SetAnchors(FAnchors(Layout->Anchor.X, Layout->Anchor.Y));
+				CanvasSlot->SetAlignment(Layout->Alignment);
+				CanvasSlot->SetPosition(Layout->Position);
+				CanvasSlot->SetSize(Layout->Size);
+			}
+		}
+
+		Hosts.Add(HostName, Host);
 	}
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("MainHud: adopted %d/%d hosts."),
@@ -75,6 +113,7 @@ bool UMyBondageLifeMainHudWidget::HostWidget(FName HostName, UUserWidget* Widget
 	}
 
 	Host->AddChild(Widget);
+	UE_LOG(LogMyBondageLife, Log, TEXT("MainHud: hosted %s into %s"), *Widget->GetName(), *HostName.ToString());
 	Widget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	return true;
 }
