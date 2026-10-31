@@ -2389,21 +2389,8 @@ void AMyBondageLifePlayerController::ShowHudEntries()
 
 void AMyBondageLifePlayerController::SetRestraintMovementBlocked(bool bBlocked)
 {
-	if (bRestraintMovementBlocked == bBlocked)
-	{
-		return;
-	}
-
 	bRestraintMovementBlocked = bBlocked;
 
-	// Cannot move and cannot turn: drop both axes while the restraint is worn.
-	if (bBlocked)
-	{
-		// Movement only: looking around with the camera stays allowed.
-		SetIgnoreMoveInput(true);
-	}
-	else
-	{
-		ResetIgnoreMoveInput();
-	}
+	// CantMove is handled by the pawn's movement speed (0). Do not touch the input axes:
+	// SetIgnoreLookInput would also freeze the camera, and it must stay free.
 }
