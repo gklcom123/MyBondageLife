@@ -192,7 +192,6 @@ void FMyBondageLifeRestraintCatalog::Refresh()
 		// 口部道具的枚举类型（Enum_GagType）。旧表没有这一列时 bHasGagType 为 false。
 		Item.bHasGagType = HasProperty(RowStruct, { TEXT("GagType") });
 		Item.GagType = Item.bHasGagType ? ReadInt(RowStruct, RowData, { TEXT("GagType") }) : 0;
-		Item.Muffle = ReadInt(RowStruct, RowData, { TEXT("Muffle") });
 
 		FSoftObjectPtr Temp;
 		ReadObjectRef(RowStruct, RowData, { TEXT("Mesh") }, USkeletalMesh::StaticClass(), Temp);

@@ -39,9 +39,6 @@ struct FMyBondageLifeRestraintItem
 
 	/** 该行是否真的带 GagType 列；旧数据可能没有这一列。 */
 	bool bHasGagType = false;
-
-	/** 行里配置的 Muffle 值（目前只读取、不使用，留给以后做强度微调）。 */
-	int32 Muffle = 0;
 };
 
 /**

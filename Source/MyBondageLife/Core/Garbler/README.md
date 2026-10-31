@@ -267,15 +267,15 @@ const FString 混淆 = FMyBondageLifeGarbler::Garble(TEXT("你好，今天天气
 
 | 文件 | 作用 |
 |---|---|
-| `Core/MyBondageLifeRestraintCatalog.*` | 从 `DT_Restraint` 读 `GagType` / `Muffle`（旧表没有这两列也能跑） |
+| `Core/MyBondageLifeRestraintCatalog.*` | 从 `DT_Restraint` 读 `GagType`（旧表没有这一列也能跑） |
 | `Core/Garbler/MyBondageLifeGagTypeMap.*` | `Enum_GagType` -> 档位 id |
 | `MyBondageLifeCharacter::GetGagProfileId()` | 当前穿戴里哪件算堵嘴、对应哪个档位 |
 | `MyBondageLifePlayerController::ServerSendChatMessage_Implementation` | 真正调用 `Garble` 的地方 |
 
 ### 几点约定
 
-- **`Muffle` 列目前只读取、不使用。** 听感由 `GagType` 决定的档位给出；以后若想「同一档位里再微调强度」，
-  可以把它接成 `muffleBias`。
+- **强度只由 `GagType` 决定。** `ST_Restraint` 里没有 `Muffle` 字段，同一档位内的听感是固定的；
+  想调强弱请直接换档位，或改该档位的 `sound`。
 - **旧数据兜底**：口部道具没配 `GagType`（或表里根本没这列）时按默认 `BallGag` 处理，
   避免「戴着却还能正常说话」。
 - **`GagType` 的 0 是合法值**（0 = 开口环），所以不能用 0 表示「未设置」——判断依据是这一列**存不存在**。
