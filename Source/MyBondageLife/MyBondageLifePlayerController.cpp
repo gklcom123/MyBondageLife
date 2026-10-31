@@ -2107,6 +2107,8 @@ void AMyBondageLifePlayerController::ShowWardrobeButton()
 		if (!HostInMainHud(TEXT("W_WardrobeEntryHost"), WardrobeButtonWidget))
 		{
 			WardrobeButtonWidget->AddToViewport(WardrobeButtonZOrder);
+			WardrobeButtonWidget->SetPositionInViewport(FVector2D(930.0f, -90.0f), false);
+			WardrobeButtonWidget->SetDesiredSizeInViewport(FVector2D(150.0f, 70.0f));
 		}
 	}
 }

@@ -62,13 +62,17 @@ TSharedRef<SWidget> UMyBondageLifeMessageButtonWidget::RebuildWidget()
 		WidgetTree = NewObject<UWidgetTree>(this, TEXT("WidgetTree"));
 	}
 
+	// The blueprint's widget tree is only populated inside Super::RebuildWidget(), so the
+	// adoption has to run afterwards — otherwise every FindWidget() comes back empty.
+	TSharedRef<SWidget> BuiltWidget = Super::RebuildWidget();
+
 	if (!IsDesignTime() && WidgetTree && !bLayoutBuilt)
 	{
 		bLayoutBuilt = true;
 		BuildLayout();
 	}
 
-	return Super::RebuildWidget();
+	return BuiltWidget;
 }
 
 void UMyBondageLifeMessageButtonWidget::BuildLayout()
@@ -214,13 +218,17 @@ TSharedRef<SWidget> UMyBondageLifeMessageRowWidget::RebuildWidget()
 		WidgetTree = NewObject<UWidgetTree>(this, TEXT("WidgetTree"));
 	}
 
+	// The blueprint's widget tree is only populated inside Super::RebuildWidget(), so the
+	// adoption has to run afterwards — otherwise every FindWidget() comes back empty.
+	TSharedRef<SWidget> BuiltWidget = Super::RebuildWidget();
+
 	if (!IsDesignTime() && WidgetTree && !bLayoutBuilt)
 	{
 		bLayoutBuilt = true;
 		BuildLayout();
 	}
 
-	return Super::RebuildWidget();
+	return BuiltWidget;
 }
 
 void UMyBondageLifeMessageRowWidget::BuildLayout()
@@ -314,13 +322,17 @@ TSharedRef<SWidget> UMyBondageLifeMessageCenterWidget::RebuildWidget()
 		WidgetTree = NewObject<UWidgetTree>(this, TEXT("WidgetTree"));
 	}
 
+	// The blueprint's widget tree is only populated inside Super::RebuildWidget(), so the
+	// adoption has to run afterwards — otherwise every FindWidget() comes back empty.
+	TSharedRef<SWidget> BuiltWidget = Super::RebuildWidget();
+
 	if (!IsDesignTime() && WidgetTree && !bLayoutBuilt)
 	{
 		bLayoutBuilt = true;
 		BuildLayout();
 	}
 
-	return Super::RebuildWidget();
+	return BuiltWidget;
 }
 
 void UMyBondageLifeMessageCenterWidget::BuildLayout()

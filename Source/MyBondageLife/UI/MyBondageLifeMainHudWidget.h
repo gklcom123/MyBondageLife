@@ -46,6 +46,10 @@ protected:
 	void BuildLayout();
 	UPanelWidget* FindHost(FName HostName) const;
 
+	/** Set to true once the blueprint layout is final: the code stops overriding host positions. */
+	UPROPERTY(EditDefaultsOnly, Category = "HUD")
+	bool bUseDesignedHostLayout = false;
+
 	TMap<FName, TObjectPtr<UPanelWidget>> Hosts;
 	bool bLayoutBuilt = false;
 };

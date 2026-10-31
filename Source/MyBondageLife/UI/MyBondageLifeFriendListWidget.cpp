@@ -1087,10 +1087,7 @@ bool UMyBondageLifeFriendListWidget::TryAdoptBlueprintLayout()
 	}
 
 	// The bottom HUD entry stays under code control (same spot as before).
-	if (!OpenButton)
-	{
-		BuildEntryButtonOnly();
-	}
+	// The main HUD owns the entry button now (W_FriendsEntryHost).
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("FriendList: using the designed layout."));
 	return true;

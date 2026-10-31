@@ -27,13 +27,15 @@ TSharedRef<SWidget> UMyBondageLifeMainHudWidget::RebuildWidget()
 		WidgetTree = NewObject<UWidgetTree>(this, TEXT("WidgetTree"));
 	}
 
+	TSharedRef<SWidget> BuiltWidget = Super::RebuildWidget();
+
 	if (!IsDesignTime() && WidgetTree && !bLayoutBuilt)
 	{
 		bLayoutBuilt = true;
 		BuildLayout();
 	}
 
-	return Super::RebuildWidget();
+	return BuiltWidget;
 }
 
 void UMyBondageLifeMainHudWidget::BuildLayout()
@@ -72,8 +74,7 @@ void UMyBondageLifeMainHudWidget::BuildLayout()
 		if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Host->Slot))
 		{
 			const FHostLayout* Layout = DefaultLayout.Find(HostName);
-			const bool bUntouched = CanvasSlot->GetAutoSize()
-				|| CanvasSlot->GetSize().X < 2.0f || CanvasSlot->GetSize().Y < 2.0f;
+			const bool bUntouched = !bUseDesignedHostLayout;
 			if (Layout && bUntouched)
 			{
 				CanvasSlot->SetAnchors(FAnchors(Layout->Anchor.X, Layout->Anchor.Y));
@@ -81,6 +82,12 @@ void UMyBondageLifeMainHudWidget::BuildLayout()
 				CanvasSlot->SetPosition(Layout->Position);
 				CanvasSlot->SetSize(Layout->Size);
 			}
+		}
+
+		// The host borders are layout guides only: keep them transparent in game.
+		if (UBorder* HostBorder = Cast<UBorder>(Host))
+		{
+			HostBorder->SetBrushColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.0f));
 		}
 
 		Hosts.Add(HostName, Host);
