@@ -507,6 +507,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Message")
 	void ShowMessageHud();
 
+	UFUNCTION(BlueprintCallable, Category = "HUD")
+	void ShowMainHud();
+
+	UFUNCTION(BlueprintCallable, Category = "HUD")
+	bool HostInMainHud(FName HostName, UUserWidget* Widget);
+
+	UPROPERTY(EditDefaultsOnly, Category = "HUD")
+	TSubclassOf<class UMyBondageLifeMainHudWidget> MainHudWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UMyBondageLifeMainHudWidget> MainHudWidget;
+
 	UFUNCTION(BlueprintCallable, Category = "Message")
 	void ToggleMessageCenter();
 

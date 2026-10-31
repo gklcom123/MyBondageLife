@@ -15,6 +15,7 @@
 #include "UI/MainSceneWidget.h"
 #include "UI/MyBondageLifeChatWidget.h"
 #include "UI/MyBondageLifeMessageWidgets.h"
+#include "UI/MyBondageLifeMainHudWidget.h"
 #include "UI/MyBondageLifeFriendListWidget.h"
 #include "UI/MyBondageLifeGameMenuWidget.h"
 #include "UI/MyBondageLifeHostInfoWidget.h"
@@ -149,7 +150,10 @@ void AMyBondageLifePlayerController::ShowHostInfo()
 	HostInfoWidget = CreateWidget<UMyBondageLifeHostInfoWidget>(this, HostInfoWidgetClass);
 	if (HostInfoWidget)
 	{
-		HostInfoWidget->AddToViewport(HostInfoZOrder);
+		if (!HostInMainHud(TEXT("W_RoomInfoHost"), HostInfoWidget))
+		{
+			HostInfoWidget->AddToViewport(HostInfoZOrder);
+		}
 	}
 }
 
@@ -377,7 +381,10 @@ void AMyBondageLifePlayerController::ShowChat()
 
 	ChatWidget->OnMessageSubmitted.AddDynamic(this, &AMyBondageLifePlayerController::HandleChatMessageSubmitted);
 	ChatWidget->OnInputEnded.AddDynamic(this, &AMyBondageLifePlayerController::HandleChatInputEnded);
-	ChatWidget->AddToViewport(ChatZOrder);
+	if (!HostInMainHud(TEXT("W_ChatHost"), ChatWidget))
+		{
+			ChatWidget->AddToViewport(ChatZOrder);
+		}
 
 	// Join/leave notices that arrived while the level was still loading.
 	for (const FString& PendingMessage : PendingSystemMessages)
@@ -1399,7 +1406,8 @@ void AMyBondageLifePlayerController::BeginPlay()
 		ShowChat();
 		ShowPlayerInfo();
 		ShowFriendList();
-		ShowWardrobeButton();
+		ShowMainHud();
+	ShowWardrobeButton();
 	ShowMessageHud();
 		ShowWardrobe();
 		ShowHostInfo();
@@ -2092,7 +2100,10 @@ void AMyBondageLifePlayerController::ShowWardrobeButton()
 	WardrobeButtonWidget = CreateWidget<UMyBondageLifeWardrobeButtonWidget>(this, WardrobeButtonWidgetClass);
 	if (WardrobeButtonWidget)
 	{
-		WardrobeButtonWidget->AddToViewport(WardrobeButtonZOrder);
+		if (!HostInMainHud(TEXT("W_WardrobeEntryHost"), WardrobeButtonWidget))
+		{
+			WardrobeButtonWidget->AddToViewport(WardrobeButtonZOrder);
+		}
 	}
 }
 
@@ -2155,7 +2166,10 @@ void AMyBondageLifePlayerController::ShowMessageHud()
 		MessageButtonWidget = CreateWidget<UMyBondageLifeMessageButtonWidget>(this, MessageButtonWidgetClass);
 		if (MessageButtonWidget)
 		{
-			MessageButtonWidget->AddToViewport(13);
+			if (!HostInMainHud(TEXT("W_MessageHost"), MessageButtonWidget))
+			{
+				MessageButtonWidget->AddToViewport(13);
+			}
 
 			// Bottom-left, just above the chat box.
 
@@ -2252,4 +2266,42 @@ void AMyBondageLifePlayerController::SetMessageCenterOpen(bool bOpen)
 
 	bMessageCenterOpen = bOpen;
 	RefreshChatInputState();
+}
+// ---------------------------------------------------------------------------
+// Main HUD
+// ---------------------------------------------------------------------------
+
+void AMyBondageLifePlayerController::ShowMainHud()
+{
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+
+	if (!MainHudWidgetClass)
+	{
+		UClass* DesignedHud = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_MainHUD.WBP_MainHUD_C"));
+		MainHudWidgetClass = DesignedHud ? DesignedHud : UMyBondageLifeMainHudWidget::StaticClass();
+	}
+
+	if (MainHudWidget)
+	{
+		return;
+	}
+
+	MainHudWidget = CreateWidget<UMyBondageLifeMainHudWidget>(this, MainHudWidgetClass);
+	if (MainHudWidget)
+	{
+		MainHudWidget->AddToViewport(11);
+	}
+}
+
+bool AMyBondageLifePlayerController::HostInMainHud(FName HostName, UUserWidget* Widget)
+{
+	if (!MainHudWidget || !Widget)
+	{
+		return false;
+	}
+
+	return MainHudWidget->HostWidget(HostName, Widget);
 }
