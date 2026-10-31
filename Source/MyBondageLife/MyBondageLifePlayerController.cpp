@@ -517,10 +517,9 @@ void AMyBondageLifePlayerController::ServerSendChatMessage_Implementation(const 
 		{
 			FMyBondageLifeGarblerOptions GarblerOptions;
 			const FString Garbled = FMyBondageLifeGarbler::Garble(TrimmedMessage, { GagProfile }, GarblerOptions);
-			if (!Garbled.IsEmpty())
-			{
-				OutgoingMessage = Garbled;
-			}
+			// 密封头套XL 这类"完全发不出声"的档位会得到空串：补一个省略号占位，
+			// 绝不能退回原文（否则等于没堵嘴）。
+			OutgoingMessage = Garbled.IsEmpty() ? FString(TEXT("\u2026\u2026")) : Garbled;
 			UE_LOG(LogMyBondageLife, Log, TEXT("Chat: gagged [%s] %s -> %s"),
 				*GagProfile.ToString(), *TrimmedMessage, *OutgoingMessage);
 		}

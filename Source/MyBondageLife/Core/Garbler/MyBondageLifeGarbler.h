@@ -35,6 +35,9 @@ struct FMyBondageLifeGagProfile
 	/** 完全无声（只剩 …… / mnm 这种残响）。 */
 	bool bSilent = false;
 
+	/** 连残响都不给（密封头套XL）：戴着时整句一个字也发不出来。 */
+	bool bNoResidue = false;
+
 	/** 中文拼音音素（声母 + 韵母）。 */
 	TMap<FString, FMyBondageLifeGagRule> Zh;
 

@@ -956,7 +956,7 @@
   {
    "id": "BallGagXL",
    "base": "BallGag",
-   "displayName": "大号口球",
+   "displayName": "口球XL",
    "aliases": [
     "ballgagxl",
     "ball gag xl",
@@ -2861,6 +2861,632 @@
      "sound": ""
     }
    }
+  },
+  {
+   "id": "RingGagXL",
+   "base": "RingGag",
+   "displayName": "开口环XL",
+   "aliases": [
+    "ringxl",
+    "ring gag xl",
+    "开口环xl",
+    "大号开口环"
+   ],
+   "description": "开口环加强版: 双唇音仍失效, 元音全部顶到鼻腔。",
+   "silent": false,
+   "fallbackSounds": [
+    "h",
+    "ahng",
+    "ehng",
+    "m"
+   ],
+   "zh": {
+    "a": {
+     "muffle": 3,
+     "sound": "ahng"
+    },
+    "o": {
+     "muffle": 3,
+     "sound": "ohng"
+    },
+    "e": {
+     "muffle": 3,
+     "sound": "ehng"
+    },
+    "i": {
+     "muffle": 3,
+     "sound": "ihng"
+    },
+    "u": {
+     "muffle": 3,
+     "sound": "oong"
+    },
+    "v": {
+     "muffle": 3,
+     "sound": "yung"
+    },
+    "er": {
+     "muffle": 3,
+     "sound": "erng"
+    },
+    "ai": {
+     "muffle": 3,
+     "sound": "aing"
+    },
+    "ei": {
+     "muffle": 3,
+     "sound": "eing"
+    },
+    "ao": {
+     "muffle": 3,
+     "sound": "awng"
+    },
+    "ou": {
+     "muffle": 3,
+     "sound": "ohng"
+    },
+    "an": {
+     "muffle": 3,
+     "sound": "ahng"
+    },
+    "en": {
+     "muffle": 3,
+     "sound": "ehng"
+    },
+    "ang": {
+     "muffle": 3,
+     "sound": "ahng"
+    },
+    "eng": {
+     "muffle": 3,
+     "sound": "ehng"
+    },
+    "ong": {
+     "muffle": 3,
+     "sound": "ohng"
+    },
+    "ia": {
+     "muffle": 3,
+     "sound": "yahng"
+    },
+    "ie": {
+     "muffle": 3,
+     "sound": "yehng"
+    },
+    "iao": {
+     "muffle": 3,
+     "sound": "yawng"
+    },
+    "iu": {
+     "muffle": 3,
+     "sound": "yoong"
+    },
+    "ian": {
+     "muffle": 3,
+     "sound": "yahn"
+    },
+    "in": {
+     "muffle": 3,
+     "sound": "ihn"
+    },
+    "iang": {
+     "muffle": 3,
+     "sound": "yahng"
+    },
+    "ing": {
+     "muffle": 3,
+     "sound": "ihng"
+    },
+    "iong": {
+     "muffle": 3,
+     "sound": "yohng"
+    },
+    "ua": {
+     "muffle": 3,
+     "sound": "wahng"
+    },
+    "uo": {
+     "muffle": 3,
+     "sound": "wohng"
+    },
+    "uai": {
+     "muffle": 3,
+     "sound": "waing"
+    },
+    "ui": {
+     "muffle": 3,
+     "sound": "wayng"
+    },
+    "uan": {
+     "muffle": 3,
+     "sound": "wahn"
+    },
+    "un": {
+     "muffle": 3,
+     "sound": "wuhn"
+    },
+    "uang": {
+     "muffle": 3,
+     "sound": "wahng"
+    },
+    "ueng": {
+     "muffle": 3,
+     "sound": "wuhng"
+    },
+    "ve": {
+     "muffle": 3,
+     "sound": "ywehng"
+    },
+    "van": {
+     "muffle": 3,
+     "sound": "ywahn"
+    },
+    "vn": {
+     "muffle": 3,
+     "sound": "yuhn"
+    }
+   },
+   "en": {
+    "eɪ": {
+     "muffle": 3,
+     "sound": "ayng"
+    },
+    "ə": {
+     "muffle": 3,
+     "sound": "ahng"
+    },
+    "ɔ": {
+     "muffle": 3,
+     "sound": "awng"
+    },
+    "æ": {
+     "muffle": 3,
+     "sound": "ahng"
+    },
+    "i": {
+     "muffle": 3,
+     "sound": "eeng"
+    },
+    "ɛ": {
+     "muffle": 3,
+     "sound": "ehng"
+    },
+    "ɝ": {
+     "muffle": 3,
+     "sound": "erng"
+    },
+    "ɪə": {
+     "muffle": 3,
+     "sound": "errng"
+    },
+    "aɪ": {
+     "muffle": 3,
+     "sound": "yng"
+    },
+    "ɪ": {
+     "muffle": 3,
+     "sound": "ihng"
+    },
+    "oʊ": {
+     "muffle": 3,
+     "sound": "ohng"
+    },
+    "u": {
+     "muffle": 3,
+     "sound": "oong"
+    },
+    "ɑ": {
+     "muffle": 3,
+     "sound": "ahng"
+    },
+    "ʊ": {
+     "muffle": 3,
+     "sound": "oong"
+    },
+    "aʊ": {
+     "muffle": 3,
+     "sound": "owng"
+    },
+    "ɔɪ": {
+     "muffle": 3,
+     "sound": "oyng"
+    }
+   }
+  },
+  {
+   "id": "PanelGagXL",
+   "base": "PanelGag",
+   "displayName": "面板口枷XL",
+   "aliases": [
+    "panelxl",
+    "panel gag xl",
+    "面板xl",
+    "大号面板口枷"
+   ],
+   "description": "面板加强版: 复韵母/鼻韵母全部塌成四个 m 尾元音。",
+   "silent": false,
+   "fallbackSounds": [
+    "m",
+    "m",
+    "n",
+    "uhm"
+   ],
+   "zh": {
+    "a": {
+     "muffle": 3,
+     "sound": "uhm"
+    },
+    "o": {
+     "muffle": 3,
+     "sound": "ohm"
+    },
+    "e": {
+     "muffle": 3,
+     "sound": "ehm"
+    },
+    "i": {
+     "muffle": 3,
+     "sound": "ihm"
+    },
+    "u": {
+     "muffle": 3,
+     "sound": "uhm"
+    },
+    "v": {
+     "muffle": 3,
+     "sound": "yuhm"
+    },
+    "er": {
+     "muffle": 3,
+     "sound": "uhm"
+    },
+    "ai": {
+     "muffle": 3,
+     "sound": "uhm"
+    },
+    "ei": {
+     "muffle": 3,
+     "sound": "ehm"
+    },
+    "ao": {
+     "muffle": 3,
+     "sound": "uhm"
+    },
+    "ou": {
+     "muffle": 3,
+     "sound": "ohm"
+    },
+    "an": {
+     "muffle": 3,
+     "sound": "uhm"
+    },
+    "en": {
+     "muffle": 3,
+     "sound": "ehm"
+    },
+    "ang": {
+     "muffle": 3,
+     "sound": "uhm"
+    },
+    "eng": {
+     "muffle": 3,
+     "sound": "ehm"
+    },
+    "ong": {
+     "muffle": 3,
+     "sound": "ohm"
+    },
+    "ia": {
+     "muffle": 3,
+     "sound": "yuhm"
+    },
+    "ie": {
+     "muffle": 3,
+     "sound": "yehm"
+    },
+    "iao": {
+     "muffle": 3,
+     "sound": "uhm"
+    },
+    "iu": {
+     "muffle": 3,
+     "sound": "yuhm"
+    },
+    "ian": {
+     "muffle": 3,
+     "sound": "uhm"
+    },
+    "in": {
+     "muffle": 3,
+     "sound": "ihm"
+    },
+    "iang": {
+     "muffle": 3,
+     "sound": "uhm"
+    },
+    "ing": {
+     "muffle": 3,
+     "sound": "ihm"
+    },
+    "iong": {
+     "muffle": 3,
+     "sound": "yuhm"
+    },
+    "ua": {
+     "muffle": 3,
+     "sound": "uhm"
+    },
+    "uo": {
+     "muffle": 3,
+     "sound": "ohm"
+    },
+    "uai": {
+     "muffle": 3,
+     "sound": "uhm"
+    },
+    "ui": {
+     "muffle": 3,
+     "sound": "uhm"
+    },
+    "uan": {
+     "muffle": 3,
+     "sound": "uhm"
+    },
+    "un": {
+     "muffle": 3,
+     "sound": "uhm"
+    },
+    "uang": {
+     "muffle": 3,
+     "sound": "uhm"
+    },
+    "ueng": {
+     "muffle": 3,
+     "sound": "uhm"
+    },
+    "ve": {
+     "muffle": 3,
+     "sound": "yuhm"
+    },
+    "van": {
+     "muffle": 3,
+     "sound": "uhm"
+    },
+    "vn": {
+     "muffle": 3,
+     "sound": "yuhm"
+    }
+   },
+   "en": {
+    "eɪ": {
+     "muffle": 3,
+     "sound": "ahm"
+    },
+    "ə": {
+     "muffle": 3,
+     "sound": "ahm"
+    },
+    "ɔ": {
+     "muffle": 3,
+     "sound": "awm"
+    },
+    "æ": {
+     "muffle": 3,
+     "sound": "ahm"
+    },
+    "i": {
+     "muffle": 3,
+     "sound": "eem"
+    },
+    "ɛ": {
+     "muffle": 3,
+     "sound": "ehm"
+    },
+    "ɝ": {
+     "muffle": 3,
+     "sound": "erm"
+    },
+    "ɪə": {
+     "muffle": 3,
+     "sound": "erm"
+    },
+    "aɪ": {
+     "muffle": 3,
+     "sound": "ahm"
+    },
+    "ɪ": {
+     "muffle": 3,
+     "sound": "ihm"
+    },
+    "oʊ": {
+     "muffle": 3,
+     "sound": "ohm"
+    },
+    "u": {
+     "muffle": 3,
+     "sound": "oom"
+    },
+    "ɑ": {
+     "muffle": 3,
+     "sound": "ahm"
+    },
+    "ʊ": {
+     "muffle": 3,
+     "sound": "oom"
+    },
+    "aʊ": {
+     "muffle": 3,
+     "sound": "awm"
+    },
+    "ɔɪ": {
+     "muffle": 3,
+     "sound": "awm"
+    }
+   }
+  },
+  {
+   "id": "StuffGagXL",
+   "base": "StuffGag",
+   "displayName": "填塞XL",
+   "aliases": [
+    "stuffxl",
+    "stuffing xl",
+    "填塞xl",
+    "深度填塞"
+   ],
+   "description": "填塞加强版: 连 n/ng 也糊成 mh, 只剩一种气声。",
+   "silent": false,
+   "fallbackSounds": [
+    "mh"
+   ],
+   "zh": {
+    "n": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "m": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ng": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "in": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ing": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ang": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "eng": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ong": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "an": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "en": {
+     "muffle": 3,
+     "sound": "mh"
+    }
+   },
+   "en": {
+    "n": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "m": {
+     "muffle": 3,
+     "sound": "mh"
+    },
+    "ŋ": {
+     "muffle": 3,
+     "sound": "mh"
+    }
+   }
+  },
+  {
+   "id": "CleaveGagXL",
+   "base": "CleaveGag",
+   "displayName": "布条封口XL",
+   "aliases": [
+    "cleavexl",
+    "cleave gag xl",
+    "tape xl",
+    "布条xl",
+    "胶带xl"
+   ],
+   "description": "布条加强版: 连鼻音 n/ng 也变成 m, 只剩一种口型。",
+   "silent": false,
+   "fallbackSounds": [
+    "m"
+   ],
+   "zh": {
+    "n": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "m": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ng": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "in": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ing": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ang": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "eng": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ong": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "an": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "en": {
+     "muffle": 3,
+     "sound": "m"
+    }
+   },
+   "en": {
+    "n": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "m": {
+     "muffle": 3,
+     "sound": "m"
+    },
+    "ŋ": {
+     "muffle": 3,
+     "sound": "m"
+    }
+   }
+  },
+  {
+   "id": "HoodGagXL",
+   "base": "HoodGag",
+   "displayName": "密封头套XL",
+   "aliases": [
+    "hoodxl",
+    "sealed xl",
+    "头套xl",
+    "完全无声"
+   ],
+   "description": "密封头套加强版: 连残响都不给, 一个字也发不出来。",
+   "silent": true,
+   "fallbackSounds": [
+    ""
+   ],
+   "zh": {},
+   "en": {},
+   "noResidue": true
   }
  ],
  "graphemesEn": [

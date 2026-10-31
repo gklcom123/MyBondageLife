@@ -147,6 +147,7 @@ class Garbler:
         active.sort(key=lambda p: self.order[p["id"]])
         rng = random.Random(seed if seed else None)
         silent = all(p["silent"] for p in active)
+        no_residue = all(p.get("noResidue", False) for p in active)
 
         out = []
         rp = False
@@ -179,7 +180,10 @@ class Garbler:
                     j += 1
                 run = text[i:j]
                 if silent:
-                    out.append("".join(self.no_sound_syllable(rng) for _ in run))
+                    if no_residue:
+                        out.append("")
+                    else:
+                        out.append("".join(self.no_sound_syllable(rng) for _ in run))
                 else:
                     parts = []
                     for c in run:

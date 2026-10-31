@@ -87,17 +87,35 @@ Config/Garbler/HanziPinyin.json
 
 `muffle` 打平时，由 `profiles` 数组里的先后顺序裁决（靠前的赢），所以结果是稳定的。
 
-### 内置的 7 个档位
+### 内置的 12 个档位（6 个基础 + 6 个 XL）
 
-| id | 名称 | 听感 | 「你好世界」 |
-|---|---|---|---|
-| `RingGag` | 开口环 | 双唇音失效、元音清楚，最轻 | `nihhawshihshyeh` |
-| `BallGag` | 口球 | 塞音塌成鼻音、元音被压扁（默认推荐） | `nihawshihshyeh` |
-| `BallGagXL` | 大号口球 | 与口球同样的辅音，元音全部顶到鼻腔 | `nihngawngshihngshyehng` |
-| `PanelGag` | 面板口枷 | 元音被中和并带上 m 尾巴 | `nihmaumnihmnyehm` |
-| `CleaveGag` | 布条封口 | 声母全消失，只剩 m | `nmmmm` |
-| `StuffGag` | 填塞 | 比封口更闷、带气声 | `nmmhmmh` |
-| `HoodGag` | 密封头套 | `silent: true`，只剩 `……` / `m..` | `m....` |
+「可辨识度」= 400 个拼音音节经该档位后还剩多少种不同声音（越少越糊）。
+
+| 枚举值 | id | 名称 | 可辨识度 | 「你好世界」 |
+|---|---|---|---|---|
+| 0 | `RingGag` | 开口环 | 263 | `nihhawshihshyeh` |
+| 6 | `RingGagXL` | 开口环XL | 190 | `nihnghawngshihngshyehng` |
+| 1 | `BallGag` | 口球 | 165 | `nihawshihshyeh` |
+| 7 | `BallGagXL` | 口球XL | 118 | `nihngawngshihngshyehng` |
+| 2 | `PanelGag` | 面板口枷 | 89 | `nihmaumnihmnyehm` |
+| 8 | `PanelGagXL` | 面板口枷XL | 22 | `nihmuhmnihmnyehm` |
+| 3 | `StuffGag` | 填塞 | 7 | `nmmhmmh` |
+| 9 | `StuffGagXL` | 填塞XL | 4 | `mhmmhmmh` |
+| 4 | `CleaveGag` | 布条封口 | 4 | `nmmmm` |
+| 10 | `CleaveGagXL` | 布条封口XL | 2 | `mmmmm` |
+| 5 | `HoodGag` | 密封头套 | 1 | `m....`（随机残响） |
+| 11 | `HoodGagXL` | 密封头套XL | 0 | 空（聊天里显示 `……`） |
+
+XL 的做法统一为「同款再狠一档」，但方向按各档位的性格来：
+
+| XL | 比基础档多做了什么 |
+|---|---|
+| 开口环XL | 元音全部顶到鼻腔（`ah→ahng`），双唇音仍失效 |
+| 口球XL | 同上（元音鼻化），辅音与口球一致 |
+| 面板口枷XL | 复韵母/鼻韵母全部塌成 4 个 m 尾元音 |
+| 填塞XL | 连 `n/ng` 也糊成 `mh`，只剩一种气声 |
+| 布条封口XL | 连 `n/ng` 也变成 `m`，只剩一种口型 |
+| 密封头套XL | `noResidue: true`，连 `m..` 残响都不给 |
 
 ### 档位继承（做"同款但更狠"的变体）
 

@@ -12,17 +12,24 @@ namespace
 	const TCHAR* GagTypeEnumPath = TEXT("/Game/DataTable/Enum_GagType.Enum_GagType");
 
 	/**
-	 *  枚举显示名匹配失败时的兜底顺序，与 Enum_GagType 的条目顺序一致：
-	 *  0 开口环 / 1 口球 / 2 面板口枷 / 3 布条封口 / 4 填塞 / 5 密封头套。
+	 *  枚举显示名匹配失败时的兜底顺序，与 Enum_GagType 的 12 个条目一致：
+	 *  0 开口环 / 1 口球 / 2 面板口枷 / 3 填塞 / 4 布条封口 / 5 密封头套
+	 *  6 开口环XL / 7 口球XL / 8 面板口枷XL / 9 填塞XL / 10 布条封口XL / 11 密封头套XL
 	 */
 	const FName GagProfilesByIndex[] =
 	{
 		FName(TEXT("RingGag")),
 		FName(TEXT("BallGag")),
 		FName(TEXT("PanelGag")),
-		FName(TEXT("CleaveGag")),
 		FName(TEXT("StuffGag")),
+		FName(TEXT("CleaveGag")),
 		FName(TEXT("HoodGag")),
+		FName(TEXT("RingGagXL")),
+		FName(TEXT("BallGagXL")),
+		FName(TEXT("PanelGagXL")),
+		FName(TEXT("StuffGagXL")),
+		FName(TEXT("CleaveGagXL")),
+		FName(TEXT("HoodGagXL")),
 	};
 }
 

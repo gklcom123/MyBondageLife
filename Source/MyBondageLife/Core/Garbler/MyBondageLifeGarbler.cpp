@@ -281,6 +281,7 @@ bool FMyBondageLifeGarbler::LoadTables(const FString& Json)
 		Obj->TryGetStringField(TEXT("displayName"), Profile.DisplayName);
 		Obj->TryGetStringField(TEXT("description"), Profile.Description);
 		Obj->TryGetBoolField(TEXT("silent"), Profile.bSilent);
+		Obj->TryGetBoolField(TEXT("noResidue"), Profile.bNoResidue);
 		FString BaseId;
 		if (Obj->TryGetStringField(TEXT("base"), BaseId) && !BaseId.IsEmpty())
 		{
@@ -720,9 +721,11 @@ FString FMyBondageLifeGarbler::Garble(const FString& Text, const TArray<FName>& 
 	}
 
 	bool bAllSilent = true;
+	bool bAllNoResidue = true;
 	for (const FMyBondageLifeGagProfile* Profile : Active)
 	{
 		bAllSilent &= Profile->bSilent;
+		bAllNoResidue &= Profile->bNoResidue;
 	}
 
 	const int32 Seed = Options.RandomSeed != 0
@@ -793,9 +796,13 @@ FString FMyBondageLifeGarbler::Garble(const FString& Text, const TArray<FName>& 
 
 			if (bAllSilent)
 			{
-				for (int32 Index = Cursor; Index < End; ++Index)
+				// 密封头套XL 这类档位连残响都不给，整句保持空。
+				if (!bAllNoResidue)
 				{
-					Out += SilentResidue(Rng);
+					for (int32 Index = Cursor; Index < End; ++Index)
+					{
+						Out += SilentResidue(Rng);
+					}
 				}
 			}
 			else
@@ -836,10 +843,13 @@ FString FMyBondageLifeGarbler::Garble(const FString& Text, const TArray<FName>& 
 
 			if (bAllSilent)
 			{
-				const int32 Pieces = FMath::Max(1, Word.Len() / 3);
-				for (int32 Index = 0; Index < Pieces; ++Index)
+				if (!bAllNoResidue)
 				{
-					Out += SilentResidue(Rng);
+					const int32 Pieces = FMath::Max(1, Word.Len() / 3);
+					for (int32 Index = 0; Index < Pieces; ++Index)
+					{
+						Out += SilentResidue(Rng);
+					}
 				}
 			}
 			else

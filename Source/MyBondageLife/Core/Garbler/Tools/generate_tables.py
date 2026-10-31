@@ -257,7 +257,7 @@ PROFILES = [
     # 想再加一档 (比如 口球 XL 的加强版) 就再复制这段、改几处 sound 即可。
     {
         "id": "BallGagXL",
-        "displayName": "大号口球",
+        "displayName": "口球XL",
         "aliases": ["ballgagxl", "ball gag xl", "ballxl", "球xl", "口球xl", "大号口球"],
         "silent": False,
         "base": "BallGag",
@@ -310,6 +310,112 @@ PROFILES = [
         "silent": True,
         "description": "完全听不见: 只会留下 …… / mnm 这类残响。",
     },
+
+    # =====================================================================
+    #  XL 变体：同款再狠一档。只写与基准不同的音素，其余从 base 继承。
+    #  顺序与 Enum_GagType 的后 6 项一致：开口环XL / 口球XL / 面板口枷XL /
+    #  填塞XL / 布条封口XL / 密封头套XL
+    # =====================================================================
+    {
+        "id": "RingGagXL",
+        "displayName": "开口环XL",
+        "aliases": ["ringxl", "ring gag xl", "开口环xl", "大号开口环"],
+        "silent": False,
+        "base": "RingGag",
+        "description": "开口环加强版: 双唇音仍失效, 元音全部顶到鼻腔。",
+        # 只改韵母: 元音鼻化, 辅音骨架与开口环一致。
+        "overrideZh": {
+            "a": (3, "ahng"), "o": (3, "ohng"), "e": (3, "ehng"), "i": (3, "ihng"),
+            "u": (3, "oong"), "v": (3, "yung"), "er": (3, "erng"),
+            "ai": (3, "aing"), "ei": (3, "eing"), "ao": (3, "awng"), "ou": (3, "ohng"),
+            "an": (3, "ahng"), "en": (3, "ehng"), "ang": (3, "ahng"), "eng": (3, "ehng"), "ong": (3, "ohng"),
+            "ia": (3, "yahng"), "ie": (3, "yehng"), "iao": (3, "yawng"), "iu": (3, "yoong"),
+            "ian": (3, "yahn"), "in": (3, "ihn"), "iang": (3, "yahng"), "ing": (3, "ihng"), "iong": (3, "yohng"),
+            "ua": (3, "wahng"), "uo": (3, "wohng"), "uai": (3, "waing"), "ui": (3, "wayng"),
+            "uan": (3, "wahn"), "un": (3, "wuhn"), "uang": (3, "wahng"), "ueng": (3, "wuhng"),
+            "ve": (3, "ywehng"), "van": (3, "ywahn"), "vn": (3, "yuhn"),
+        },
+        "overrideEn": {
+            "eɪ": (3, "ayng"), "ə": (3, "ahng"), "ɔ": (3, "awng"), "æ": (3, "ahng"),
+            "i": (3, "eeng"), "ɛ": (3, "ehng"), "ɝ": (3, "erng"), "ɪə": (3, "errng"),
+            "aɪ": (3, "yng"), "ɪ": (3, "ihng"), "oʊ": (3, "ohng"), "u": (3, "oong"),
+            "ɑ": (3, "ahng"), "ʊ": (3, "oong"), "aʊ": (3, "owng"), "ɔɪ": (3, "oyng"),
+        },
+        "fallbackSounds": ["h", "ahng", "ehng", "m"],
+    },
+    {
+        "id": "PanelGagXL",
+        "displayName": "面板口枷XL",
+        "aliases": ["panelxl", "panel gag xl", "面板xl", "大号面板口枷"],
+        "silent": False,
+        "base": "PanelGag",
+        "description": "面板加强版: 复韵母/鼻韵母全部塌成四个 m 尾元音。",
+        # 元音只剩 4 种鼻化色, 其余韵母全部塌进来。
+        "overrideZh": {
+            "a": (3, "uhm"), "o": (3, "ohm"), "e": (3, "ehm"), "i": (3, "ihm"),
+            "u": (3, "uhm"), "v": (3, "yuhm"), "er": (3, "uhm"),
+            "ai": (3, "uhm"), "ei": (3, "ehm"), "ao": (3, "uhm"), "ou": (3, "ohm"),
+            "an": (3, "uhm"), "en": (3, "ehm"), "ang": (3, "uhm"), "eng": (3, "ehm"), "ong": (3, "ohm"),
+            "ia": (3, "yuhm"), "ie": (3, "yehm"), "iao": (3, "uhm"), "iu": (3, "yuhm"),
+            "ian": (3, "uhm"), "in": (3, "ihm"), "iang": (3, "uhm"), "ing": (3, "ihm"), "iong": (3, "yuhm"),
+            "ua": (3, "uhm"), "uo": (3, "ohm"), "uai": (3, "uhm"), "ui": (3, "uhm"),
+            "uan": (3, "uhm"), "un": (3, "uhm"), "uang": (3, "uhm"), "ueng": (3, "uhm"),
+            "ve": (3, "yuhm"), "van": (3, "uhm"), "vn": (3, "yuhm"),
+        },
+        "overrideEn": {
+            "eɪ": (3, "ahm"), "ə": (3, "ahm"), "ɔ": (3, "awm"), "æ": (3, "ahm"),
+            "i": (3, "eem"), "ɛ": (3, "ehm"), "ɝ": (3, "erm"), "ɪə": (3, "erm"),
+            "aɪ": (3, "ahm"), "ɪ": (3, "ihm"), "oʊ": (3, "ohm"), "u": (3, "oom"),
+            "ɑ": (3, "ahm"), "ʊ": (3, "oom"), "aʊ": (3, "awm"), "ɔɪ": (3, "awm"),
+        },
+        "fallbackSounds": ["m", "m", "n", "uhm"],
+    },
+    {
+        "id": "StuffGagXL",
+        "displayName": "填塞XL",
+        "aliases": ["stuffxl", "stuffing xl", "填塞xl", "深度填塞"],
+        "silent": False,
+        "base": "StuffGag",
+        "description": "填塞加强版: 连 n/ng 也糊成 mh, 只剩一种气声。",
+        "overrideZh": {
+            "n": (3, "mh"), "m": (3, "mh"), "ng": (3, "mh"),
+            "in": (3, "mh"), "ing": (3, "mh"), "ang": (3, "mh"), "eng": (3, "mh"), "ong": (3, "mh"),
+            "an": (3, "mh"), "en": (3, "mh"),
+        },
+        "overrideEn": {
+            "n": (3, "mh"), "m": (3, "mh"), "ŋ": (3, "mh"),
+        },
+        "fallbackSounds": ["mh"],
+    },
+    {
+        "id": "CleaveGagXL",
+        "displayName": "布条封口XL",
+        "aliases": ["cleavexl", "cleave gag xl", "tape xl", "布条xl", "胶带xl"],
+        "silent": False,
+        "base": "CleaveGag",
+        "description": "布条加强版: 连鼻音 n/ng 也变成 m, 只剩一种口型。",
+        "overrideZh": {
+            "n": (3, "m"), "m": (3, "m"), "ng": (3, "m"),
+            "in": (3, "m"), "ing": (3, "m"), "ang": (3, "m"), "eng": (3, "m"), "ong": (3, "m"),
+            "an": (3, "m"), "en": (3, "m"),
+        },
+        "overrideEn": {
+            "n": (3, "m"), "m": (3, "m"), "ŋ": (3, "m"),
+        },
+        "fallbackSounds": ["m"],
+    },
+    {
+        "id": "HoodGagXL",
+        "displayName": "密封头套XL",
+        "aliases": ["hoodxl", "sealed xl", "头套xl", "完全无声"],
+        "silent": True,
+        "noResidue": True,
+        "base": "HoodGag",
+        "description": "密封头套加强版: 连残响都不给, 一个字也发不出来。",
+        "overrideZh": {},
+        "overrideEn": {},
+        "fallbackSounds": [""],
+    },
 ]
 
 # ---------------------------------------------------------------------------
@@ -352,7 +458,7 @@ def build_table():
 
         # 变体档位: 只写"和基准档位不一样"的音素, 其余从 base 继承(运行时合并)。
         if meta.get("base"):
-            profiles_out.append({
+            entry = {
                 "id": pid,
                 "base": meta["base"],
                 "displayName": meta["displayName"],
@@ -360,9 +466,12 @@ def build_table():
                 "description": meta["description"],
                 "silent": meta["silent"],
                 "fallbackSounds": meta["fallbackSounds"],
-                "zh": {k: {"muffle": m, "sound": s} for k, (m, s) in meta["overrideZh"].items()},
-                "en": {k: {"muffle": m, "sound": s} for k, (m, s) in meta["overrideEn"].items()},
-            })
+                "zh": {k: {"muffle": m, "sound": s} for k, (m, s) in meta.get("overrideZh", {}).items()},
+                "en": {k: {"muffle": m, "sound": s} for k, (m, s) in meta.get("overrideEn", {}).items()},
+            }
+            if meta.get("noResidue"):
+                entry["noResidue"] = True
+            profiles_out.append(entry)
             continue
 
         phonemes = {}
