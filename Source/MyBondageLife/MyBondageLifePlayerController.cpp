@@ -1477,7 +1477,6 @@ void AMyBondageLifePlayerController::PlayerTick(float DeltaTime)
 		SetControlRotation(FrozenControlRotation);
 	}
 
-	Super::PlayerTick(DeltaTime);
 
 	// Project every character's head each frame: the plate position is derived from
 	// the projection only, so it cannot drift when the camera rotates.
