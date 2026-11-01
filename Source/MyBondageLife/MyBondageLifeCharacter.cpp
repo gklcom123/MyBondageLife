@@ -40,10 +40,10 @@ AMyBondageLifeCharacter::AMyBondageLifeCharacter()
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
-	// Animation assets used by the temporary restraint pose. The AnimBP is a copy of
-	// ABP_Unarmed so the pose graph can be extended without touching the original.
-	AnimBlueprintOverridePath = FSoftClassPath(
-		TEXT("/Game/Characters/MainCharc/MainCharc_final_Skeleton_AnimBlueprint.MainCharc_final_Skeleton_AnimBlueprint_C"));
+	// The animation blueprint is owned by the blueprint asset (BP_PlayerCharc). Set
+	// AnimBlueprintOverridePath in the class defaults only if it must be forced from code.
+	AnimBlueprintOverridePath = FSoftClassPath();
+
 	RestraintMontagePath = FSoftObjectPath(
 		TEXT("/Game/Characters/Animation/Restraint/AM_Restraint_HandBack_F.AM_Restraint_HandBack_F"));
 	IdleSequencePath = FSoftObjectPath(TEXT("/Game/Characters/Animation/Normal/Idle.Idle"));
@@ -462,7 +462,12 @@ void AMyBondageLifeCharacter::ApplyAnimBlueprintOverride()
 		return;
 	}
 
-	// The project authored an AnimBP for its own skeleton; use it for everything.
+	// No override configured: keep whatever Anim Class the blueprint set on the mesh.
+	if (AnimBlueprintOverridePath.IsNull())
+	{
+		return;
+	}
+
 	UClass* AnimClass = AnimBlueprintOverridePath.TryLoadClass<UAnimInstance>();
 	if (!AnimClass)
 	{
@@ -472,11 +477,6 @@ void AMyBondageLifeCharacter::ApplyAnimBlueprintOverride()
 	}
 
 	MeshComponent->SetAnimationMode(EAnimationMode::AnimationBlueprint);
-
-	if (MeshComponent->GetAnimInstance() && MeshComponent->GetAnimInstance()->GetClass() == AnimClass)
-	{
-		return;
-	}
 
 	MeshComponent->SetAnimInstanceClass(AnimClass);
 	UE_LOG(LogMyBondageLife, Log, TEXT("Animation: using %s."), *AnimClass->GetName());
