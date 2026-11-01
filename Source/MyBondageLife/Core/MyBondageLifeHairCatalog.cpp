@@ -283,10 +283,19 @@ int32 FMyBondageLifeHairCatalog::StepId(int32 HairId, int32 Delta)
 USkeletalMesh* FMyBondageLifeHairCatalog::LoadMesh(int32 HairId)
 {
 	const FMyBondageLifeHairStyle* Style = FindStyle(HairId);
-	if (!Style && Styles.Num() > 0)
+	if (!Style)
 	{
-		Style = &Styles[0];
+		// No row for this id: no hair. (Falling back to Styles[0] made removed/renamed
+		// styles keep showing up as somebody else's mesh.)
+		UE_LOG(LogMyBondageLife, Warning, TEXT("Hair: no style row for id %d (rows=%d)."), HairId, Styles.Num());
+		return nullptr;
 	}
 
-	return Style ? Style->Mesh.LoadSynchronous() : nullptr;
+	USkeletalMesh* Mesh = Style->Mesh.LoadSynchronous();
+	if (!Mesh)
+	{
+		UE_LOG(LogMyBondageLife, Warning, TEXT("Hair: row %d has no mesh (cleared in the table)."), HairId);
+	}
+
+	return Mesh;
 }
