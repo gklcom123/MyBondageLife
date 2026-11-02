@@ -15,6 +15,7 @@
 #include "Components/WrapBox.h"
 #include "Components/WrapBoxSlot.h"
 #include "Core/MyBondageLifeOutfitCatalog.h"
+#include "Core/MyBondageLifeAccountSubsystem.h"
 #include "Engine/Texture2D.h"
 
 namespace
@@ -494,5 +495,29 @@ void UMyBondageLifeOutfitItemProxy::HandleClicked()
 	if (Owner)
 	{
 		Owner->ChooseItem(ItemId);
+	}
+}
+
+void UMyBondageLifeOutfitSlotsWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	RefreshAccumulator += InDeltaTime;
+	if (RefreshAccumulator < 0.3f)
+	{
+		return;
+	}
+	RefreshAccumulator = 0.0f;
+
+	RefreshFromAccount();
+}
+
+void UMyBondageLifeOutfitSlotsWidget::RefreshFromAccount()
+{
+	if (const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr)
+	{
+		RefreshSlots(Account->GetEquippedOutfits());
 	}
 }
