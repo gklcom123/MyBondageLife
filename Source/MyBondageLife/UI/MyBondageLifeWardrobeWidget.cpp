@@ -105,6 +105,8 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 	{
 		WireAdoptedLayout();
 		BuildRestraintSlots();
+		BuildOutfitSlots();
+		RefreshOutfitSlots();
 		RefreshRestraintSlots();
 		RefreshHeightLabel();
 		RefreshHairLabel();
@@ -227,6 +229,8 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 	RestraintPage = AddPage(TEXT("WardrobeRestraintPage"));
 
 	BuildRestraintSlots();
+	BuildOutfitSlots();
+	RefreshOutfitSlots();
 
 	// Body page: "身高： < 普通 >"
 	UTextBlock* HeightCaption = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
