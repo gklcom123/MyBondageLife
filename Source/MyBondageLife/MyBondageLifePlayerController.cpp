@@ -1429,6 +1429,12 @@ void AMyBondageLifePlayerController::BeginPlay()
 		ShowHudEntries();
 
 		ShowNameplateLayer();
+		if (UMyBondageLifeAccountSubsystem* OutfitAccount = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+		{
+			OutfitAccount->OnOutfitsChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleOutfitsChanged);
+			OutfitAccount->RefreshOutfits(FString());
+		}
+
 		ShowChat();
 		ShowPlayerInfo();
 		ShowFriendList();
@@ -2426,4 +2432,53 @@ void AMyBondageLifePlayerController::SetRestraintMovementBlocked(bool bBlocked)
 	{
 		ResetIgnoreMoveInput();
 	}
+}
+
+void AMyBondageLifePlayerController::PushOutfitsToPawn()
+{
+	UGameInstance* GameInstance = GetGameInstance();
+	UMyBondageLifeAccountSubsystem* Account = GameInstance
+		? GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+	if (!Account)
+	{
+		return;
+	}
+
+	TArray<int32> Slots;
+	TArray<FName> Items;
+	for (const TPair<int32, FString>& Pair : Account->GetEquippedOutfits())
+	{
+		if (Pair.Value.IsEmpty())
+		{
+			continue;
+		}
+		Slots.Add(Pair.Key);
+		Items.Add(FName(*Pair.Value));
+	}
+
+	if (HasAuthority())
+	{
+		if (AMyBondageLifeCharacter* TargetCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+		{
+			TargetCharacter->SetOutfits(Slots, Items);
+		}
+	}
+	else
+	{
+		ServerSetOutfits(Slots, Items);
+	}
+}
+
+void AMyBondageLifePlayerController::ServerSetOutfits_Implementation(const TArray<int32>& Slots, const TArray<FName>& Items)
+{
+	if (AMyBondageLifeCharacter* TargetCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		TargetCharacter->SetOutfits(Slots, Items);
+	}
+}
+
+void AMyBondageLifePlayerController::HandleOutfitsChanged()
+{
+	PushOutfitsToPawn();
 }

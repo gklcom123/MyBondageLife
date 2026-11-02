@@ -139,6 +139,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Restraint")
 	void SetRestraints(const TArray<int32>& InSlots, const TArray<FName>& InItems);
 
+	/** 衣物：槽位与道具 id（并行数组）。 */
+	UFUNCTION(BlueprintCallable, Category="Outfit")
+	void SetOutfits(const TArray<int32>& InSlots, const TArray<FName>& InItems);
+
 	/** Rebuilds the worn meshes, the derived flags and the pose montage. */
 	UFUNCTION(BlueprintCallable, Category="Restraint")
 	void ApplyRestraints();
@@ -262,6 +266,12 @@ protected:
 	UFUNCTION()
 	void OnRep_Restraints();
 
+	UFUNCTION()
+	void OnRep_Outfits();
+
+	/** 重建衣物网格并按 FeetOffset 调整胶囊。 */
+	void ApplyOutfits();
+
 	/** Slot index per equipped item (parallel to RestraintItemIds). */
 	UPROPERTY(ReplicatedUsing = OnRep_Restraints, BlueprintReadOnly, Category="Restraint", meta = (AllowPrivateAccess = "true"))
 	TArray<int32> RestraintSlots;
@@ -275,6 +285,12 @@ protected:
 
 	UPROPERTY(ReplicatedUsing = OnRep_Restraints, BlueprintReadOnly, Category="Restraint")
 	bool bRestraintInGag = false;
+
+	UPROPERTY(ReplicatedUsing = OnRep_Outfits, BlueprintReadOnly, Category="Outfit", meta = (AllowPrivateAccess = "true"))
+	TArray<int32> OutfitSlots;
+
+	UPROPERTY(ReplicatedUsing = OnRep_Outfits, BlueprintReadOnly, Category="Outfit", meta = (AllowPrivateAccess = "true"))
+	TArray<FName> OutfitItemIds;
 
 	UPROPERTY(ReplicatedUsing = OnRep_Restraints, BlueprintReadOnly, Category="Restraint")
 	bool bRestraintBlind = false;
@@ -388,6 +404,10 @@ protected:
 	TMap<FName, TObjectPtr<class UMaterialInterface>> OriginalBodyMaterials;
 
 	float BlindVisualLevel = 0.0f;
+
+	bool bOutfitBaseCaptured = false;
+	float OutfitBaseHalfHeight = 96.0f;
+	float OutfitBaseMeshZ = 0.0f;
 
 	UFUNCTION(Server, Reliable)
 	void ServerSetRunning(bool bNewRunning);

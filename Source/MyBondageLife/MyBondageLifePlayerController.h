@@ -383,6 +383,16 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void ServerSetRestraints(const TArray<int32>& Slots, const TArray<FName>& Items);
 
+	void PushOutfitsToPawn();
+
+	UFUNCTION(Server, Reliable)
+	void ServerSetOutfits(const TArray<int32>& Slots, const TArray<FName>& Items);
+
+	void ServerSetOutfits_Implementation(const TArray<int32>& Slots, const TArray<FName>& Items);
+
+	UFUNCTION()
+	void HandleOutfitsChanged();
+
 
 
 	//~ Contracts -----------------------------------------------------------

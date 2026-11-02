@@ -4,6 +4,7 @@
 
 #include "Core/MyBondageLifeHairCatalog.h"
 #include "Core/MyBondageLifeRestraintCatalog.h"
+#include "Core/MyBondageLifeOutfitCatalog.h"
 #include "Core/Garbler/MyBondageLifeGagTypeMap.h"
 #include "Animation/AnimMontage.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -163,6 +164,8 @@ void AMyBondageLifeCharacter::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(AMyBondageLifeCharacter, bRestraintInGag);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bRestraintBlind);
 	DOREPLIFETIME(AMyBondageLifeCharacter, RestraintBlindLevel);
+	DOREPLIFETIME(AMyBondageLifeCharacter, OutfitSlots);
+	DOREPLIFETIME(AMyBondageLifeCharacter, OutfitItemIds);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bRestraintLeg);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bCantMove);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bInPetMode);
@@ -988,5 +991,105 @@ void AMyBondageLifeCharacter::ApplyBodyPartHiding(TSet<FName> HiddenParts)
 
 		OriginalBodyMaterials.Add(PartName, MeshComponent->GetMaterial(MaterialIndex));
 		MeshComponent->SetMaterial(MaterialIndex, HiddenBodyMaterial);
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Outfits
+// ---------------------------------------------------------------------------
+
+void AMyBondageLifeCharacter::SetOutfits(const TArray<int32>& InSlots, const TArray<FName>& InItems)
+{
+	OutfitSlots = InSlots;
+	OutfitItemIds = InItems;
+	ApplyOutfits();
+}
+
+void AMyBondageLifeCharacter::OnRep_Outfits()
+{
+	ApplyOutfits();
+}
+
+void AMyBondageLifeCharacter::ApplyOutfits()
+{
+	USkeletalMeshComponent* BodyMesh = GetMesh();
+	if (!BodyMesh)
+	{
+		return;
+	}
+
+	// 现有衣物组件（槽位 -> 组件）
+	static const FName OutfitComponentTag(TEXT("OutfitPart"));
+
+	TArray<USkeletalMeshComponent*> Existing;
+	GetComponents<USkeletalMeshComponent>(Existing);
+	for (USkeletalMeshComponent* Component : Existing)
+	{
+		if (Component && Component->ComponentHasTag(OutfitComponentTag))
+		{
+			Component->DestroyComponent();
+		}
+	}
+
+	float FeetOffset = 0.0f;
+
+	for (int32 Index = 0; Index < OutfitItemIds.Num(); ++Index)
+	{
+		const FMyBondageLifeOutfitItem* Item = FMyBondageLifeOutfitCatalog::Find(OutfitItemIds[Index]);
+		if (!Item)
+		{
+			continue;
+		}
+
+		USkeletalMesh* MeshAsset = Item->Mesh.LoadSynchronous();
+		if (!MeshAsset)
+		{
+			continue;
+		}
+
+		FeetOffset += Item->FeetOffset;
+
+		USkeletalMeshComponent* Component = NewObject<USkeletalMeshComponent>(this);
+		if (!Component)
+		{
+			continue;
+		}
+
+		Component->ComponentTags.Add(OutfitComponentTag);
+		Component->SetSkeletalMeshAsset(MeshAsset);
+		Component->SetupAttachment(BodyMesh);
+		Component->RegisterComponent();
+		Component->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Component->SetGenerateOverlapEvents(false);
+
+		// 同骨骼：跟随身体动画；否则挂到同名 socket。
+		const bool bSameSkeleton = MeshAsset->GetSkeleton() == BodyMesh->GetSkeletalMeshAsset()->GetSkeleton();
+		if (bSameSkeleton)
+		{
+			Component->SetMasterPoseComponent(BodyMesh);
+		}
+		else
+		{
+			Component->AttachToComponent(BodyMesh,
+				FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+		}
+	}
+
+	// FeetOffset：临时抬高胶囊，并把网格下移同样的量以保持脚贴地。
+	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		if (!bOutfitBaseCaptured)
+		{
+			OutfitBaseHalfHeight = Capsule->GetUnscaledCapsuleHalfHeight();
+			OutfitBaseMeshZ = BodyMesh->GetRelativeLocation().Z;
+			bOutfitBaseCaptured = true;
+		}
+
+		const float NewHalfHeight = OutfitBaseHalfHeight + FeetOffset;
+		Capsule->SetCapsuleSize(Capsule->GetUnscaledCapsuleRadius(), NewHalfHeight, true);
+		BodyMesh->SetRelativeLocation(FVector(
+			BodyMesh->GetRelativeLocation().X,
+			BodyMesh->GetRelativeLocation().Y,
+			OutfitBaseMeshZ - FeetOffset));
 	}
 }

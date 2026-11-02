@@ -9,6 +9,7 @@
 #include "MyBondageLife.h"
 #include "MyBondageLifeServerConfig.h"
 #include "Core/MyBondageLifeRestraintCatalog.h"
+#include "Core/MyBondageLifeOutfitCatalog.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
@@ -1662,4 +1663,133 @@ void UMyBondageLifeAccountSubsystem::ResolveNotification(const FString& Id, bool
 	RefreshNotifications();
 	RefreshFriendsFromServer();
 	RefreshContractState();
+}
+
+// ---------------------------------------------------------------------------
+// Outfits (no locks, friend-editable)
+// ---------------------------------------------------------------------------
+
+void UMyBondageLifeAccountSubsystem::RefreshOutfits(const FString& InAccount)
+{
+	const FString Target = InAccount.IsEmpty() ? FString(TEXT("me")) : InAccount;
+	const bool bOwn = Target.Equals(TEXT("me"), ESearchCase::IgnoreCase)
+		|| Target.Equals(AccountName, ESearchCase::IgnoreCase);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	const FString Path = FString::Printf(TEXT("/users/%s/outfits"), *Target);
+
+	SendFriendApiRequest(TEXT("GET"), Path, nullptr,
+		[WeakThis, bOwn](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self || !bOk || !Json.IsValid())
+			{
+				return;
+			}
+
+			TMap<int32, FString> Parsed;
+			const TArray<TSharedPtr<FJsonValue>>* Equipped = nullptr;
+			if (Json->TryGetArrayField(TEXT("equipped"), Equipped) && Equipped)
+			{
+				for (const TSharedPtr<FJsonValue>& Value : *Equipped)
+				{
+					const TSharedPtr<FJsonObject> Item = Value.IsValid() ? Value->AsObject() : nullptr;
+					if (!Item.IsValid())
+					{
+						continue;
+					}
+
+					double SlotValue = 0.0;
+					FString ItemId;
+					if (Item->TryGetNumberField(TEXT("slot"), SlotValue) &&
+						Item->TryGetStringField(TEXT("itemId"), ItemId) && !ItemId.IsEmpty())
+					{
+						Parsed.Add(FMath::Clamp(static_cast<int32>(SlotValue), 0, FMyBondageLifeOutfitCatalog::SlotCount - 1), ItemId);
+					}
+				}
+			}
+
+			if (bOwn)
+			{
+				Self->EquippedOutfits = Parsed;
+			}
+			else
+			{
+				Self->ViewedOutfits = Parsed;
+			}
+			Self->OnOutfitsChanged.Broadcast();
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::EquipOutfit(int32 Slot, const FString& ItemId)
+{
+	EquipOutfitFor(FString(), Slot, ItemId);
+}
+
+void UMyBondageLifeAccountSubsystem::UnequipOutfit(int32 Slot)
+{
+	UnequipOutfitFor(FString(), Slot);
+}
+
+void UMyBondageLifeAccountSubsystem::EquipOutfitFor(const FString& Owner, int32 Slot, const FString& ItemId)
+{
+	if (ItemId.IsEmpty() || Slot < 0 || Slot >= FMyBondageLifeOutfitCatalog::SlotCount)
+	{
+		return;
+	}
+
+	const bool bOwn = Owner.IsEmpty() || Owner.Equals(AccountName, ESearchCase::IgnoreCase);
+	const FString Target = bOwn ? FString(TEXT("me")) : Owner;
+
+	EquippedOutfits.Add(Slot, ItemId);
+	OnOutfitsChanged.Broadcast();
+
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("itemId"), ItemId);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	const FString Path = FString::Printf(TEXT("/users/%s/outfits/%d"), *Target, Slot);
+
+	SendFriendApiRequest(TEXT("PUT"), Path, Body,
+		[WeakThis, Slot](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			if (UMyBondageLifeAccountSubsystem* Self = WeakThis.Get())
+			{
+				UE_LOG(LogMyBondageLife, Log, TEXT("Outfit: equip slot %d %s (%d)."),
+					Slot, bOk ? TEXT("ok") : TEXT("failed"), StatusCode);
+				if (!bOk)
+				{
+					Self->RefreshOutfits(FString());
+				}
+			}
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::UnequipOutfitFor(const FString& Owner, int32 Slot)
+{
+	if (Slot < 0 || Slot >= FMyBondageLifeOutfitCatalog::SlotCount)
+	{
+		return;
+	}
+
+	const bool bOwn = Owner.IsEmpty() || Owner.Equals(AccountName, ESearchCase::IgnoreCase);
+	const FString Target = bOwn ? FString(TEXT("me")) : Owner;
+
+	EquippedOutfits.Remove(Slot);
+	OnOutfitsChanged.Broadcast();
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	const FString Path = FString::Printf(TEXT("/users/%s/outfits/%d"), *Target, Slot);
+
+	SendFriendApiRequest(TEXT("DELETE"), Path, nullptr,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			if (UMyBondageLifeAccountSubsystem* Self = WeakThis.Get())
+			{
+				if (!bOk)
+				{
+					Self->RefreshOutfits(FString());
+				}
+			}
+		});
 }
