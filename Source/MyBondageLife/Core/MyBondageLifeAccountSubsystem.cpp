@@ -1741,8 +1741,16 @@ void UMyBondageLifeAccountSubsystem::EquipOutfitFor(const FString& Owner, int32 
 	const bool bOwn = Owner.IsEmpty() || Owner.Equals(AccountName, ESearchCase::IgnoreCase);
 	const FString Target = bOwn ? FString(TEXT("me")) : Owner;
 
-	EquippedOutfits.Add(Slot, ItemId);
-	OnOutfitsChanged.Broadcast();
+	if (bOwn)
+	{
+		EquippedOutfits.Add(Slot, ItemId);
+		OnOutfitsChanged.Broadcast();
+	}
+	else
+	{
+		OtherOutfits.FindOrAdd(Target).Add(Slot, ItemId);
+		OnAccountOutfitsChanged.Broadcast(Target);
+	}
 
 	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
 	Body->SetStringField(TEXT("itemId"), ItemId);
@@ -1788,8 +1796,16 @@ void UMyBondageLifeAccountSubsystem::UnequipOutfitFor(const FString& Owner, int3
 	const bool bOwn = Owner.IsEmpty() || Owner.Equals(AccountName, ESearchCase::IgnoreCase);
 	const FString Target = bOwn ? FString(TEXT("me")) : Owner;
 
-	EquippedOutfits.Remove(Slot);
-	OnOutfitsChanged.Broadcast();
+	if (bOwn)
+	{
+		EquippedOutfits.Remove(Slot);
+		OnOutfitsChanged.Broadcast();
+	}
+	else
+	{
+		OtherOutfits.FindOrAdd(Target).Remove(Slot);
+		OnAccountOutfitsChanged.Broadcast(Target);
+	}
 
 	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
 	const FString Path = FString::Printf(TEXT("/users/%s/outfits/%d"), *Target, Slot);

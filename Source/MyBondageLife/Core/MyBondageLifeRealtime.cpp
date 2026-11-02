@@ -127,6 +127,12 @@ void UMyBondageLifeAccountSubsystem::HandleRealtimeMessage(const FString& InMess
 		return;
 	}
 
+	if (Type == TEXT("outfits.changed"))
+	{
+		RefreshOutfits(FString());
+		return;
+	}
+
 	if (Type == TEXT("error"))
 	{
 		FString Code;
