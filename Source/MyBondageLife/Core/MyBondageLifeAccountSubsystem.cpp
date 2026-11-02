@@ -1290,7 +1290,7 @@ void UMyBondageLifeAccountSubsystem::RefreshRestraints()
 						continue;
 					}
 
-					const int32 SlotIndex = FMath::Clamp(static_cast<int32>(SlotValue), 0, 11);
+					const int32 SlotIndex = FMath::Clamp(static_cast<int32>(SlotValue), 0, FMyBondageLifeRestraintCatalog::SlotCount - 1);
 					Self->EquippedRestraints.Add(SlotIndex, ItemId);
 
 					const TSharedPtr<FJsonObject>* LockObject = nullptr;
