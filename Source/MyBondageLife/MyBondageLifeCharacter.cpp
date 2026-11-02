@@ -560,6 +560,13 @@ void AMyBondageLifeCharacter::RefreshRestraintPose()
 		return;
 	}
 
+	// 换装时同一槽位会替换蒙太奇：先把旧姿势停掉，否则新旧两段会叠加混合。
+	if (PlayingPoseAnmi && PlayingPoseAnmi != Montage)
+	{
+		AnimInstance->Montage_Stop(0.12f, PlayingPoseAnmi);
+		PlayingPoseAnmi = nullptr;
+	}
+
 	if (!AnimInstance->Montage_IsPlaying(Montage))
 	{
 		// Played through the AnimBP slot, so locomotion keeps running underneath;
