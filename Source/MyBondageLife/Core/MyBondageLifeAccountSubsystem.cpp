@@ -1755,8 +1755,21 @@ void UMyBondageLifeAccountSubsystem::EquipOutfitFor(const FString& Owner, int32 
 		{
 			if (UMyBondageLifeAccountSubsystem* Self = WeakThis.Get())
 			{
-				UE_LOG(LogMyBondageLife, Log, TEXT("Outfit: equip slot %d %s (%d)."),
-					Slot, bOk ? TEXT("ok") : TEXT("failed"), StatusCode);
+				FString Detail;
+				if (Json.IsValid())
+				{
+					const TSharedPtr<FJsonObject>* ErrorObject = nullptr;
+					if (Json->TryGetObjectField(TEXT("error"), ErrorObject) && ErrorObject)
+					{
+						FString Code;
+						FString Message;
+						(*ErrorObject)->TryGetStringField(TEXT("code"), Code);
+						(*ErrorObject)->TryGetStringField(TEXT("message"), Message);
+						Detail = FString::Printf(TEXT(" %s: %s"), *Code, *Message);
+					}
+				}
+				UE_LOG(LogMyBondageLife, Log, TEXT("Outfit: equip slot %d %s (%d)%s."),
+					Slot, bOk ? TEXT("ok") : TEXT("failed"), StatusCode, *Detail);
 				if (!bOk)
 				{
 					Self->RefreshOutfits(FString());
