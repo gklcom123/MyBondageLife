@@ -16,6 +16,7 @@
 #include "Components/WrapBoxSlot.h"
 #include "Core/MyBondageLifeOutfitCatalog.h"
 #include "Core/MyBondageLifeAccountSubsystem.h"
+#include "MyBondageLife.h"
 #include "Engine/Texture2D.h"
 
 namespace
@@ -247,6 +248,27 @@ void UMyBondageLifeOutfitSlotsWidget::RefreshSlots(const TMap<int32, FString>& E
 			{
 				Text->SetText(FText::FromString(Caption));
 			}
+		}
+
+		UE_LOG(LogMyBondageLife, Log, TEXT("OutfitSlot %d: image=%s texture=%s"),
+			SlotIndex, SlotImage ? *SlotImage->GetName() : TEXT("none"),
+			Texture ? *Texture->GetName() : TEXT("none"));
+
+		// 设计版里图标/文字与按钮同级（兄弟节点），按名字直接写入。
+		if (SlotImage)
+		{
+			if (Texture)
+			{
+				SlotImage->SetBrushFromTexture(Texture, true);
+			}
+			else
+			{
+				SlotImage->SetBrush(FSlateBrush());
+			}
+		}
+		if (SlotText)
+		{
+			SlotText->SetText(FText::FromString(Caption));
 		}
 
 		// Fallback: the caption sometimes lives outside the button in the designed tree.
