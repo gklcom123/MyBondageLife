@@ -405,7 +405,16 @@ protected:
 	void ApplyBlindEffect(float InDeltaTime);
 
 	/** 拘束的 HideBodyPart：把对应材质插槽换成透明材质（任一件生效即可）。 */
-	void ApplyBodyPartHiding(TSet<FName> HiddenParts);
+	void ApplyBodyPartHiding();
+
+	/** 拘束与衣物各自要求隐藏的身体部位（并集生效）。 */
+	TSet<FName> RestraintHiddenParts;
+	TSet<FName> OutfitHiddenParts;
+
+	/** 衣物 FeetOffset 合计，用于抬高胶囊。 */
+	float OutfitFeetOffset = 0.0f;
+
+	void ApplyOutfitCapsule();
 
 	UPROPERTY(Transient)
 	TObjectPtr<class UMaterialInstanceDynamic> HiddenBodyMaterial;

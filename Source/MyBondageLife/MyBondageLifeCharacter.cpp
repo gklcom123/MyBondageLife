@@ -341,6 +341,11 @@ void AMyBondageLifeCharacter::Tick(float DeltaSeconds)
 		RefreshRestraintPose();
 	}
 
+	if (bOutfitBaseCaptured)
+	{
+		ApplyOutfitCapsule();
+	}
+
 	ApplyBlindEffect(DeltaSeconds);
 
 	// CantMove: kill any residual velocity every frame (a single speed clamp left a slow drift).
@@ -780,7 +785,8 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 	UE_LOG(LogMyBondageLife, Log, TEXT("Restraint: %d item(s) applied (arm=%d leg=%d cantmove=%d pet=%d)."),
 		RestraintItemIds.Num(), bRestraintArm ? 1 : 0, bRestraintLeg ? 1 : 0, bCantMove ? 1 : 0, bInPetMode ? 1 : 0);
 
-	ApplyBodyPartHiding(HiddenParts);
+	RestraintHiddenParts = HiddenParts;
+	ApplyBodyPartHiding();
 }
 
 FName AMyBondageLifeCharacter::GetGagProfileId() const
@@ -947,7 +953,7 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 	PP.bOverride_DepthOfFieldSensorWidth = bActive;
 	PP.DepthOfFieldSensorWidth = 24.0f;
 }
-void AMyBondageLifeCharacter::ApplyBodyPartHiding(TSet<FName> HiddenParts)
+void AMyBondageLifeCharacter::ApplyBodyPartHiding()
 {
 	USkeletalMeshComponent* MeshComponent = GetMesh();
 	if (!MeshComponent)
@@ -982,7 +988,10 @@ void AMyBondageLifeCharacter::ApplyBodyPartHiding(TSet<FName> HiddenParts)
 		return;
 	}
 
-	for (const FName& PartName : HiddenParts)
+	TSet<FName> AllParts = RestraintHiddenParts;
+	AllParts.Append(OutfitHiddenParts);
+
+	for (const FName& PartName : AllParts)
 	{
 		const int32 MaterialIndex = MeshComponent->GetMaterialIndex(PartName);
 		if (MaterialIndex == INDEX_NONE)
@@ -1048,7 +1057,13 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 			continue;
 		}
 
+		OutfitHiddenParts.Reset();
 		FeetOffset += Item->FeetOffset;
+
+		for (const FString& HidePart : Item->HideBodyParts)
+		{
+			OutfitHiddenParts.Add(FName(*HidePart));
+		}
 
 		USkeletalMeshComponent* Component = NewObject<USkeletalMeshComponent>(this);
 		if (!Component)
@@ -1076,25 +1091,34 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 		}
 	}
 
-	// FeetOffset：临时抬高胶囊，并把网格下移同样的量以保持脚贴地。
-	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
-	{
-		if (!bOutfitBaseCaptured)
-		{
-			OutfitBaseHalfHeight = Capsule->GetUnscaledCapsuleHalfHeight();
-			OutfitBaseMeshZ = BodyMesh->GetRelativeLocation().Z;
-			bOutfitBaseCaptured = true;
-		}
-
-		const float NewHalfHeight = OutfitBaseHalfHeight + FeetOffset;
-		Capsule->SetCapsuleSize(Capsule->GetUnscaledCapsuleRadius(), NewHalfHeight, true);
-		BodyMesh->SetRelativeLocation(FVector(
-			BodyMesh->GetRelativeLocation().X,
-			BodyMesh->GetRelativeLocation().Y,
-			OutfitBaseMeshZ - FeetOffset));
-	}
+	OutfitFeetOffset = FeetOffset;
+	ApplyOutfitCapsule();
+	ApplyBodyPartHiding();
 }
 void AMyBondageLifeCharacter::ServerSetAccountName_Implementation(const FString& InAccount)
 {
 	AccountName = InAccount;
+}
+void AMyBondageLifeCharacter::ApplyOutfitCapsule()
+{
+	UCapsuleComponent* Capsule = GetCapsuleComponent();
+	USkeletalMeshComponent* BodyMesh = GetMesh();
+	if (!Capsule || !BodyMesh)
+	{
+		return;
+	}
+
+	if (!bOutfitBaseCaptured)
+	{
+		OutfitBaseHalfHeight = Capsule->GetUnscaledCapsuleHalfHeight();
+		OutfitBaseMeshZ = BodyMesh->GetRelativeLocation().Z;
+		bOutfitBaseCaptured = true;
+	}
+
+	const float NewHalfHeight = OutfitBaseHalfHeight + OutfitFeetOffset;
+	Capsule->SetCapsuleSize(Capsule->GetUnscaledCapsuleRadius(), NewHalfHeight, true);
+	BodyMesh->SetRelativeLocation(FVector(
+		BodyMesh->GetRelativeLocation().X,
+		BodyMesh->GetRelativeLocation().Y,
+		OutfitBaseMeshZ - OutfitFeetOffset));
 }
