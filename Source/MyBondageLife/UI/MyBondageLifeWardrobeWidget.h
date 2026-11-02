@@ -278,6 +278,9 @@ protected:
 	UFUNCTION()
 	void HandleOutfitRemoveChosen(int32 SlotIndex);
 
+	UFUNCTION()
+	void HandleOutfitsChanged();
+
 	UPROPERTY(Transient)
 	TObjectPtr<class UMyBondageLifeRestraintSlotsWidget> RestraintGrid;
 

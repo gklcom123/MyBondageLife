@@ -2268,43 +2268,28 @@ void UMyBondageLifeWardrobeWidget::HandleDesignedLockConfirmed(int32 LockType, c
 
 void UMyBondageLifeWardrobeWidget::BuildOutfitSlots()
 {
-	if (OutfitSlots)
+	if (OutfitSlots || !WidgetTree)
 	{
 		return;
 	}
 
-	// Designed path: a WBP_OutfitSlots instance placed in the wardrobe tree (like W_RestraintGrid).
+	// Same contract as W_RestraintGrid: drop a WBP_OutfitSlots instance into the page,
+	// name it W_OutfitSlots, done. No runtime creation, no forced size.
 	OutfitSlots = Cast<UMyBondageLifeOutfitSlotsWidget>(WidgetTree->FindWidget(TEXT("W_OutfitSlots")));
-
 	if (!OutfitSlots)
 	{
-		// Fallback: build the grid ourselves on the clothing page with an explicit size.
-		if (!AppearancePage)
-		{
-			return;
-		}
-
-		UClass* SlotsClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_OutfitSlots.WBP_OutfitSlots_C"));
-		if (!SlotsClass)
-		{
-			SlotsClass = UMyBondageLifeOutfitSlotsWidget::StaticClass();
-		}
-
-		OutfitSlots = CreateWidget<UMyBondageLifeOutfitSlotsWidget>(this, SlotsClass);
-		if (!OutfitSlots)
-		{
-			return;
-		}
-
-		if (UCanvasPanelSlot* OutfitSlot = AppearancePage->AddChildToCanvas(OutfitSlots))
-		{
-			OutfitSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
-			OutfitSlot->SetPosition(FVector2D(30.0f, 290.0f));
-			OutfitSlot->SetSize(FVector2D(780.0f, 300.0f));
-		}
+		UE_LOG(LogMyBondageLife, Warning,
+			TEXT("Wardrobe: no W_OutfitSlots widget found (add a WBP_OutfitSlots instance named W_OutfitSlots)."));
+		return;
 	}
 
 	OutfitSlots->OnSlotClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleOutfitSlotClicked);
+
+	if (UMyBondageLifeAccountSubsystem* OutfitAccount = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		OutfitAccount->OnOutfitsChanged.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleOutfitsChanged);
+	}
 
 	// Picker (shared for own / friend mode).
 	UClass* PickerClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_OutfitPicker.WBP_OutfitPicker_C"));
@@ -2403,4 +2388,9 @@ void UMyBondageLifeWardrobeWidget::HandleOutfitRemoveChosen(int32 SlotIndex)
 			Account->UnequipOutfit(SlotIndex);
 		}
 	}
+}
+
+void UMyBondageLifeWardrobeWidget::HandleOutfitsChanged()
+{
+	RefreshOutfitSlots();
 }

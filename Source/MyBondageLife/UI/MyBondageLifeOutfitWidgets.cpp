@@ -498,26 +498,5 @@ void UMyBondageLifeOutfitItemProxy::HandleClicked()
 	}
 }
 
-void UMyBondageLifeOutfitSlotsWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
-{
-	Super::NativeTick(MyGeometry, InDeltaTime);
 
-	RefreshAccumulator += InDeltaTime;
-	if (RefreshAccumulator < 0.3f)
-	{
-		return;
-	}
-	RefreshAccumulator = 0.0f;
 
-	RefreshFromAccount();
-}
-
-void UMyBondageLifeOutfitSlotsWidget::RefreshFromAccount()
-{
-	if (const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
-		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
-		: nullptr)
-	{
-		RefreshSlots(Account->GetEquippedOutfits());
-	}
-}

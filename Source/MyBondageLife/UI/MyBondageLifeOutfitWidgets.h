@@ -57,13 +57,7 @@ class MYBONDAGELIFE_API UMyBondageLifeOutfitSlotsWidget : public UUserWidget
 public:
 
 	virtual TSharedRef<SWidget> RebuildWidget() override;
-	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
-	/** 直接从账号子系统重新读取并刷新（自己或好友）。 */
-	UFUNCTION(BlueprintCallable, Category = "Outfit")
-	void RefreshFromAccount();
-
-	float RefreshAccumulator = 0.0f;
 
 	/** Refreshes icons/labels from the equipped map (own or viewed account). */
 	UFUNCTION(BlueprintCallable, Category = "Outfit")
