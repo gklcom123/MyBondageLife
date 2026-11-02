@@ -549,3 +549,17 @@ void UMyBondageLifeOutfitItemProxy::HandleClicked()
 
 
 
+
+void UMyBondageLifeOutfitSlotsWidget::SetViewAccount(const FString& InAccount)
+{
+	ViewAccount = InAccount;
+
+	if (const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr)
+	{
+		RefreshSlots(ViewAccount.IsEmpty()
+			? Account->GetEquippedOutfits()
+			: Account->GetOutfitsForAccount(ViewAccount));
+	}
+}

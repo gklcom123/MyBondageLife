@@ -1925,6 +1925,20 @@ void UMyBondageLifeWardrobeWidget::EnterFriendMode(const FString& InAccount)
 	RefreshRestraintSlots();
 	RefreshLockBadges();
 	RefreshLockActionButton();
+
+	if (OutfitSlots)
+	{
+		OutfitSlots->SetViewAccount(bFriendMode ? FriendAccount : FString());
+	}
+
+	if (bFriendMode && !FriendAccount.IsEmpty())
+	{
+		if (UMyBondageLifeAccountSubsystem* OutfitAccount = GetGameInstance()
+			? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+		{
+			OutfitAccount->RefreshOutfitsForAccount(FriendAccount);
+		}
+	}
 }
 void UMyBondageLifeWardrobeWidget::SyncViewedAccount()
 {
@@ -2283,6 +2297,7 @@ void UMyBondageLifeWardrobeWidget::BuildOutfitSlots()
 		return;
 	}
 
+	OutfitSlots->SetViewAccount(bFriendMode ? FriendAccount : FString());
 	OutfitSlots->OnSlotClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleOutfitSlotClicked);
 
 	if (UMyBondageLifeAccountSubsystem* OutfitAccount = GetGameInstance()
@@ -2319,7 +2334,11 @@ void UMyBondageLifeWardrobeWidget::RefreshOutfitSlots()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
 		: nullptr)
 	{
-		OutfitSlots->RefreshSlots(bFriendMode ? Account->GetViewedOutfits() : Account->GetEquippedOutfits());
+		OutfitSlots->RefreshSlots(bFriendMode
+			? (Account->GetOutfitsForAccount(FriendAccount).Num() > 0
+				? Account->GetOutfitsForAccount(FriendAccount)
+				: Account->GetViewedOutfits())
+			: Account->GetEquippedOutfits());
 	}
 }
 

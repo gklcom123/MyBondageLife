@@ -63,6 +63,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Outfit")
 	void RefreshSlots(const TMap<int32, FString>& Equipped);
 
+	/** 空 = 自己，非空 = 查看该好友的衣柜。 */
+	void SetViewAccount(const FString& InAccount);
+
+	FString ViewAccount;
+
 	void HandleSlotClicked(int32 Slot);
 
 	UPROPERTY(Transient)
