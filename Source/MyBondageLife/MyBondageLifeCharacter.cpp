@@ -1042,6 +1042,7 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 	}
 
 	float FeetOffset = 0.0f;
+	OutfitHiddenParts.Reset();
 
 	for (int32 Index = 0; Index < OutfitItemIds.Num(); ++Index)
 	{
@@ -1057,7 +1058,6 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 			continue;
 		}
 
-		OutfitHiddenParts.Reset();
 		FeetOffset += Item->FeetOffset;
 
 		for (const FString& HidePart : Item->HideBodyParts)
@@ -1120,5 +1120,5 @@ void AMyBondageLifeCharacter::ApplyOutfitCapsule()
 	BodyMesh->SetRelativeLocation(FVector(
 		BodyMesh->GetRelativeLocation().X,
 		BodyMesh->GetRelativeLocation().Y,
-		OutfitBaseMeshZ - OutfitFeetOffset));
+		OutfitBaseMeshZ));
 }

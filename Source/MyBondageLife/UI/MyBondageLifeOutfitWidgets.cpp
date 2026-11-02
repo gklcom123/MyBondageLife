@@ -191,6 +191,33 @@ void UMyBondageLifeOutfitSlotsWidget::RefreshSlots(const TMap<int32, FString>& E
 		{
 			SlotImage = Cast<UImage>(WidgetTree->FindWidget(*(FString(TEXT("W_OutfitIcon")) + SlotSuffix)));
 		}
+		if (!SlotImage)
+		{
+			// 命名可能被复制成重复名：按名字后缀排序后按槽位序号取图。
+			TArray<UImage*> Candidates;
+			for (UWidget* Candidate : AllWidgets)
+			{
+				UImage* Image = Cast<UImage>(Candidate);
+				if (!Image)
+				{
+					continue;
+				}
+				const FString ImageName = Image->GetName();
+				if (ImageName.StartsWith(TEXT("W_Offitcon")) || ImageName.StartsWith(TEXT("W_OutfitIcon")))
+				{
+					Candidates.Add(Image);
+				}
+			}
+			Candidates.Sort([](const UImage& A, const UImage& B)
+			{
+				return A.GetName() < B.GetName();
+			});
+			if (Candidates.IsValidIndex(SlotIndex))
+			{
+				SlotImage = Candidates[SlotIndex];
+			}
+		}
+
 		UTextBlock* SlotText = Cast<UTextBlock>(WidgetTree->FindWidget(*(FString(TEXT("W_OutfitLabel")) + SlotSuffix)));
 		if (!SlotText)
 		{
