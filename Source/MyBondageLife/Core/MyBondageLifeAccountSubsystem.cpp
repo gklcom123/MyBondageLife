@@ -8,6 +8,7 @@
 #include "Interfaces/IHttpResponse.h"
 #include "MyBondageLife.h"
 #include "MyBondageLifeServerConfig.h"
+#include "Core/MyBondageLifeRestraintCatalog.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
@@ -1327,7 +1328,7 @@ void UMyBondageLifeAccountSubsystem::RefreshRestraints()
 
 void UMyBondageLifeAccountSubsystem::EquipRestraint(int32 Slot, const FString& ItemId)
 {
-	if (Slot < 0 || Slot > 11 || ItemId.IsEmpty())
+	if (Slot < 0 || Slot >= FMyBondageLifeRestraintCatalog::SlotCount || ItemId.IsEmpty())
 	{
 		return;
 	}
@@ -1363,7 +1364,7 @@ void UMyBondageLifeAccountSubsystem::EquipRestraint(int32 Slot, const FString& I
 
 void UMyBondageLifeAccountSubsystem::UnequipRestraint(int32 Slot)
 {
-	if (Slot < 0 || Slot > 11)
+	if (Slot < 0 || Slot >= FMyBondageLifeRestraintCatalog::SlotCount)
 	{
 		return;
 	}
@@ -1410,7 +1411,7 @@ FMyBondageLifeRestraintLock UMyBondageLifeAccountSubsystem::GetRestraintLock(int
 
 void UMyBondageLifeAccountSubsystem::LockRestraint(int32 Slot, int32 LockType, int32 DurationSeconds, const FString& Password)
 {
-	if (Slot < 0 || Slot > 11 || LockType < 1 || LockType > 5)
+	if (Slot < 0 || Slot >= FMyBondageLifeRestraintCatalog::SlotCount || LockType < 1 || LockType > 5)
 	{
 		return;
 	}
@@ -1449,7 +1450,7 @@ void UMyBondageLifeAccountSubsystem::LockRestraint(int32 Slot, int32 LockType, i
 
 void UMyBondageLifeAccountSubsystem::UnlockRestraint(int32 Slot, const FString& Password)
 {
-	if (Slot < 0 || Slot > 11)
+	if (Slot < 0 || Slot >= FMyBondageLifeRestraintCatalog::SlotCount)
 	{
 		return;
 	}

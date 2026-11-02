@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "Core/MyBondageLifeAccountSubsystem.h"
+#include "Core/MyBondageLifeRestraintCatalog.h"
 
 #include "MyBondageLife.h"
 
@@ -147,7 +148,7 @@ FMyBondageLifeRestraintLock UMyBondageLifeAccountSubsystem::GetViewedLock(int32 
 
 void UMyBondageLifeAccountSubsystem::EquipRestraintFor(const FString& InAccountName, int32 Slot, const FString& ItemId)
 {
-	if (Slot < 0 || Slot > 11 || ItemId.IsEmpty())
+	if (Slot < 0 || Slot >= FMyBondageLifeRestraintCatalog::SlotCount || ItemId.IsEmpty())
 	{
 		return;
 	}
@@ -175,7 +176,7 @@ void UMyBondageLifeAccountSubsystem::EquipRestraintFor(const FString& InAccountN
 
 void UMyBondageLifeAccountSubsystem::UnequipRestraintFor(const FString& InAccountName, int32 Slot)
 {
-	if (Slot < 0 || Slot > 11)
+	if (Slot < 0 || Slot >= FMyBondageLifeRestraintCatalog::SlotCount)
 	{
 		return;
 	}
@@ -200,7 +201,7 @@ void UMyBondageLifeAccountSubsystem::UnequipRestraintFor(const FString& InAccoun
 
 void UMyBondageLifeAccountSubsystem::LockRestraintFor(const FString& InAccountName, int32 Slot, int32 LockType, int32 DurationSeconds, const FString& Password)
 {
-	if (Slot < 0 || Slot > 11 || LockType < 1 || LockType > 5)
+	if (Slot < 0 || Slot >= FMyBondageLifeRestraintCatalog::SlotCount || LockType < 1 || LockType > 5)
 	{
 		return;
 	}
@@ -236,7 +237,7 @@ void UMyBondageLifeAccountSubsystem::LockRestraintFor(const FString& InAccountNa
 
 void UMyBondageLifeAccountSubsystem::UnlockRestraintFor(const FString& InAccountName, int32 Slot, const FString& Password)
 {
-	if (Slot < 0 || Slot > 11)
+	if (Slot < 0 || Slot >= FMyBondageLifeRestraintCatalog::SlotCount)
 	{
 		return;
 	}
