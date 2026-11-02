@@ -2370,9 +2370,23 @@ void UMyBondageLifeWardrobeWidget::OpenOutfitPicker(int32 SlotIndex)
 	const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
 		: nullptr;
-	const TMap<int32, FString> Equipped = Account
-		? (bFriendMode ? Account->GetViewedOutfits() : Account->GetEquippedOutfits())
-		: TMap<int32, FString>();
+
+	TMap<int32, FString> Equipped;
+	if (Account)
+	{
+		if (bFriendMode && !FriendAccount.IsEmpty())
+		{
+			Equipped = Account->GetOutfitsForAccount(FriendAccount);
+			if (Equipped.Num() == 0)
+			{
+				Equipped = Account->GetViewedOutfits();
+			}
+		}
+		else
+		{
+			Equipped = Account->GetEquippedOutfits();
+		}
+	}
 
 	OutfitPicker->OpenForSlot(SlotIndex, Equipped);
 }
