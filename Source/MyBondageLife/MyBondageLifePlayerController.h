@@ -521,6 +521,10 @@ protected:
 
 public:
 
+	/** 在聊天框里追加一条系统提示。 */
+	UFUNCTION(BlueprintCallable, Category = "Chat")
+	void ShowSystemChatMessage(const FString& Message);
+
 	// ---------------------------------------------------------------- message center
 	UFUNCTION(BlueprintCallable, Category = "Message")
 	void ShowMessageHud();

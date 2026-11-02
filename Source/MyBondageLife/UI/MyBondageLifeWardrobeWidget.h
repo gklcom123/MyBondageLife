@@ -281,6 +281,14 @@ protected:
 	UFUNCTION()
 	void HandleOutfitsChanged();
 
+	UFUNCTION()
+	void HandleAccountOutfitsChanged(const FString& Account);
+
+	/** 双手被拘束时不能改动衣物/他人拘束。 */
+	bool IsLocalHandsRestrained() const;
+
+	void NotifyBlockedByRestraint(const FString& Message);
+
 	UPROPERTY(Transient)
 	TObjectPtr<class UMyBondageLifeRestraintSlotsWidget> RestraintGrid;
 

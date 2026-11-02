@@ -2552,3 +2552,14 @@ void AMyBondageLifePlayerController::HandleAccountOutfitsChanged(const FString& 
 		}
 	}
 }
+void AMyBondageLifePlayerController::ShowSystemChatMessage(const FString& Message)
+{
+	if (ChatWidget)
+	{
+		ChatWidget->AddSystemMessage(Message);
+	}
+	else
+	{
+		UE_LOG(LogMyBondageLife, Log, TEXT("System chat: %s"), *Message);
+	}
+}

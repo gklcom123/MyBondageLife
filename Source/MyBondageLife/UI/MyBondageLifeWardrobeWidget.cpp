@@ -8,6 +8,7 @@
 #include "UI/MyBondageLifeOutfitWidgets.h"
 #include "UI/MyBondageLifeRestraintSlotsWidget.h"
 #include "Core/MyBondageLifeOutfitCatalog.h"
+#include "MyBondageLifePlayerController.h"
 #include "Core/MyBondageLifeAccountSubsystem.h"
 #include "MyBondageLifeCharacter.h"
 
@@ -2139,6 +2140,11 @@ bool UMyBondageLifeWardrobeWidget::TryAdoptPicker()
 
 void UMyBondageLifeWardrobeWidget::HandleGridSlotClicked(int32 SlotIndex)
 {
+	if (bFriendMode && IsLocalHandsRestrained())
+	{
+		NotifyBlockedByRestraint(TEXT("\uFF08\u62D8\u675F\u72B6\u6001\u4E0B\u65E0\u6CD5\u66F4\u6539\u4ED6\u4EBA\u62D8\u675F\uFF09"));
+		return;
+	}
 	OpenRestraintPicker(SlotIndex);
 }
 
@@ -2304,6 +2310,7 @@ void UMyBondageLifeWardrobeWidget::BuildOutfitSlots()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
 	{
 		OutfitAccount->OnOutfitsChanged.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleOutfitsChanged);
+		OutfitAccount->OnAccountOutfitsChanged.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleAccountOutfitsChanged);
 	}
 
 	// Picker (shared for own / friend mode).
@@ -2344,6 +2351,12 @@ void UMyBondageLifeWardrobeWidget::RefreshOutfitSlots()
 
 void UMyBondageLifeWardrobeWidget::HandleOutfitSlotClicked(int32 SlotIndex)
 {
+	if (IsLocalHandsRestrained())
+	{
+		NotifyBlockedByRestraint(TEXT("\uFF08\u62D8\u675F\u72B6\u6001\u4E0B\u65E0\u6CD5\u66F4\u6539\u4EBA\u7269\u8863\u7269\uFF09"));
+		return;
+	}
+
 	OpenOutfitPicker(SlotIndex);
 }
 
@@ -2412,4 +2425,35 @@ void UMyBondageLifeWardrobeWidget::HandleOutfitRemoveChosen(int32 SlotIndex)
 void UMyBondageLifeWardrobeWidget::HandleOutfitsChanged()
 {
 	RefreshOutfitSlots();
+}
+bool UMyBondageLifeWardrobeWidget::IsLocalHandsRestrained() const
+{
+	if (const APlayerController* PC = GetOwningPlayer())
+	{
+		if (const AMyBondageLifeCharacter* Character = Cast<AMyBondageLifeCharacter>(PC->GetPawn()))
+		{
+			return Character->GetArmActive();
+		}
+	}
+	return false;
+}
+
+void UMyBondageLifeWardrobeWidget::NotifyBlockedByRestraint(const FString& Message)
+{
+	if (AMyBondageLifePlayerController* PC = Cast<AMyBondageLifePlayerController>(GetOwningPlayer()))
+	{
+		PC->ShowSystemChatMessage(Message);
+	}
+}
+
+void UMyBondageLifeWardrobeWidget::HandleAccountOutfitsChanged(const FString& Account)
+{
+	if (bFriendMode && Account.Equals(FriendAccount, ESearchCase::IgnoreCase))
+	{
+		RefreshOutfitSlots();
+	}
+	else if (Account.Equals(FriendAccount, ESearchCase::IgnoreCase))
+	{
+		RefreshOutfitSlots();
+	}
 }
