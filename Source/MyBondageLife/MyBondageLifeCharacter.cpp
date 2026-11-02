@@ -166,6 +166,7 @@ void AMyBondageLifeCharacter::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(AMyBondageLifeCharacter, RestraintBlindLevel);
 	DOREPLIFETIME(AMyBondageLifeCharacter, OutfitSlots);
 	DOREPLIFETIME(AMyBondageLifeCharacter, OutfitItemIds);
+	DOREPLIFETIME(AMyBondageLifeCharacter, AccountName);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bRestraintLeg);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bCantMove);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bInPetMode);
@@ -1092,4 +1093,8 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 			BodyMesh->GetRelativeLocation().Y,
 			OutfitBaseMeshZ - FeetOffset));
 	}
+}
+void AMyBondageLifeCharacter::ServerSetAccountName_Implementation(const FString& InAccount)
+{
+	AccountName = InAccount;
 }

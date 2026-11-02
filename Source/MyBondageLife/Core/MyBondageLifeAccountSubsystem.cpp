@@ -1793,3 +1793,58 @@ void UMyBondageLifeAccountSubsystem::UnequipOutfitFor(const FString& Owner, int3
 			}
 		});
 }
+void UMyBondageLifeAccountSubsystem::RefreshOutfitsForAccount(const FString& InAccount)
+{
+	if (InAccount.IsEmpty())
+	{
+		return;
+	}
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	const FString Account = InAccount;
+	const FString Path = FString::Printf(TEXT("/users/%s/outfits"), *Account);
+
+	SendFriendApiRequest(TEXT("GET"), Path, nullptr,
+		[WeakThis, Account](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self || !bOk || !Json.IsValid())
+			{
+				return;
+			}
+
+			TMap<int32, FString> Parsed;
+			const TArray<TSharedPtr<FJsonValue>>* Equipped = nullptr;
+			if (Json->TryGetArrayField(TEXT("equipped"), Equipped) && Equipped)
+			{
+				for (const TSharedPtr<FJsonValue>& Value : *Equipped)
+				{
+					const TSharedPtr<FJsonObject> Item = Value.IsValid() ? Value->AsObject() : nullptr;
+					if (!Item.IsValid())
+					{
+						continue;
+					}
+
+					double SlotValue = 0.0;
+					FString ItemId;
+					if (Item->TryGetNumberField(TEXT("slot"), SlotValue) &&
+						Item->TryGetStringField(TEXT("itemId"), ItemId) && !ItemId.IsEmpty())
+					{
+						Parsed.Add(FMath::Clamp(static_cast<int32>(SlotValue), 0, FMyBondageLifeOutfitCatalog::SlotCount - 1), ItemId);
+					}
+				}
+			}
+
+			Self->OtherOutfits.Add(Account, Parsed);
+			Self->OnAccountOutfitsChanged.Broadcast(Account);
+		});
+}
+
+TMap<int32, FString> UMyBondageLifeAccountSubsystem::GetOutfitsForAccount(const FString& InAccount) const
+{
+	if (const TMap<int32, FString>* Found = OtherOutfits.Find(InAccount))
+	{
+		return *Found;
+	}
+	return TMap<int32, FString>();
+}

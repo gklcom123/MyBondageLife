@@ -37,6 +37,7 @@ struct FMyBondageLifeNotification
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeNotificationsChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeOutfitsChanged);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeAccountOutfitsChanged, const FString&, Account);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeNotificationAdded, const FMyBondageLifeNotification&, Notification);
 
 /** Raised when the account service accepted the credentials. */
@@ -662,6 +663,12 @@ public:
 	void RefreshOutfits(const FString& InAccount);
 
 	UFUNCTION(BlueprintCallable, Category = "Outfit")
+	void RefreshOutfitsForAccount(const FString& InAccount);
+
+	UFUNCTION(BlueprintPure, Category = "Outfit")
+	TMap<int32, FString> GetOutfitsForAccount(const FString& InAccount) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Outfit")
 	void EquipOutfit(int32 Slot, const FString& ItemId);
 
 	UFUNCTION(BlueprintCallable, Category = "Outfit")
@@ -681,6 +688,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Outfit")
 	FMyBondageLifeOutfitsChanged OnOutfitsChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Outfit")
+	FMyBondageLifeAccountOutfitsChanged OnAccountOutfitsChanged;
 	// ---------------------------------------------------------------- notifications
 	UFUNCTION(BlueprintCallable, Category = "Notification")
 	void RefreshNotifications();
@@ -712,6 +722,8 @@ protected:
 
 	UPROPERTY(Transient)
 	TMap<int32, FString> ViewedOutfits;
+
+	TMap<FString, TMap<int32, FString>> OtherOutfits;
 
 	void MergeNotifications(const TArray<FMyBondageLifeNotification>& Fetched, bool bFriendKind);
 

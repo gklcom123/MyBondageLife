@@ -143,6 +143,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Outfit")
 	void SetOutfits(const TArray<int32>& InSlots, const TArray<FName>& InItems);
 
+	/** 账号名（复制到其他客户端，用来拉取该玩家的衣物）。 */
+	UFUNCTION(Server, Reliable)
+	void ServerSetAccountName(const FString& InAccount);
+
+	UFUNCTION(BlueprintPure, Category="Identity")
+	FString GetAccountName() const { return AccountName; }
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category="Identity")
+	FString AccountName;
+
 	/** Rebuilds the worn meshes, the derived flags and the pose montage. */
 	UFUNCTION(BlueprintCallable, Category="Restraint")
 	void ApplyRestraints();

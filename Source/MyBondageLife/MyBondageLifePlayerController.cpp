@@ -1433,6 +1433,13 @@ void AMyBondageLifePlayerController::BeginPlay()
 		{
 			OutfitAccount->OnOutfitsChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleOutfitsChanged);
 			OutfitAccount->RefreshOutfits(FString());
+			OutfitAccount->OnAccountOutfitsChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleAccountOutfitsChanged);
+
+			if (UWorld* OutfitWorld = GetWorld())
+			{
+				OutfitWorld->GetTimerManager().SetTimer(OutfitPollTimer, this,
+					&AMyBondageLifePlayerController::PollOtherOutfits, 5.0f, true);
+			}
 		}
 
 		ShowChat();
@@ -2481,4 +2488,67 @@ void AMyBondageLifePlayerController::ServerSetOutfits_Implementation(const TArra
 void AMyBondageLifePlayerController::HandleOutfitsChanged()
 {
 	PushOutfitsToPawn();
+}
+void AMyBondageLifePlayerController::PollOtherOutfits()
+{
+	UGameInstance* GameInstance = GetGameInstance();
+	UMyBondageLifeAccountSubsystem* Account = GameInstance
+		? GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+	if (!Account)
+	{
+		return;
+	}
+
+	const FString OwnAccount = Account->GetAccountName();
+	for (TActorIterator<AMyBondageLifeCharacter> It(GetWorld()); It; ++It)
+	{
+		AMyBondageLifeCharacter* Other = *It;
+		if (!Other || Other == GetPawn())
+		{
+			continue;
+		}
+
+		const FString OtherAccount = Other->GetAccountName();
+		if (OtherAccount.IsEmpty() || OtherAccount.Equals(OwnAccount, ESearchCase::IgnoreCase))
+		{
+			continue;
+		}
+
+		Account->RefreshOutfitsForAccount(OtherAccount);
+	}
+}
+
+void AMyBondageLifePlayerController::HandleAccountOutfitsChanged(const FString& Account)
+{
+	UMyBondageLifeAccountSubsystem* Subsystem = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+	if (!Subsystem)
+	{
+		return;
+	}
+
+	const TMap<int32, FString> Equipped = Subsystem->GetOutfitsForAccount(Account);
+
+	TArray<int32> Slots;
+	TArray<FName> Items;
+	for (const TPair<int32, FString>& Pair : Equipped)
+	{
+		if (Pair.Value.IsEmpty())
+		{
+			continue;
+		}
+		Slots.Add(Pair.Key);
+		Items.Add(FName(*Pair.Value));
+	}
+
+	for (TActorIterator<AMyBondageLifeCharacter> It(GetWorld()); It; ++It)
+	{
+		AMyBondageLifeCharacter* Other = *It;
+		if (Other && Other->GetAccountName().Equals(Account, ESearchCase::IgnoreCase))
+		{
+			Other->SetOutfits(Slots, Items);
+		}
+	}
 }

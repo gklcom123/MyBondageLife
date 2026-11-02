@@ -393,6 +393,14 @@ protected:
 	UFUNCTION()
 	void HandleOutfitsChanged();
 
+	UFUNCTION()
+	void PollOtherOutfits();
+
+	UFUNCTION()
+	void HandleAccountOutfitsChanged(const FString& Account);
+
+	FTimerHandle OutfitPollTimer;
+
 
 
 	//~ Contracts -----------------------------------------------------------
