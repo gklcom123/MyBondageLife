@@ -378,6 +378,15 @@ protected:
 	/** 眼罩：按 BlindLevel 平滑收紧视野（仅本人可见）。 */
 	void ApplyBlindEffect(float InDeltaTime);
 
+	/** 拘束的 HideBodyPart：把对应材质插槽换成透明材质（任一件生效即可）。 */
+	void ApplyBodyPartHiding(TSet<FName> HiddenParts);
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UMaterialInstanceDynamic> HiddenBodyMaterial;
+
+	UPROPERTY(Transient)
+	TMap<FName, TObjectPtr<class UMaterialInterface>> OriginalBodyMaterials;
+
 	float BlindVisualLevel = 0.0f;
 
 	UFUNCTION(Server, Reliable)

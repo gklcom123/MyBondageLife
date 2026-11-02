@@ -52,6 +52,41 @@ namespace
 		return false;
 	}
 
+	/** Reads a string array property (e.g. HideBodyPart). */
+	void ReadStringArray(const UScriptStruct* RowStruct, const uint8* RowData,
+		std::initializer_list<const TCHAR*> Prefixes, TArray<FString>& OutValues)
+	{
+		for (TFieldIterator<FProperty> It(RowStruct); It; ++It)
+		{
+			if (!MatchesName(*It, Prefixes))
+			{
+				continue;
+			}
+
+			const FArrayProperty* ArrayProperty = CastField<FArrayProperty>(*It);
+			if (!ArrayProperty)
+			{
+				return;
+			}
+
+			const FStrProperty* InnerProperty = CastField<FStrProperty>(ArrayProperty->Inner);
+			if (!InnerProperty)
+			{
+				return;
+			}
+
+			FScriptArrayHelper Helper(ArrayProperty, ArrayProperty->ContainerPtrToValuePtr<void>(RowData));
+			for (int32 Index = 0; Index < Helper.Num(); ++Index)
+			{
+				const FString Value = *reinterpret_cast<const FString*>(Helper.GetRawPtr(Index));
+				if (!Value.IsEmpty())
+				{
+					OutValues.Add(Value);
+				}
+			}
+			return;
+		}
+	}
 	int32 ReadInt(const UScriptStruct* RowStruct, const uint8* RowData, std::initializer_list<const TCHAR*> Prefixes)
 	{
 		for (TFieldIterator<FProperty> It(RowStruct); It; ++It)
@@ -187,6 +222,7 @@ void FMyBondageLifeRestraintCatalog::Refresh()
 		Item.bInGag = ReadBool(RowStruct, RowData, { TEXT("InGag"), TEXT("InGag?") });
 		Item.bIsBlind = ReadBool(RowStruct, RowData, { TEXT("IsBlind"), TEXT("IsBlind?") });
 		Item.BlindLevel = FMath::Clamp(ReadInt(RowStruct, RowData, { TEXT("BlindLevel"), TEXT("BlindLevel?") }), 0, 3);
+		ReadStringArray(RowStruct, RowData, { TEXT("HideBodyPart"), TEXT("HideBodyPart?") }, Item.HideBodyParts);
 		Item.bRestraintLeg = ReadBool(RowStruct, RowData, { TEXT("RestranitLeg"), TEXT("RestraintLeg"), TEXT("RestranitLeg?"), TEXT("RestraintLeg?") });
 		Item.bCantMove = ReadBool(RowStruct, RowData, { TEXT("CantMove"), TEXT("CantMove?") });
 		Item.bInPetMode = ReadBool(RowStruct, RowData, { TEXT("InPetMode") });

@@ -11,6 +11,8 @@
 #include "Animation/AnimSequence.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
+#include "Materials/MaterialInterface.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "Components/CapsuleComponent.h"
 #include "Engine/SkeletalMesh.h"
 #include "Core/MyBondageLifeAccountSubsystem.h"
@@ -675,6 +677,8 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 	int32 BestSlot = MAX_int32;
 	int32 BestGagSlot = MAX_int32;
 
+	TSet<FName> HiddenParts;
+
 	for (int32 Index = 0; Index < RestraintItemIds.Num(); ++Index)
 	{
 		const FMyBondageLifeRestraintItem* Item = FMyBondageLifeRestraintCatalog::Find(RestraintItemIds[Index]);
@@ -686,6 +690,11 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 		// The derived states are a logical OR across every worn item.
 		bRestraintArm |= Item->bRestraintArm;
 		bRestraintInGag |= Item->bInGag;
+		for (const FString& PartName : Item->HideBodyParts)
+		{
+			HiddenParts.Add(FName(*PartName));
+		}
+
 		if (Item->bIsBlind)
 		{
 			bRestraintBlind = true;
@@ -759,11 +768,15 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("Restraint: %d item(s) applied (arm=%d leg=%d cantmove=%d pet=%d)."),
 		RestraintItemIds.Num(), bRestraintArm ? 1 : 0, bRestraintLeg ? 1 : 0, bCantMove ? 1 : 0, bInPetMode ? 1 : 0);
+
+	ApplyBodyPartHiding(HiddenParts);
 }
 
 FName AMyBondageLifeCharacter::GetGagProfileId() const
 {
 	// 找第一件"算作堵嘴"的已穿戴道具，用它的 Enum_GagType 决定用哪个混淆档位。
+	TSet<FName> HiddenParts;
+
 	for (int32 Index = 0; Index < RestraintItemIds.Num(); ++Index)
 	{
 		const FMyBondageLifeRestraintItem* Item = FMyBondageLifeRestraintCatalog::Find(RestraintItemIds[Index]);
@@ -922,4 +935,51 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 	PP.DepthOfFieldFocalDistance = 320.0f;
 	PP.bOverride_DepthOfFieldSensorWidth = bActive;
 	PP.DepthOfFieldSensorWidth = 24.0f;
+}
+void AMyBondageLifeCharacter::ApplyBodyPartHiding(TSet<FName> HiddenParts)
+{
+	USkeletalMeshComponent* MeshComponent = GetMesh();
+	if (!MeshComponent)
+	{
+		return;
+	}
+
+	// 透明材质（工程里创建：/Game/Effects/M_HiddenBodyPart）
+	if (!HiddenBodyMaterial)
+	{
+		UMaterialInterface* BaseMaterial = LoadObject<UMaterialInterface>(
+			nullptr, TEXT("/Game/Effects/M_HiddenBodyPart.M_HiddenBodyPart"));
+		if (BaseMaterial)
+		{
+			HiddenBodyMaterial = UMaterialInstanceDynamic::Create(BaseMaterial, this);
+		}
+	}
+
+	// 先恢复所有已替换的槽位，再按当前生效的集合重新隐藏。
+	for (const TPair<FName, TObjectPtr<UMaterialInterface>>& Pair : OriginalBodyMaterials)
+	{
+		const int32 MaterialIndex = MeshComponent->GetMaterialIndex(Pair.Key);
+		if (MaterialIndex != INDEX_NONE && Pair.Value)
+		{
+			MeshComponent->SetMaterial(MaterialIndex, Pair.Value);
+		}
+	}
+	OriginalBodyMaterials.Reset();
+
+	if (!HiddenBodyMaterial)
+	{
+		return;
+	}
+
+	for (const FName& PartName : HiddenParts)
+	{
+		const int32 MaterialIndex = MeshComponent->GetMaterialIndex(PartName);
+		if (MaterialIndex == INDEX_NONE)
+		{
+			continue;
+		}
+
+		OriginalBodyMaterials.Add(PartName, MeshComponent->GetMaterial(MaterialIndex));
+		MeshComponent->SetMaterial(MaterialIndex, HiddenBodyMaterial);
+	}
 }

@@ -34,6 +34,9 @@ struct FMyBondageLifeRestraintItem
 	/** 眼罩：BlindLevel 1..3 表示视野受限强度。 */
 	bool bIsBlind = false;
 	int32 BlindLevel = 0;
+
+	/** 该拘束要隐藏的身体材质插槽名（upbody/leg/yab_fac/hand/...）。 */
+	TArray<FString> HideBodyParts;
 	bool bRestraintLeg = false;
 	bool bCantMove = false;
 	bool bInPetMode = false;
