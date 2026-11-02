@@ -73,8 +73,16 @@ void UMyBondageLifeOutfitSlotsWidget::BuildLayout()
 		const FString Suffix = FString::Printf(TEXT("_%d"), SlotIndex);
 		UButton* Button = Cast<UButton>(WidgetTree->FindWidget(*(FString(TEXT("W_OutfitSlotButton")) + Suffix)));
 
-		if (!Button)
+		if (Button)
 		{
+			// Designed slot: adopt its own icon/label, never reposition anything.
+			SlotButtons.Add(Button);
+			SlotIcons.Add(Cast<UImage>(WidgetTree->FindWidget(*(FString(TEXT("W_OutfitIcon")) + Suffix))));
+			SlotLabels.Add(Cast<UTextBlock>(WidgetTree->FindWidget(*(FString(TEXT("W_OutfitLabel")) + Suffix))));
+		}
+		else
+		{
+			// Generated slot: one cell with a button, icon and caption.
 			USizeBox* Cell = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
 			Cell->SetWidthOverride(CellSize);
 			Cell->SetHeightOverride(CellSize);
@@ -89,19 +97,11 @@ void UMyBondageLifeOutfitSlotsWidget::BuildLayout()
 
 			Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
 			Cell->AddChild(Button);
-		}
 
-		UImage* Icon = Cast<UImage>(WidgetTree->FindWidget(*(FString(TEXT("W_OutfitIcon")) + Suffix)));
-		if (!Icon)
-		{
-			Icon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), *(FString(TEXT("W_OutfitIcon")) + Suffix));
+			UImage* Icon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), *(FString(TEXT("W_OutfitIcon")) + Suffix));
 			Button->AddChild(Icon);
-		}
 
-		UTextBlock* Label = Cast<UTextBlock>(WidgetTree->FindWidget(*(FString(TEXT("W_OutfitLabel")) + Suffix)));
-		if (!Label)
-		{
-			Label = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), *(FString(TEXT("W_OutfitLabel")) + Suffix));
+			UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), *(FString(TEXT("W_OutfitLabel")) + Suffix));
 			Label->SetText(FText::FromString(FMyBondageLifeOutfitCatalog::GetSlotName(SlotIndex)));
 			Label->SetJustification(ETextJustify::Center);
 			if (UCanvasPanelSlot* LabelSlot = Canvas->AddChildToCanvas(Label))
@@ -112,11 +112,11 @@ void UMyBondageLifeOutfitSlotsWidget::BuildLayout()
 				LabelSlot->SetPosition(FVector2D(16.0f + Column * StepX, 16.0f + Row * StepY + CellSize + 4.0f));
 				LabelSlot->SetSize(FVector2D(StepX, 22.0f));
 			}
-		}
 
-		SlotButtons.Add(Button);
-		SlotIcons.Add(Icon);
-		SlotLabels.Add(Label);
+			SlotButtons.Add(Button);
+			SlotIcons.Add(Icon);
+			SlotLabels.Add(Label);
+		}
 
 		UMyBondageLifeOutfitSlotProxy* Proxy = NewObject<UMyBondageLifeOutfitSlotProxy>(this);
 		Proxy->Owner = this;
