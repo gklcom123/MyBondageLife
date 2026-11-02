@@ -63,6 +63,7 @@ void UMyBondageLifeOutfitSlotsWidget::BuildLayout()
 		WidgetTree->RootWidget = Canvas;
 	}
 	Canvas->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 
 	const float CellSize = 96.0f;
 	const float StepX = 112.0f;
@@ -78,7 +79,22 @@ void UMyBondageLifeOutfitSlotsWidget::BuildLayout()
 			// Designed slot: adopt its own icon/label, never reposition anything.
 			SlotButtons.Add(Button);
 			SlotIcons.Add(Cast<UImage>(WidgetTree->FindWidget(*(FString(TEXT("W_OutfitIcon")) + Suffix))));
-			SlotLabels.Add(Cast<UTextBlock>(WidgetTree->FindWidget(*(FString(TEXT("W_OutfitLabel")) + Suffix))));
+			UTextBlock* AdoptedLabel = Cast<UTextBlock>(WidgetTree->FindWidget(*(FString(TEXT("W_OutfitLabel")) + Suffix)));
+			if (!AdoptedLabel)
+			{
+				TArray<UWidget*> AllWidgets;
+				WidgetTree->GetAllWidgets(AllWidgets);
+				for (UWidget* Candidate : AllWidgets)
+				{
+					UTextBlock* Text = Cast<UTextBlock>(Candidate);
+					if (Text && Text->GetFName() == *(FString(TEXT("W_OutfitLabel")) + Suffix))
+					{
+						AdoptedLabel = Text;
+						break;
+					}
+				}
+			}
+			SlotLabels.Add(AdoptedLabel);
 		}
 		else
 		{
@@ -256,7 +272,7 @@ void UMyBondageLifeOutfitPickerWidget::OpenForSlot(int32 InSlot, const TMap<int3
 	{
 		PickerPanel->SetVisibility(ESlateVisibility::Visible);
 	}
-	SetVisibility(ESlateVisibility::Visible);
+	SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 }
 
 void UMyBondageLifeOutfitPickerWidget::ClosePicker()
