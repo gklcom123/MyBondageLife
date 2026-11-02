@@ -28,6 +28,7 @@ TSharedRef<SWidget> UMyBondageLifeRestraintStatusWidget::RebuildWidget()
 void UMyBondageLifeRestraintStatusWidget::BuildLayout()
 {
 	GagIcon = Cast<UImage>(WidgetTree->FindWidget(TEXT("W_StatusGag")));
+	BlindIcon = Cast<UImage>(WidgetTree->FindWidget(TEXT("W_StatusBlind")));
 	ArmIcon = Cast<UImage>(WidgetTree->FindWidget(TEXT("W_StatusArm")));
 	LegIcon = Cast<UImage>(WidgetTree->FindWidget(TEXT("W_StatusLeg")));
 	CantMoveIcon = Cast<UImage>(WidgetTree->FindWidget(TEXT("W_StatusCantMove")));
@@ -107,6 +108,10 @@ void UMyBondageLifeRestraintStatusWidget::BuildLayout()
 		{
 			CantMoveIcon = MakeIcon(TEXT("W_StatusCantMove"), TEXT("\u7981\u6B62\u79FB\u52A8"), CaptionRed, CantMoveTexture);
 		}
+		if (!BlindIcon)
+		{
+			BlindIcon = MakeIcon(TEXT("W_StatusBlind"), TEXT("\u89C6\u91CE\u53D7\u9650"), CaptionRed, BlindTexture);
+		}
 	}
 
 	bLayoutBuilt = true;
@@ -136,8 +141,9 @@ void UMyBondageLifeRestraintStatusWidget::UpdateStates(float InDeltaTime)
 	const bool bArm = Character->GetArmActive();
 	const bool bLeg = Character->GetLegActive();
 	const bool bCantMove = Character->GetCantMoveActive();
+	const bool bBlind = Character->GetBlindActive();
 
-	const bool bAny = bGag || bArm || bLeg || bCantMove;
+	const bool bAny = bGag || bArm || bLeg || bCantMove || bBlind;
 	PulseTime = bAny ? PulseTime + InDeltaTime : 0.0f;
 
 	// Breathing: 1.0 +- 0.1 (0.9 .. 1.1).
@@ -162,4 +168,5 @@ void UMyBondageLifeRestraintStatusWidget::UpdateStates(float InDeltaTime)
 	ApplyUnit(1, bArm);
 	ApplyUnit(2, bLeg);
 	ApplyUnit(3, bCantMove);
+	ApplyUnit(4, bBlind);
 }

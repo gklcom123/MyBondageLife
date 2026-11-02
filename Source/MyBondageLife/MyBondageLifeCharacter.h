@@ -201,6 +201,12 @@ public:
 	UFUNCTION(BlueprintPure, Category="Restraint")
 	bool GetCantMoveActive() const { return bCantMove; }
 
+	UFUNCTION(BlueprintPure, Category="Restraint")
+	bool GetBlindActive() const { return bRestraintBlind; }
+
+	UFUNCTION(BlueprintPure, Category="Restraint")
+	int32 GetBlindLevel() const { return bRestraintBlind ? RestraintBlindLevel : 0; }
+
 protected:
 
 	UFUNCTION(BlueprintPure, Category="Restraint")
@@ -269,6 +275,12 @@ protected:
 
 	UPROPERTY(ReplicatedUsing = OnRep_Restraints, BlueprintReadOnly, Category="Restraint")
 	bool bRestraintInGag = false;
+
+	UPROPERTY(ReplicatedUsing = OnRep_Restraints, BlueprintReadOnly, Category="Restraint")
+	bool bRestraintBlind = false;
+
+	UPROPERTY(ReplicatedUsing = OnRep_Restraints, BlueprintReadOnly, Category="Restraint")
+	int32 RestraintBlindLevel = 0;
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category="Restraint", meta = (AllowPrivateAccess = "true"))
 	bool bRestraintLeg = false;
@@ -362,6 +374,11 @@ protected:
 
 	/** Restraint-driven movement limits: legs force walking, CantMove blocks movement. */
 	void ApplyRestraintMovementLimits();
+
+	/** 眼罩：按 BlindLevel 平滑收紧视野（仅本人可见）。 */
+	void ApplyBlindEffect(float InDeltaTime);
+
+	float BlindVisualLevel = 0.0f;
 
 	UFUNCTION(Server, Reliable)
 	void ServerSetRunning(bool bNewRunning);

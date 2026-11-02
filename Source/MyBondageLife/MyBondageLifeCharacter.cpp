@@ -159,6 +159,8 @@ void AMyBondageLifeCharacter::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(AMyBondageLifeCharacter, RestraintItemIds);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bRestraintArm);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bRestraintInGag);
+	DOREPLIFETIME(AMyBondageLifeCharacter, bRestraintBlind);
+	DOREPLIFETIME(AMyBondageLifeCharacter, RestraintBlindLevel);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bRestraintLeg);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bCantMove);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bInPetMode);
@@ -332,6 +334,8 @@ void AMyBondageLifeCharacter::Tick(float DeltaSeconds)
 	{
 		RefreshRestraintPose();
 	}
+
+	ApplyBlindEffect(DeltaSeconds);
 
 	// CantMove: kill any residual velocity every frame (a single speed clamp left a slow drift).
 	if (bCantMove)
@@ -660,6 +664,8 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 
 	bRestraintArm = false;
 	bRestraintInGag = false;
+	bRestraintBlind = false;
+	RestraintBlindLevel = 0;
 	bRestraintLeg = false;
 	bCantMove = false;
 	bInPetMode = false;
@@ -680,6 +686,11 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 		// The derived states are a logical OR across every worn item.
 		bRestraintArm |= Item->bRestraintArm;
 		bRestraintInGag |= Item->bInGag;
+		if (Item->bIsBlind)
+		{
+			bRestraintBlind = true;
+			RestraintBlindLevel = FMath::Max(RestraintBlindLevel, FMath::Clamp(Item->BlindLevel, 1, 3));
+		}
 		bRestraintLeg |= Item->bRestraintLeg;
 		bCantMove |= Item->bCantMove;
 		bInPetMode |= Item->bInPetMode;
@@ -876,4 +887,39 @@ void AMyBondageLifeCharacter::ApplyRestraintMovementLimits()
 	{
 		PC->SetRestraintMovementBlocked(bCantMove);
 	}
+}
+
+void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
+{
+	if (!IsLocallyControlled())
+	{
+		return;
+	}
+
+	UCameraComponent* Camera = FindComponentByClass<UCameraComponent>();
+	if (!Camera)
+	{
+		return;
+	}
+
+	const float Target = static_cast<float>(GetBlindLevel());
+	BlindVisualLevel = FMath::FInterpTo(BlindVisualLevel, Target, InDeltaTime, 5.0f);
+
+	FPostProcessSettings& PP = Camera->PostProcessSettings;
+	const bool bActive = BlindVisualLevel > 0.01f;
+
+	// 视野收缩（暗角）+ 环境变暗 + 景深模糊，强度随等级线性增长。
+	PP.bOverride_VignetteIntensity = bActive;
+	PP.VignetteIntensity = 2.4f * BlindVisualLevel;
+
+	PP.bOverride_AutoExposureBias = bActive;
+	PP.AutoExposureBias = -0.55f * BlindVisualLevel;
+
+	PP.bOverride_DepthOfFieldFstop = bActive;
+	PP.DepthOfFieldFstop = FMath::Max(0.7f, 2.4f - 0.6f * BlindVisualLevel);
+
+	PP.bOverride_DepthOfFieldFocalDistance = bActive;
+	PP.DepthOfFieldFocalDistance = 320.0f;
+	PP.bOverride_DepthOfFieldSensorWidth = bActive;
+	PP.DepthOfFieldSensorWidth = 24.0f;
 }

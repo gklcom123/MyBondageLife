@@ -30,6 +30,10 @@ struct FMyBondageLifeRestraintItem
 
 	bool bRestraintArm = false;
 	bool bInGag = false;
+
+	/** 眼罩：BlindLevel 1..3 表示视野受限强度。 */
+	bool bIsBlind = false;
+	int32 BlindLevel = 0;
 	bool bRestraintLeg = false;
 	bool bCantMove = false;
 	bool bInPetMode = false;
@@ -51,7 +55,7 @@ class MYBONDAGELIFE_API FMyBondageLifeRestraintCatalog
 {
 public:
 
-	static constexpr int32 SlotCount = 12;
+	static constexpr int32 SlotCount = 13;
 
 	static void Refresh();
 	static const TArray<FMyBondageLifeRestraintItem>& GetItems();

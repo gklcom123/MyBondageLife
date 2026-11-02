@@ -185,6 +185,8 @@ void FMyBondageLifeRestraintCatalog::Refresh()
 		// The struct has a typo ("RestranitArm?"), so accept both spellings.
 		Item.bRestraintArm = ReadBool(RowStruct, RowData, { TEXT("RestranitArm"), TEXT("RestraintArm"), TEXT("RestranitArm?"), TEXT("RestraintArm?") });
 		Item.bInGag = ReadBool(RowStruct, RowData, { TEXT("InGag"), TEXT("InGag?") });
+		Item.bIsBlind = ReadBool(RowStruct, RowData, { TEXT("IsBlind"), TEXT("IsBlind?") });
+		Item.BlindLevel = FMath::Clamp(ReadInt(RowStruct, RowData, { TEXT("BlindLevel"), TEXT("BlindLevel?") }), 0, 3);
 		Item.bRestraintLeg = ReadBool(RowStruct, RowData, { TEXT("RestranitLeg"), TEXT("RestraintLeg"), TEXT("RestranitLeg?"), TEXT("RestraintLeg?") });
 		Item.bCantMove = ReadBool(RowStruct, RowData, { TEXT("CantMove"), TEXT("CantMove?") });
 		Item.bInPetMode = ReadBool(RowStruct, RowData, { TEXT("InPetMode") });
@@ -289,6 +291,7 @@ FString FMyBondageLifeRestraintCatalog::GetSlotName(int32 Slot)
 		TEXT("\u4E0B\u8EAB\u914D\u4EF61"),
 		TEXT("\u4E0B\u8EAB\u914D\u4EF62"),
 		TEXT("\u4E0B\u8EAB\u914D\u4EF63"),
+		TEXT("\u773C\u7F69"),
 	};
 
 	return FMath::IsWithinInclusive(Slot, 0, SlotCount - 1) ? FString(Names[Slot]) : FString();

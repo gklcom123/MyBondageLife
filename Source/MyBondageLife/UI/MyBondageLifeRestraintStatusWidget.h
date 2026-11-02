@@ -37,11 +37,13 @@ protected:
 	UPROPERTY(Transient) TObjectPtr<UImage> ArmIcon;
 	UPROPERTY(Transient) TObjectPtr<UImage> LegIcon;
 	UPROPERTY(Transient) TObjectPtr<UImage> CantMoveIcon;
+	UPROPERTY(Transient) TObjectPtr<UImage> BlindIcon;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Status") TObjectPtr<UTexture2D> GagTexture;
 	UPROPERTY(EditDefaultsOnly, Category = "Status") TObjectPtr<UTexture2D> ArmTexture;
 	UPROPERTY(EditDefaultsOnly, Category = "Status") TObjectPtr<UTexture2D> LegTexture;
 	UPROPERTY(EditDefaultsOnly, Category = "Status") TObjectPtr<UTexture2D> CantMoveTexture;
+	UPROPERTY(EditDefaultsOnly, Category = "Status") TObjectPtr<UTexture2D> BlindTexture;
 
 	TArray<TObjectPtr<class UWidget>> Units;
 
