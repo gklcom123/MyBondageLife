@@ -81,6 +81,10 @@ protected:
 	UPROPERTY(Transient) TArray<TObjectPtr<UTextBlock>> SlotLabels;
 
 	bool bLayoutBuilt = false;
+
+	/** 布局尚未构建时先缓存，构建完成后再套用。 */
+	TMap<int32, FString> PendingEquipped;
+	bool bHasPending = false;
 };
 
 /**
@@ -140,4 +144,8 @@ protected:
 	UPROPERTY(Transient) TObjectPtr<UButton> RemoveButton;
 
 	bool bLayoutBuilt = false;
+
+	/** 布局尚未构建时先缓存，构建完成后再套用。 */
+	TMap<int32, FString> PendingEquipped;
+	bool bHasPending = false;
 };

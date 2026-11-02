@@ -128,6 +128,14 @@ void UMyBondageLifeOutfitSlotsWidget::BuildLayout()
 
 void UMyBondageLifeOutfitSlotsWidget::RefreshSlots(const TMap<int32, FString>& Equipped)
 {
+	PendingEquipped = Equipped;
+	bHasPending = true;
+
+	if (!bLayoutBuilt)
+	{
+		return;
+	}
+
 	FMyBondageLifeOutfitCatalog::EnsureLoaded();
 
 	for (int32 SlotIndex = 0; SlotIndex < SlotButtons.Num(); ++SlotIndex)
@@ -150,6 +158,27 @@ void UMyBondageLifeOutfitSlotsWidget::RefreshSlots(const TMap<int32, FString>& E
 			else
 			{
 				SlotIcons[SlotIndex]->SetBrushFromTexture(nullptr, true);
+			}
+		}
+
+		if (SlotLabels.IsValidIndex(SlotIndex) && !SlotLabels[SlotIndex])
+		{
+			// 设计版可能把文字放在更深层的同名控件里，兜底再找一次。
+			if (WidgetTree)
+			{
+				TArray<UWidget*> AllWidgets;
+				WidgetTree->GetAllWidgets(AllWidgets);
+				for (UWidget* Candidate : AllWidgets)
+				{
+					if (UTextBlock* Text = Cast<UTextBlock>(Candidate))
+					{
+						if (Text->GetFName() == *(FString(TEXT("W_OutfitLabel")) + FString::Printf(TEXT("_%d"), SlotIndex)))
+						{
+							SlotLabels[SlotIndex] = Text;
+							break;
+						}
+					}
+				}
 			}
 		}
 

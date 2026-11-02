@@ -2268,33 +2268,40 @@ void UMyBondageLifeWardrobeWidget::HandleDesignedLockConfirmed(int32 LockType, c
 
 void UMyBondageLifeWardrobeWidget::BuildOutfitSlots()
 {
-	if (OutfitSlots || !AppearancePage)
+	if (OutfitSlots)
 	{
 		return;
 	}
 
-	UClass* SlotsClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_OutfitSlots.WBP_OutfitSlots_C"));
-	if (!SlotsClass)
-	{
-		SlotsClass = UMyBondageLifeOutfitSlotsWidget::StaticClass();
-	}
+	// Designed path: a WBP_OutfitSlots instance placed in the wardrobe tree (like W_RestraintGrid).
+	OutfitSlots = Cast<UMyBondageLifeOutfitSlotsWidget>(WidgetTree->FindWidget(TEXT("W_OutfitSlots")));
 
-	OutfitSlots = CreateWidget<UMyBondageLifeOutfitSlotsWidget>(this, SlotsClass);
 	if (!OutfitSlots)
 	{
-		return;
-	}
+		// Fallback: build the grid ourselves on the clothing page with an explicit size.
+		if (!AppearancePage)
+		{
+			return;
+		}
 
-	// Designed host wins, otherwise place it on the appearance page.
-	if (UPanelWidget* Host = Cast<UPanelWidget>(WidgetTree->FindWidget(TEXT("W_OutfitSlots"))))
-	{
-		Host->AddChild(OutfitSlots);
-	}
-	else if (UCanvasPanelSlot* OutfitSlot = AppearancePage->AddChildToCanvas(OutfitSlots))
-	{
-		OutfitSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
-		OutfitSlot->SetPosition(FVector2D(40.0f, 300.0f));
-		OutfitSlot->SetSize(FVector2D(760.0f, 320.0f));
+		UClass* SlotsClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_OutfitSlots.WBP_OutfitSlots_C"));
+		if (!SlotsClass)
+		{
+			SlotsClass = UMyBondageLifeOutfitSlotsWidget::StaticClass();
+		}
+
+		OutfitSlots = CreateWidget<UMyBondageLifeOutfitSlotsWidget>(this, SlotsClass);
+		if (!OutfitSlots)
+		{
+			return;
+		}
+
+		if (UCanvasPanelSlot* OutfitSlot = AppearancePage->AddChildToCanvas(OutfitSlots))
+		{
+			OutfitSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
+			OutfitSlot->SetPosition(FVector2D(30.0f, 290.0f));
+			OutfitSlot->SetSize(FVector2D(780.0f, 300.0f));
+		}
 	}
 
 	OutfitSlots->OnSlotClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleOutfitSlotClicked);
