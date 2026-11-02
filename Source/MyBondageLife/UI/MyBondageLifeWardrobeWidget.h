@@ -265,8 +265,27 @@ protected:
 
 	void BuildRestraintSlots();
 
+	void BuildOutfitSlots();
+	void RefreshOutfitSlots();
+	void OpenOutfitPicker(int32 SlotIndex);
+
+	UFUNCTION()
+	void HandleOutfitSlotClicked(int32 SlotIndex);
+
+	UFUNCTION()
+	void HandleOutfitItemChosen(int32 SlotIndex);
+
+	UFUNCTION()
+	void HandleOutfitRemoveChosen(int32 SlotIndex);
+
 	UPROPERTY(Transient)
 	TObjectPtr<class UMyBondageLifeRestraintSlotsWidget> RestraintGrid;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UMyBondageLifeOutfitSlotsWidget> OutfitSlots;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UMyBondageLifeOutfitPickerWidget> OutfitPicker;
 
 	UFUNCTION()
 	void HandleGridSlotClicked(int32 SlotIndex);

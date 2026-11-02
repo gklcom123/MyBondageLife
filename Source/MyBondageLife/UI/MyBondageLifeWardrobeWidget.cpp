@@ -5,6 +5,10 @@
 #include "MyBondageLifeRestraintPickerWidget.h"
 #include "UI/MyBondageLifeLockMenuWidget.h"
 #include "UI/MyBondageLifeLockInputWidget.h"
+#include "UI/MyBondageLifeOutfitWidgets.h"
+#include "UI/MyBondageLifeRestraintSlotsWidget.h"
+#include "Core/MyBondageLifeOutfitCatalog.h"
+#include "Core/MyBondageLifeAccountSubsystem.h"
 #include "MyBondageLifeCharacter.h"
 
 #include "Blueprint/WidgetTree.h"
@@ -2253,4 +2257,139 @@ void UMyBondageLifeWardrobeWidget::HandleDesignedLockConfirmed(int32 LockType, c
 	const int32 Seconds = ParseDuration(Text);
 	if (bFriendMode) { Account->LockRestraintFor(FriendAccount, PickerSlot, LockType, Seconds, FString()); }
 	else { Account->LockRestraint(PickerSlot, LockType, Seconds, FString()); }
+}
+// ---------------------------------------------------------------------------
+// Outfits (衣物页)
+// ---------------------------------------------------------------------------
+
+void UMyBondageLifeWardrobeWidget::BuildOutfitSlots()
+{
+	if (OutfitSlots || !AppearancePage)
+	{
+		return;
+	}
+
+	UClass* SlotsClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_OutfitSlots.WBP_OutfitSlots_C"));
+	if (!SlotsClass)
+	{
+		SlotsClass = UMyBondageLifeOutfitSlotsWidget::StaticClass();
+	}
+
+	OutfitSlots = CreateWidget<UMyBondageLifeOutfitSlotsWidget>(this, SlotsClass);
+	if (!OutfitSlots)
+	{
+		return;
+	}
+
+	// Designed host wins, otherwise place it on the appearance page.
+	if (UPanelWidget* Host = Cast<UPanelWidget>(WidgetTree->FindWidget(TEXT("W_OutfitSlots"))))
+	{
+		Host->AddChild(OutfitSlots);
+	}
+	else if (UCanvasPanelSlot* OutfitSlot = AppearancePage->AddChildToCanvas(OutfitSlots))
+	{
+		OutfitSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
+		OutfitSlot->SetPosition(FVector2D(40.0f, 300.0f));
+		OutfitSlot->SetSize(FVector2D(760.0f, 320.0f));
+	}
+
+	OutfitSlots->OnSlotClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleOutfitSlotClicked);
+
+	// Picker (shared for own / friend mode).
+	UClass* PickerClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_OutfitPicker.WBP_OutfitPicker_C"));
+	if (!PickerClass)
+	{
+		PickerClass = UMyBondageLifeOutfitPickerWidget::StaticClass();
+	}
+
+	OutfitPicker = CreateWidget<UMyBondageLifeOutfitPickerWidget>(this, PickerClass);
+	if (OutfitPicker)
+	{
+		OutfitPicker->AddToViewport(70);
+		OutfitPicker->OnItemChosen.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleOutfitItemChosen);
+		OutfitPicker->OnRemoveChosen.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleOutfitRemoveChosen);
+		OutfitPicker->ClosePicker();
+	}
+}
+
+void UMyBondageLifeWardrobeWidget::RefreshOutfitSlots()
+{
+	if (!OutfitSlots)
+	{
+		return;
+	}
+
+	if (const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr)
+	{
+		OutfitSlots->RefreshSlots(bFriendMode ? Account->GetViewedOutfits() : Account->GetEquippedOutfits());
+	}
+}
+
+void UMyBondageLifeWardrobeWidget::HandleOutfitSlotClicked(int32 SlotIndex)
+{
+	OpenOutfitPicker(SlotIndex);
+}
+
+void UMyBondageLifeWardrobeWidget::OpenOutfitPicker(int32 SlotIndex)
+{
+	if (!OutfitPicker)
+	{
+		return;
+	}
+
+	const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+	const TMap<int32, FString> Equipped = Account
+		? (bFriendMode ? Account->GetViewedOutfits() : Account->GetEquippedOutfits())
+		: TMap<int32, FString>();
+
+	OutfitPicker->OpenForSlot(SlotIndex, Equipped);
+}
+
+void UMyBondageLifeWardrobeWidget::HandleOutfitItemChosen(int32 SlotIndex)
+{
+	if (!OutfitPicker)
+	{
+		return;
+	}
+
+	const FString ItemId = OutfitPicker->GetChosenItemId();
+	if (ItemId.IsEmpty())
+	{
+		return;
+	}
+
+	if (UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr)
+	{
+		if (bFriendMode)
+		{
+			Account->EquipOutfitFor(FriendAccount, SlotIndex, ItemId);
+		}
+		else
+		{
+			Account->EquipOutfit(SlotIndex, ItemId);
+		}
+	}
+}
+
+void UMyBondageLifeWardrobeWidget::HandleOutfitRemoveChosen(int32 SlotIndex)
+{
+	if (UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr)
+	{
+		if (bFriendMode)
+		{
+			Account->UnequipOutfitFor(FriendAccount, SlotIndex);
+		}
+		else
+		{
+			Account->UnequipOutfit(SlotIndex);
+		}
+	}
 }
