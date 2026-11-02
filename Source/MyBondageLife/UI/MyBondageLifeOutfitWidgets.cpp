@@ -183,6 +183,18 @@ void UMyBondageLifeOutfitSlotsWidget::RefreshSlots(const TMap<int32, FString>& E
 			: nullptr;
 
 		UTexture2D* Texture = Item ? Item->Icon.LoadSynchronous() : nullptr;
+
+		const FString SlotSuffix = FString::Printf(TEXT("_%d"), SlotIndex);
+		UImage* SlotImage = Cast<UImage>(WidgetTree->FindWidget(*(FString(TEXT("W_Offitcon")) + SlotSuffix)));
+		if (!SlotImage)
+		{
+			SlotImage = Cast<UImage>(WidgetTree->FindWidget(*(FString(TEXT("W_OutfitIcon")) + SlotSuffix)));
+		}
+		UTextBlock* SlotText = Cast<UTextBlock>(WidgetTree->FindWidget(*(FString(TEXT("W_OutfitLabel")) + SlotSuffix)));
+		if (!SlotText)
+		{
+			SlotText = Cast<UTextBlock>(WidgetTree->FindWidget(*(FString(TEXT("W_SlotLabel")) + SlotSuffix)));
+		}
 		const FString Caption = Item && !Item->Name.IsEmpty()
 			? Item->Name
 			: FMyBondageLifeOutfitCatalog::GetSlotName(SlotIndex);
@@ -250,6 +262,64 @@ void UMyBondageLifeOutfitPickerWidget::BuildLayout()
 	RemoveButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_OutfitPicker_Remove")));
 	UButton* CancelButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_OutfitPicker_Cancel")));
 
+	if (!PickerPanel)
+	{
+		// 没有设计版面板时自己搭一个，否则点击槽位看不到任何东西。
+		UCanvasPanel* PickerRoot = Cast<UCanvasPanel>(WidgetTree->RootWidget);
+		if (!PickerRoot)
+		{
+			PickerRoot = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("OutfitPickerRoot"));
+			WidgetTree->RootWidget = PickerRoot;
+		}
+		PickerRoot->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+
+		PickerPanel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("W_OutfitPicker_Panel"));
+		PickerPanel->SetBrushColor(FLinearColor(0.08f, 0.08f, 0.1f, 0.95f));
+		if (UCanvasPanelSlot* PanelSlot = PickerRoot->AddChildToCanvas(PickerPanel))
+		{
+			PanelSlot->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
+			PanelSlot->SetAlignment(FVector2D(0.5f, 0.5f));
+			PanelSlot->SetSize(FVector2D(420.0f, 520.0f));
+		}
+
+		UVerticalBox* PanelBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		PickerPanel->SetContent(PanelBox);
+
+		PickerTitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("W_OutfitPicker_Title"));
+		if (UVerticalBoxSlot* TitleSlot = PanelBox->AddChildToVerticalBox(PickerTitle))
+		{
+			TitleSlot->SetPadding(FMargin(12.0f, 10.0f, 12.0f, 8.0f));
+		}
+
+		UVerticalBox* ListBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("W_OutfitPicker_List"));
+		PickerList = ListBox;
+		if (UVerticalBoxSlot* ListSlot = PanelBox->AddChildToVerticalBox(ListBox))
+		{
+			ListSlot->SetPadding(FMargin(12.0f, 0.0f, 12.0f, 8.0f));
+			ListSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		}
+
+		RemoveButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("W_OutfitPicker_Remove"));
+		UTextBlock* RemoveLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		RemoveLabel->SetText(FText::FromString(TEXT("脱下")));
+		RemoveButton->AddChild(RemoveLabel);
+		if (UVerticalBoxSlot* RemoveSlot = PanelBox->AddChildToVerticalBox(RemoveButton))
+		{
+			RemoveSlot->SetPadding(FMargin(12.0f, 0.0f, 12.0f, 6.0f));
+		}
+
+		UButton* OwnCancel = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("W_OutfitPicker_Cancel"));
+		UTextBlock* CancelLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		CancelLabel->SetText(FText::FromString(TEXT("取消")));
+		OwnCancel->AddChild(CancelLabel);
+		if (UVerticalBoxSlot* CancelSlot = PanelBox->AddChildToVerticalBox(OwnCancel))
+		{
+			CancelSlot->SetPadding(FMargin(12.0f, 0.0f, 12.0f, 10.0f));
+		}
+
+		OwnCancel->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeOutfitPickerWidget::HandleCancelClicked);
+	}
+
 	if (PickerPanel)
 	{
 		PickerPanel->SetVisibility(ESlateVisibility::Collapsed);
@@ -288,6 +358,64 @@ void UMyBondageLifeOutfitPickerWidget::OpenForSlot(int32 InSlot, const TMap<int3
 
 void UMyBondageLifeOutfitPickerWidget::ClosePicker()
 {
+	if (!PickerPanel)
+	{
+		// 没有设计版面板时自己搭一个，否则点击槽位看不到任何东西。
+		UCanvasPanel* PickerRoot = Cast<UCanvasPanel>(WidgetTree->RootWidget);
+		if (!PickerRoot)
+		{
+			PickerRoot = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("OutfitPickerRoot"));
+			WidgetTree->RootWidget = PickerRoot;
+		}
+		PickerRoot->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+
+		PickerPanel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("W_OutfitPicker_Panel"));
+		PickerPanel->SetBrushColor(FLinearColor(0.08f, 0.08f, 0.1f, 0.95f));
+		if (UCanvasPanelSlot* PanelSlot = PickerRoot->AddChildToCanvas(PickerPanel))
+		{
+			PanelSlot->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
+			PanelSlot->SetAlignment(FVector2D(0.5f, 0.5f));
+			PanelSlot->SetSize(FVector2D(420.0f, 520.0f));
+		}
+
+		UVerticalBox* PanelBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		PickerPanel->SetContent(PanelBox);
+
+		PickerTitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("W_OutfitPicker_Title"));
+		if (UVerticalBoxSlot* TitleSlot = PanelBox->AddChildToVerticalBox(PickerTitle))
+		{
+			TitleSlot->SetPadding(FMargin(12.0f, 10.0f, 12.0f, 8.0f));
+		}
+
+		UVerticalBox* ListBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("W_OutfitPicker_List"));
+		PickerList = ListBox;
+		if (UVerticalBoxSlot* ListSlot = PanelBox->AddChildToVerticalBox(ListBox))
+		{
+			ListSlot->SetPadding(FMargin(12.0f, 0.0f, 12.0f, 8.0f));
+			ListSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		}
+
+		RemoveButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("W_OutfitPicker_Remove"));
+		UTextBlock* RemoveLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		RemoveLabel->SetText(FText::FromString(TEXT("脱下")));
+		RemoveButton->AddChild(RemoveLabel);
+		if (UVerticalBoxSlot* RemoveSlot = PanelBox->AddChildToVerticalBox(RemoveButton))
+		{
+			RemoveSlot->SetPadding(FMargin(12.0f, 0.0f, 12.0f, 6.0f));
+		}
+
+		UButton* OwnCancel = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("W_OutfitPicker_Cancel"));
+		UTextBlock* CancelLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		CancelLabel->SetText(FText::FromString(TEXT("取消")));
+		OwnCancel->AddChild(CancelLabel);
+		if (UVerticalBoxSlot* CancelSlot = PanelBox->AddChildToVerticalBox(OwnCancel))
+		{
+			CancelSlot->SetPadding(FMargin(12.0f, 0.0f, 12.0f, 10.0f));
+		}
+
+		OwnCancel->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeOutfitPickerWidget::HandleCancelClicked);
+	}
+
 	if (PickerPanel)
 	{
 		PickerPanel->SetVisibility(ESlateVisibility::Collapsed);
