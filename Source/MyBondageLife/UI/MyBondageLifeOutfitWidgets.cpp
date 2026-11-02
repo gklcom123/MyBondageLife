@@ -147,61 +147,72 @@ void UMyBondageLifeOutfitSlotsWidget::RefreshSlots(const TMap<int32, FString>& E
 	PendingEquipped = Equipped;
 	bHasPending = true;
 
-	if (!bLayoutBuilt)
+	if (!bLayoutBuilt || !WidgetTree)
 	{
 		return;
 	}
 
 	FMyBondageLifeOutfitCatalog::EnsureLoaded();
 
-	for (int32 SlotIndex = 0; SlotIndex < SlotButtons.Num(); ++SlotIndex)
+	TArray<UWidget*> AllWidgets;
+	WidgetTree->GetAllWidgets(AllWidgets);
+
+	auto IsUnder = [](UWidget* Widget, UWidget* Root)
 	{
+		for (UWidget* Parent = Widget ? Widget->GetParent() : nullptr; Parent; Parent = Parent->GetParent())
+		{
+			if (Parent == Root)
+			{
+				return true;
+			}
+		}
+		return false;
+	};
+
+	for (int32 SlotIndex = 0; SlotIndex < FMyBondageLifeOutfitCatalog::SlotCount; ++SlotIndex)
+	{
+		UWidget* Button = SlotButtons.IsValidIndex(SlotIndex) ? SlotButtons[SlotIndex].Get() : nullptr;
+		if (!Button)
+		{
+			continue;
+		}
+
 		const FString* ItemId = Equipped.Find(SlotIndex);
 		const FMyBondageLifeOutfitItem* Item = (ItemId && !ItemId->IsEmpty())
 			? FMyBondageLifeOutfitCatalog::Find(FName(**ItemId))
 			: nullptr;
 
-		if (SlotIcons.IsValidIndex(SlotIndex) && SlotIcons[SlotIndex])
+		UTexture2D* Texture = Item ? Item->Icon.LoadSynchronous() : nullptr;
+		const FString Caption = Item && !Item->Name.IsEmpty()
+			? Item->Name
+			: FMyBondageLifeOutfitCatalog::GetSlotName(SlotIndex);
+
+		// The designed tree uses several spellings (W_Offitcon_N / W_OutfitIcon_N /
+		// W_SlotLabel_N), so every descendant of this slot button is inspected.
+		for (UWidget* Candidate : AllWidgets)
 		{
-			if (Item)
+			if (!Candidate || !IsUnder(Candidate, Button))
 			{
-				UTexture2D* Texture = Item->Icon.LoadSynchronous();
+				continue;
+			}
+
+			if (UImage* Image = Cast<UImage>(Candidate))
+			{
 				if (Texture)
 				{
-					SlotIcons[SlotIndex]->SetBrushFromTexture(Texture, true);
+					Image->SetBrushFromTexture(Texture, true);
 				}
 			}
-			else
+			else if (UTextBlock* Text = Cast<UTextBlock>(Candidate))
 			{
-				SlotIcons[SlotIndex]->SetBrushFromTexture(nullptr, true);
+				Text->SetText(FText::FromString(Caption));
 			}
 		}
 
-		if (SlotLabels.IsValidIndex(SlotIndex) && !SlotLabels[SlotIndex])
-		{
-			// 设计版可能把文字放在更深层的同名控件里，兜底再找一次。
-			if (WidgetTree)
-			{
-				TArray<UWidget*> AllWidgets;
-				WidgetTree->GetAllWidgets(AllWidgets);
-				for (UWidget* Candidate : AllWidgets)
-				{
-					if (UTextBlock* Text = Cast<UTextBlock>(Candidate))
-					{
-						if (Text->GetFName() == *(FString(TEXT("W_OutfitLabel")) + FString::Printf(TEXT("_%d"), SlotIndex)))
-						{
-							SlotLabels[SlotIndex] = Text;
-							break;
-						}
-					}
-				}
-			}
-		}
-
+		// Fallback: the caption sometimes lives outside the button in the designed tree.
 		if (SlotLabels.IsValidIndex(SlotIndex) && SlotLabels[SlotIndex])
 		{
-			const FString Name = Item ? Item->Name : FMyBondageLifeOutfitCatalog::GetSlotName(SlotIndex);
-			SlotLabels[SlotIndex]->SetText(FText::FromString(Name));
+			SlotLabels[SlotIndex]->SetText(FText::FromString(Caption));
 		}
 	}
 }
