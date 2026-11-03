@@ -1282,19 +1282,8 @@ void AMyBondageLifeCharacter::ApplyOutfitColors()
 				}
 
 				// Only tint materials that actually expose ColorN.
-				TArray<FMaterialParameterInfo> ParamInfos;
-				TArray<FGuid> ParamIds;
-				Material->GetAllVectorParameterInfo(ParamInfos, ParamIds);
-				bool bHasParameter = false;
-				for (const FMaterialParameterInfo& ParamInfo : ParamInfos)
-				{
-					if (ParamInfo.Name == ParameterName)
-					{
-						bHasParameter = true;
-						break;
-					}
-				}
-				if (!bHasParameter)
+				FLinearColor DummyColor;
+				if (!Material->GetVectorParameterValue(FMaterialParameterInfo(ParameterName), DummyColor))
 				{
 					continue;
 				}
