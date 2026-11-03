@@ -353,7 +353,7 @@ void AMyBondageLifeCharacter::Tick(float DeltaSeconds)
 	if (RestraintHiddenParts.Num() + OutfitHiddenParts.Num() > 0)
 	{
 		HideReassertAccumulator += DeltaSeconds;
-		if (HideReassertAccumulator >= 0.5f)
+		if (HideReassertAccumulator >= 3.0f)
 		{
 			HideReassertAccumulator = 0.0f;
 			ApplyBodyPartHiding();
