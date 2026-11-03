@@ -349,6 +349,17 @@ void AMyBondageLifeCharacter::Tick(float DeltaSeconds)
 		ApplyOutfitCapsule();
 	}
 
+	// 皮肤/衣物任何一次换材质都可能把透明槽位盖回来，这里做低频兜底。
+	if (RestraintHiddenParts.Num() + OutfitHiddenParts.Num() > 0)
+	{
+		HideReassertAccumulator += DeltaSeconds;
+		if (HideReassertAccumulator >= 0.5f)
+		{
+			HideReassertAccumulator = 0.0f;
+			ApplyBodyPartHiding();
+		}
+	}
+
 	ApplyBlindEffect(DeltaSeconds);
 
 	// CantMove: kill any residual velocity every frame (a single speed clamp left a slow drift).
@@ -792,8 +803,8 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 		RestraintItemIds.Num(), bRestraintArm ? 1 : 0, bRestraintLeg ? 1 : 0, bCantMove ? 1 : 0, bInPetMode ? 1 : 0);
 
 	RestraintHiddenParts = HiddenParts;
-	ApplyBodyPartHiding();
 	ApplySkin();
+	ApplyBodyPartHiding();
 }
 
 FName AMyBondageLifeCharacter::GetGagProfileId() const
@@ -1016,6 +1027,8 @@ void AMyBondageLifeCharacter::ApplyBodyPartHiding()
 
 		OriginalBodyMaterials.Add(PartName, MeshComponent->GetMaterial(MaterialIndex));
 		MeshComponent->SetMaterial(MaterialIndex, HiddenBodyMaterial);
+
+		UE_LOG(LogMyBondageLife, Verbose, TEXT("Hide: %s -> material %d"), *PartName.ToString(), MaterialIndex);
 	}
 }
 
@@ -1109,8 +1122,8 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 
 	OutfitFeetOffset = FeetOffset;
 	ApplyOutfitCapsule();
-	ApplyBodyPartHiding();
 	ApplySkin();
+	ApplyBodyPartHiding();
 }
 void AMyBondageLifeCharacter::ServerSetAccountName_Implementation(const FString& InAccount)
 {

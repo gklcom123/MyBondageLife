@@ -414,6 +414,8 @@ protected:
 	/** 衣物 FeetOffset 合计，用于抬高胶囊。 */
 	float OutfitFeetOffset = 0.0f;
 
+	float HideReassertAccumulator = 0.0f;
+
 	void ApplyOutfitCapsule();
 
 	/** 皮肤：把 upbody/leg/hand/feet 换成 Skin_BodyMat，yatoe 换成 Skin_YatoeMat。 */
