@@ -383,6 +383,13 @@ void AMyBondageLifePlayerController::ShowChat()
 	}
 
 	ChatWidget->OnMessageSubmitted.AddDynamic(this, &AMyBondageLifePlayerController::HandleChatMessageSubmitted);
+
+	if (UMyBondageLifeAccountSubsystem* SystemChatAccount = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		SystemChatAccount->OnSystemChatMessage.AddUniqueDynamic(this,
+			&AMyBondageLifePlayerController::HandleSystemChatMessage);
+	}
 	ChatWidget->OnInputEnded.AddDynamic(this, &AMyBondageLifePlayerController::HandleChatInputEnded);
 	if (!HostInMainHud(TEXT("W_ChatHost"), ChatWidget))
 		{

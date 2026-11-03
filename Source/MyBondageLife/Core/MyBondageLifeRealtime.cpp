@@ -147,6 +147,7 @@ void UMyBondageLifeAccountSubsystem::HandleRealtimeMessage(const FString& InMess
 		Json->TryGetStringField(TEXT("text"), Text);
 		if (!Text.IsEmpty())
 		{
+			UE_LOG(LogMyBondageLife, Log, TEXT("Realtime: chat.system '%s'."), *Text);
 			OnSystemChatMessage.Broadcast(Text);
 		}
 		return;
