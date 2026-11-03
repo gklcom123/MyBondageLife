@@ -772,7 +772,9 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 			Component->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		Component->SetCollisionProfileName(TEXT("CharacterMesh"));
 
-		OutfitComponents.Add(Item->Slot, Component);
+		// 用实际穿着的槽位做 key（DT 里的 Slot 可能和穿着槽位不一致）
+		const int32 WornSlotIndex = OutfitSlots.IsValidIndex(Index) ? OutfitSlots[Index] : Item->Slot;
+		OutfitComponents.Add(WornSlotIndex, Component);
 			Component->SetGenerateOverlapEvents(false);
 			Component->SetSkeletalMeshAsset(WornMesh);
 
@@ -1109,7 +1111,9 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 		Component->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		Component->SetCollisionProfileName(TEXT("CharacterMesh"));
 
-		OutfitComponents.Add(Item->Slot, Component);
+		// 用实际穿着的槽位做 key（DT 里的 Slot 可能和穿着槽位不一致）
+		const int32 WornSlotIndex = OutfitSlots.IsValidIndex(Index) ? OutfitSlots[Index] : Item->Slot;
+		OutfitComponents.Add(WornSlotIndex, Component);
 		Component->SetGenerateOverlapEvents(false);
 
 		// 同骨骼：跟随身体动画；否则挂到同名 socket。
