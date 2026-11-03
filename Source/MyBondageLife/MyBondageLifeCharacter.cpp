@@ -1314,3 +1314,20 @@ void AMyBondageLifeCharacter::ApplyOutfitColors()
 		}
 	}
 }
+
+void AMyBondageLifeCharacter::SetOutfitColorChannel(int32 SlotIndex, int32 Channel, const FString& HexColor)
+{
+	const int32 Index = SlotIndex * 3 + (Channel - 1);
+	if (Index < 0)
+	{
+		return;
+	}
+
+	while (OutfitColorHex.Num() <= Index)
+	{
+		OutfitColorHex.Add(FString());
+	}
+
+	OutfitColorHex[Index] = HexColor;
+	ApplyOutfitColors();
+}

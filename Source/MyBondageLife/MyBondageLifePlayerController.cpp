@@ -3,6 +3,7 @@
 #include "MyBondageLifePlayerController.h"
 
 #include "Core/MyBondageLifeAccountSubsystem.h"
+#include "Core/MyBondageLifeOutfitCatalog.h"
 #include "Core/Garbler/MyBondageLifeGarbler.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -2518,16 +2519,29 @@ void AMyBondageLifePlayerController::PushOutfitsToPawn()
 		Items.Add(FName(*Pair.Value));
 	}
 
+	TArray<FString> Colors;
+	for (int32 SlotIndex = 0; SlotIndex < FMyBondageLifeOutfitCatalog::SlotCount; ++SlotIndex)
+	{
+		const TMap<int32, FString> SlotColors = Account->GetOutfitColors(SlotIndex);
+		for (int32 Channel = 1; Channel <= 3; ++Channel)
+		{
+			const FString* Hex = SlotColors.Find(Channel);
+			Colors.Add(Hex ? *Hex : FString());
+		}
+	}
+
 	if (HasAuthority())
 	{
 		if (AMyBondageLifeCharacter* TargetCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
 		{
 			TargetCharacter->SetOutfits(Slots, Items);
+			TargetCharacter->SetOutfitColors(Colors);
 		}
 	}
 	else
 	{
 		ServerSetOutfits(Slots, Items);
+		ServerSetOutfitColors(Colors);
 	}
 }
 
@@ -2649,4 +2663,12 @@ void AMyBondageLifePlayerController::HandleSkinChanged(int32 InSkinId)
 void AMyBondageLifePlayerController::HandleSystemChatMessage(const FString& Text)
 {
 	ShowSystemChatMessage(Text);
+}
+
+void AMyBondageLifePlayerController::ServerSetOutfitColors_Implementation(const TArray<FString>& Colors)
+{
+	if (AMyBondageLifeCharacter* TargetCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		TargetCharacter->SetOutfitColors(Colors);
+	}
 }

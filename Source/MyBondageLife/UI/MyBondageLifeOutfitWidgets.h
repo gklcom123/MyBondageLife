@@ -13,8 +13,23 @@ class UTextBlock;
 class UVerticalBox;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeOutfitSlotClicked, int32, Slot);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FMyBondageLifeOutfitColorRequested, int32, Slot, int32, Channel);
 
 
+
+/** Click relay for one colour button (W_ChangeColor_<slot>_<channel>). */
+UCLASS()
+class UMyBondageLifeOutfitColorProxy : public UObject
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY() TObjectPtr<UMyBondageLifeOutfitSlotsWidget> Owner;
+	int32 Slot = 0;
+	int32 Channel = 1;
+
+	UFUNCTION() void HandleClicked();
+};
 /** Click relay for one clothing slot. */
 UCLASS()
 class MYBONDAGELIFE_API UMyBondageLifeOutfitSlotProxy : public UObject
@@ -73,8 +88,19 @@ public:
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UMyBondageLifeOutfitSlotProxy>> ClickProxies;
 
+	UPROPERTY(Transient)
+	TMap<FString, TObjectPtr<class UButton>> ColorButtons;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UMyBondageLifeOutfitColorProxy>> ColorProxies;
+
+	void HandleColorClicked(int32 Slot, int32 Channel);
+
 	UPROPERTY(BlueprintAssignable, Category = "Outfit")
 	FMyBondageLifeOutfitSlotClicked OnSlotClicked;
+
+	UPROPERTY(BlueprintAssignable, Category = "Outfit")
+	FMyBondageLifeOutfitColorRequested OnColorRequested;
 
 protected:
 

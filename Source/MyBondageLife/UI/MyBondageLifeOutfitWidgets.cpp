@@ -136,6 +136,22 @@ void UMyBondageLifeOutfitSlotsWidget::BuildLayout()
 			SlotLabels.Add(Label);
 		}
 
+		for (int32 Channel = 1; Channel <= 3; ++Channel)
+		{
+			const FString ColorName = FString::Printf(TEXT("W_ChangeColor_%d_%d"), SlotIndex, Channel);
+			if (UButton* ColorButton = Cast<UButton>(WidgetTree->FindWidget(*ColorName)))
+			{
+				ColorButtons.Add(ColorName, ColorButton);
+
+				UMyBondageLifeOutfitColorProxy* ColorProxy = NewObject<UMyBondageLifeOutfitColorProxy>(this);
+				ColorProxy->Owner = this;
+				ColorProxy->Slot = SlotIndex;
+				ColorProxy->Channel = Channel;
+				ColorProxies.Add(ColorProxy);
+				ColorButton->OnClicked.AddUniqueDynamic(ColorProxy, &UMyBondageLifeOutfitColorProxy::HandleClicked);
+			}
+		}
+
 		UMyBondageLifeOutfitSlotProxy* Proxy = NewObject<UMyBondageLifeOutfitSlotProxy>(this);
 		Proxy->Owner = this;
 		Proxy->Slot = SlotIndex;
@@ -253,6 +269,22 @@ void UMyBondageLifeOutfitSlotsWidget::RefreshSlots(const TMap<int32, FString>& E
 		UE_LOG(LogMyBondageLife, Log, TEXT("OutfitSlot %d: image=%s texture=%s"),
 			SlotIndex, SlotImage ? *SlotImage->GetName() : TEXT("none"),
 			Texture ? *Texture->GetName() : TEXT("none"));
+
+		const int32 ColorMask = Item ? FMyBondageLifeOutfitCatalog::GetColorChannelMask(Item->ItemId) : 0;
+		for (int32 Channel = 1; Channel <= 3; ++Channel)
+		{
+			const FString ColorName = FString::Printf(TEXT("W_ChangeColor_%d_%d"), SlotIndex, Channel);
+			if (TObjectPtr<UButton>* FoundButton = ColorButtons.Find(ColorName))
+			{
+				UButton* ColorButton = FoundButton->Get();
+				if (!ColorButton)
+				{
+					continue;
+				}
+				ColorButton->SetVisibility(Item ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+				ColorButton->SetIsEnabled(Item && (ColorMask & (1 << (Channel - 1))) != 0);
+			}
+		}
 
 		// 设计版里图标/文字与按钮同级（兄弟节点），按名字直接写入。
 		if (SlotImage)
@@ -562,4 +594,16 @@ void UMyBondageLifeOutfitSlotsWidget::SetViewAccount(const FString& InAccount)
 			? Account->GetEquippedOutfits()
 			: Account->GetOutfitsForAccount(ViewAccount));
 	}
+}
+void UMyBondageLifeOutfitColorProxy::HandleClicked()
+{
+	if (Owner)
+	{
+		Owner->HandleColorClicked(Slot, Channel);
+	}
+}
+
+void UMyBondageLifeOutfitSlotsWidget::HandleColorClicked(int32 SlotIndex, int32 Channel)
+{
+	OnColorRequested.Broadcast(SlotIndex, Channel);
 }

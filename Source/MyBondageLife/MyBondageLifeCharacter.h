@@ -149,6 +149,10 @@ public:
 
 	void ApplyOutfitColors();
 
+	/** 设置某槽位某通道的颜色（空字符串=清除）。 */
+	UFUNCTION(BlueprintCallable, Category="Outfit")
+	void SetOutfitColorChannel(int32 Slot, int32 Channel, const FString& HexColor);
+
 	/** 账号名（复制到其他客户端，用来拉取该玩家的衣物）。 */
 	UFUNCTION(Server, Reliable)
 	void ServerSetAccountName(const FString& InAccount);

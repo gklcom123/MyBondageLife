@@ -395,6 +395,11 @@ protected:
 
 	void ServerSetOutfits_Implementation(const TArray<int32>& Slots, const TArray<FName>& Items);
 
+	UFUNCTION(Server, Reliable)
+	void ServerSetOutfitColors(const TArray<FString>& Colors);
+
+	void ServerSetOutfitColors_Implementation(const TArray<FString>& Colors);
+
 	UFUNCTION()
 	void HandleOutfitsChanged();
 
