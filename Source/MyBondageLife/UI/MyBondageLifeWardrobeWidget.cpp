@@ -6,6 +6,7 @@
 #include "UI/MyBondageLifeLockMenuWidget.h"
 #include "UI/MyBondageLifeLockInputWidget.h"
 #include "UI/MyBondageLifeOutfitWidgets.h"
+#include "UI/MyBondageLifeColorPickerWidget.h"
 #include "UI/MyBondageLifeRestraintSlotsWidget.h"
 #include "Core/MyBondageLifeOutfitCatalog.h"
 #include "MyBondageLifePlayerController.h"
@@ -2371,6 +2372,7 @@ void UMyBondageLifeWardrobeWidget::BuildOutfitSlots()
 
 	OutfitSlots->SetViewAccount(bFriendMode ? FriendAccount : FString());
 	OutfitSlots->OnSlotClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleOutfitSlotClicked);
+	OutfitSlots->OnColorRequested.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::OpenOutfitColorPicker);
 
 	if (UMyBondageLifeAccountSubsystem* OutfitAccount = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
@@ -2607,4 +2609,60 @@ void UMyBondageLifeWardrobeWidget::HandleSkinUpClicked()
 void UMyBondageLifeWardrobeWidget::HandleSkinChanged(int32 InSkinId)
 {
 	RefreshSkinLabel();
+}
+void UMyBondageLifeWardrobeWidget::OpenOutfitColorPicker(int32 SlotIndex, int32 Channel)
+{
+	if (!OutfitColorPicker)
+	{
+		UClass* PickerClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_ColorPicker.WBP_ColorPicker_C"));
+		if (PickerClass)
+		{
+			OutfitColorPicker = CreateWidget<UMyBondageLifeColorPickerWidget>(this, PickerClass);
+			if (OutfitColorPicker)
+			{
+				OutfitColorPicker->AddToViewport(310);
+				OutfitColorPicker->OnColorCommitted.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleOutfitColorCommitted);
+			}
+		}
+	}
+
+	if (!OutfitColorPicker)
+	{
+		return;
+	}
+
+	FString CurrentHex;
+	if (const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		const TMap<int32, FString> Colors = Account->GetOutfitColors(SlotIndex);
+		if (const FString* Found = Colors.Find(Channel))
+		{
+			CurrentHex = *Found;
+		}
+	}
+
+	OutfitColorPicker->OpenForColor(SlotIndex, Channel, CurrentHex);
+}
+
+void UMyBondageLifeWardrobeWidget::HandleOutfitColorCommitted(int32 SlotIndex, int32 Channel, const FString& HexColor)
+{
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+	if (!Account)
+	{
+		return;
+	}
+
+	// 立即在本机生效，再写服务端（好友衣柜则写对方的存档）。
+	if (!bFriendMode)
+	{
+		if (AMyBondageLifeCharacter* Character = Cast<AMyBondageLifeCharacter>(GetOwningPlayer() ? GetOwningPlayer()->GetPawn() : nullptr))
+		{
+			Character->SetOutfitColorChannel(SlotIndex, Channel, HexColor);
+		}
+	}
+
+	Account->SetOutfitColor(SlotIndex, Channel, HexColor, bFriendMode ? FriendAccount : FString());
 }

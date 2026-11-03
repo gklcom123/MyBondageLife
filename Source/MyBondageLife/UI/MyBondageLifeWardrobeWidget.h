@@ -304,6 +304,14 @@ protected:
 	UFUNCTION()
 	void HandleOutfitRemoveChosen(int32 SlotIndex);
 
+	void OpenOutfitColorPicker(int32 SlotIndex, int32 Channel);
+
+	UFUNCTION()
+	void HandleOutfitColorCommitted(int32 SlotIndex, int32 Channel, const FString& HexColor);
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UMyBondageLifeColorPickerWidget> OutfitColorPicker;
+
 	UFUNCTION()
 	void HandleOutfitsChanged();
 
