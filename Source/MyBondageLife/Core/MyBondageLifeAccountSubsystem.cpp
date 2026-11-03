@@ -1224,8 +1224,12 @@ void UMyBondageLifeAccountSubsystem::RequestUserProfile(const FString& InAccount
 			{
 				Profile.SkinId = FMath::Clamp(static_cast<int32>(SkinValue), 1, 64);
 			}
-			Self->SkinId = Profile.SkinId;
-			Self->OnSkinChanged.Broadcast(Self->SkinId);
+			// 别人的档案不能覆盖自己的皮肤（否则打开好友衣柜会把自己皮肤重置）。
+			if (Self->AccountName.Equals(InAccountName, ESearchCase::IgnoreCase))
+			{
+				Self->SkinId = Profile.SkinId;
+				Self->OnSkinChanged.Broadcast(Self->SkinId);
+			}
 
 			Profile.CreatedAt = ParseIsoField(Json, TEXT("createdAt"));
 
