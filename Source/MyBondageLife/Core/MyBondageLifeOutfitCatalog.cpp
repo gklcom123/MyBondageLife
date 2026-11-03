@@ -288,10 +288,10 @@ FString FMyBondageLifeOutfitCatalog::GetSlotName(int32 Slot)
 		TEXT("\u624B\u5957"),
 		TEXT("\u675F\u8170"),
 		TEXT("\u88E4\u5B50"),
-		TEXT("\u4E0A\u8EAB\u914D\u4EF61"),
-		TEXT("\u4E0A\u8EAB\u914D\u4EF62"),
-		TEXT("\u4E0B\u8EAB\u914D\u4EF61"),
-		TEXT("\u4E0B\u8EAB\u914D\u4EF62"),
+		TEXT("\u5185\u8863"),
+		TEXT("\u80F8\u7F69"),
+		TEXT("\u5185\u88E4"),
+		TEXT("\u889C\u5B50"),
 		TEXT("\u978B\u5B50"),
 	};
 
