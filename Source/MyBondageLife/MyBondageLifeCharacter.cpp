@@ -291,6 +291,7 @@ void AMyBondageLifeCharacter::BeginPlay()
 
 	// Use the copied AnimBP from now on, then restore the replicated pose state.
 	ApplyAnimBlueprintOverride();
+	ApplySkin();
 	RestraintMontagePath.TryLoad();   // warm the asset so the first toggle does not hitch
 	RefreshRestraintPose();
 	ApplyRestraintMovementLimits();

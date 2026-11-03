@@ -258,6 +258,13 @@ bool UMyBondageLifeAccountSubsystem::ApplyAuthPayload(const TSharedPtr<FJsonObje
 		HairIndex = FMath::Clamp(static_cast<int32>(HairValue), 1, 64);
 	}
 
+	// Skin: the DT_Skin row ID, 1 based.
+	double SkinValue = 1.0;
+	if ((*UserObject)->TryGetNumberField(TEXT("skinId"), SkinValue))
+	{
+		SkinId = FMath::Clamp(static_cast<int32>(SkinValue), 1, 64);
+	}
+
 	// e.g. "2026-10-26T10:39:29.323Z" - the account creation date shown in the
 	// personal info panel.
 	FString CreatedAtString;
@@ -1184,6 +1191,12 @@ void UMyBondageLifeAccountSubsystem::RequestUserProfile(const FString& InAccount
 			if (Json->TryGetNumberField(TEXT("hairIndex"), HairValue))
 			{
 				Profile.HairIndex = FMath::Clamp(static_cast<int32>(HairValue), 1, 64);
+			}
+
+			double SkinValue = 1.0;
+			if (Json->TryGetNumberField(TEXT("skinId"), SkinValue))
+			{
+				Profile.SkinId = FMath::Clamp(static_cast<int32>(SkinValue), 1, 64);
 			}
 			Profile.CreatedAt = ParseIsoField(Json, TEXT("createdAt"));
 
