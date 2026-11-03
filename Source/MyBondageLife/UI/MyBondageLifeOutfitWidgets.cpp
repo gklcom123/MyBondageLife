@@ -142,6 +142,7 @@ void UMyBondageLifeOutfitSlotsWidget::BuildLayout()
 			if (UButton* ColorButton = Cast<UButton>(WidgetTree->FindWidget(*ColorName)))
 			{
 				ColorButtons.Add(ColorName, ColorButton);
+				ColorButton->SetVisibility(ESlateVisibility::Collapsed);
 
 				UMyBondageLifeOutfitColorProxy* ColorProxy = NewObject<UMyBondageLifeOutfitColorProxy>(this);
 				ColorProxy->Owner = this;

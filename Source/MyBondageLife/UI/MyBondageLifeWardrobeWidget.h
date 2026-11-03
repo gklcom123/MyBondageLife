@@ -304,6 +304,7 @@ protected:
 	UFUNCTION()
 	void HandleOutfitRemoveChosen(int32 SlotIndex);
 
+	UFUNCTION()
 	void OpenOutfitColorPicker(int32 SlotIndex, int32 Channel);
 
 	UFUNCTION()
