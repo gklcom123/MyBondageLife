@@ -474,7 +474,52 @@ void AMyBondageLifePlayerController::HandleAltReleased()
 
 void AMyBondageLifePlayerController::HandleChatMessageSubmitted(const FString& Message)
 {
+	// "/" 开头的输入是指令（如 /safeword），不当作聊天内容发送。
+	const FString Trimmed = Message.TrimStartAndEnd();
+	if (Trimmed.StartsWith(TEXT("/")))
+	{
+		ExecuteChatCommand(Trimmed);
+		return;
+	}
+
 	ServerSendChatMessage(Message);
+}
+
+void AMyBondageLifePlayerController::ExecuteChatCommand(const FString& CommandLine)
+{
+	FString Command = CommandLine;
+	Command.RemoveFromStart(TEXT("/"));
+
+	FString Name = Command;
+	FString Args;
+	if (!Command.Split(TEXT(" "), &Name, &Args))
+	{
+		Name = Command;
+		Args.Reset();
+	}
+	Name = Name.ToLower();
+
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+	if (!Account)
+	{
+		return;
+	}
+
+	if (Name == TEXT("safeword"))
+	{
+		if (Account->GetDifficulty().Equals(TEXT("extreme"), ESearchCase::IgnoreCase))
+		{
+			ShowSystemChatMessage(TEXT("极限难度下无法使用安全词"));
+			return;
+		}
+
+		Account->RequestSafeword();
+		return;
+	}
+
+	ShowSystemChatMessage(FString::Printf(TEXT("未知指令：/%s"), *Name));
 }
 
 void AMyBondageLifePlayerController::HandleChatInputEnded()
