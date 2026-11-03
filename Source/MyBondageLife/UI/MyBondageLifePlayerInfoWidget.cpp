@@ -1162,25 +1162,110 @@ void UMyBondageLifePlayerInfoWidget::RefreshDifficultyRow()
 
 void UMyBondageLifePlayerInfoWidget::HandleDifficultyNormalClicked()
 {
-	if (UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
-		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
-		: nullptr)
-	{
-		Account->RequestSetDifficulty(TEXT("normal"));
-	}
+	ShowDifficultyConfirm(TEXT("normal"));
 }
 
 void UMyBondageLifePlayerInfoWidget::HandleDifficultyExtremeClicked()
 {
-	if (UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
-		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
-		: nullptr)
-	{
-		Account->RequestSetDifficulty(TEXT("extreme"));
-	}
+	ShowDifficultyConfirm(TEXT("extreme"));
 }
 
 void UMyBondageLifePlayerInfoWidget::HandleDifficultyChanged(const FString& Difficulty)
 {
 	RefreshDifficultyRow();
+}
+
+void UMyBondageLifeDifficultyConfirmProxy::HandleConfirm()
+{
+	if (Owner)
+	{
+		Owner->HandleDifficultyConfirmed();
+	}
+}
+
+void UMyBondageLifeDifficultyConfirmProxy::HandleCancel()
+{
+	if (Owner)
+	{
+		Owner->CloseDifficultyConfirm();
+	}
+}
+
+void UMyBondageLifePlayerInfoWidget::ShowDifficultyConfirm(const FString& TargetDifficulty)
+{
+	if (ConfirmDialog)
+	{
+		CloseDifficultyConfirm();
+	}
+
+	UClass* DialogClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_ConfirmDialog.WBP_ConfirmDialog_C"));
+	if (!DialogClass)
+	{
+		UE_LOG(LogMyBondageLife, Warning, TEXT("Confirm: WBP_ConfirmDialog not found."));
+		return;
+	}
+
+	ConfirmDialog = CreateWidget<UUserWidget>(GetOwningPlayer(), DialogClass);
+	if (!ConfirmDialog)
+	{
+		return;
+	}
+
+	PendingDifficulty = TargetDifficulty;
+
+	const FString Lines = TargetDifficulty.Equals(TEXT("extreme"), ESearchCase::IgnoreCase)
+		? FString(TEXT("\u786E\u8BA4\u8981\u53D8\u66F4\u96BE\u5EA6\u4E3A[\u6781\u9650]\u5417\uFF1F\n"
+			"\u6781\u9650\u96BE\u5EA6\u89C4\u5219\u5982\u4E0B\uFF1A\n"
+			"1.\u65E0\u6CD5\u4F7F\u7528\u5B89\u5168\u8BCD/safeword\n"
+			"2.\u4ED6\u4EBA\u5BF9\u4F60\u4F7F\u7528\u7684\u8BA1\u65F6\u9501\u53EF\u4EE5\u8BBE\u7F6E\u4E3A\u65E0\u4E0A\u9650\n\n"
+			"\u5207\u6362\u4E3A\u6781\u9650\u96BE\u5EA6\u540E\uFF0C\u81F3\u5C11\u9700\u89817\u5929\u624D\u80FD\u53D8\u66F4\u4E3A\u666E\u901A\u96BE\u5EA6"))
+		: FString(TEXT("\u786E\u8BA4\u8981\u53D8\u66F4\u96BE\u5EA6\u4E3A[\u666E\u901A]\u5417\uFF1F"));
+
+	if (UTextBlock* TextInfo = Cast<UTextBlock>(ConfirmDialog->GetWidgetFromName(TEXT("TextInfo"))))
+	{
+		TextInfo->SetText(FText::FromString(Lines));
+	}
+
+	UMyBondageLifeDifficultyConfirmProxy* Proxy = NewObject<UMyBondageLifeDifficultyConfirmProxy>(this);
+	Proxy->Owner = this;
+	ConfirmProxy = Proxy;
+
+	if (UButton* ConfirmButton = Cast<UButton>(ConfirmDialog->GetWidgetFromName(TEXT("Confirm"))))
+	{
+		ConfirmButton->OnClicked.AddUniqueDynamic(Proxy, &UMyBondageLifeDifficultyConfirmProxy::HandleConfirm);
+	}
+	if (UButton* CancelButton = Cast<UButton>(ConfirmDialog->GetWidgetFromName(TEXT("Cancel"))))
+	{
+		CancelButton->OnClicked.AddUniqueDynamic(Proxy, &UMyBondageLifeDifficultyConfirmProxy::HandleCancel);
+	}
+
+	ConfirmDialog->AddToViewport(300);
+}
+
+void UMyBondageLifePlayerInfoWidget::HandleDifficultyConfirmed()
+{
+	const FString Target = PendingDifficulty;
+	CloseDifficultyConfirm();
+
+	if (Target.IsEmpty())
+	{
+		return;
+	}
+
+	if (UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr)
+	{
+		Account->RequestSetDifficulty(Target);
+	}
+}
+
+void UMyBondageLifePlayerInfoWidget::CloseDifficultyConfirm()
+{
+	if (ConfirmDialog)
+	{
+		ConfirmDialog->RemoveFromParent();
+		ConfirmDialog = nullptr;
+	}
+	PendingDifficulty.Reset();
 }

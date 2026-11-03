@@ -32,6 +32,19 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FMyBondageLifeContractRequested, co
  *  The panel shows any character (own or another player) from the replicated
  *  identity on AMyBondageLifeCharacter.
  */
+/** Click relay for the confirm dialog buttons (dialogs have no C++ class). */
+UCLASS()
+class UMyBondageLifeDifficultyConfirmProxy : public UObject
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY() TObjectPtr<class UMyBondageLifePlayerInfoWidget> Owner;
+
+	UFUNCTION() void HandleConfirm();
+	UFUNCTION() void HandleCancel();
+};
+
 UCLASS()
 class MYBONDAGELIFE_API UMyBondageLifePlayerInfoWidget : public UUserWidget
 {
@@ -41,7 +54,7 @@ public:
 
 	UMyBondageLifePlayerInfoWidget(const FObjectInitializer& ObjectInitializer);
 
-	/** Shows or hides the panel and refreshes its contents. */
+	
 	UFUNCTION(BlueprintCallable, Category = "PlayerInfo")
 	void SetPanelOpen(bool bOpen);
 
@@ -72,6 +85,22 @@ public:
 
 	UFUNCTION()
 	void HandleDifficultyChanged(const FString& Difficulty);
+
+	/** 用 WBP_ConfirmDialog 确认难度切换。 */
+	void ShowDifficultyConfirm(const FString& TargetDifficulty);
+
+	UFUNCTION()
+	void HandleDifficultyConfirmed();
+
+	void CloseDifficultyConfirm();
+
+	FString PendingDifficulty;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UUserWidget> ConfirmDialog;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMyBondageLifeDifficultyConfirmProxy> ConfirmProxy;
 
 	/** Shows the "按[F]与[xxx]进行交互" hint for a character (null hides it). */
 	UFUNCTION(BlueprintCallable, Category = "PlayerInfo")
