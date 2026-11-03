@@ -44,6 +44,23 @@ void UMyBondageLifeColorPickerWidget::BuildLayout()
 	}
 	Canvas->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 
+	// 设计版资产根节点是 Border：运行时包一层固定尺寸的卡片，避免铺满整个屏幕。
+	if (WidgetTree->RootWidget == RootPanel && RootPanel)
+	{
+		UCanvasPanel* Wrapper = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("ColorPickerCanvas"));
+		WidgetTree->RootWidget = Wrapper;
+		USizeBox* Card = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("ColorPickerCard"));
+		Card->SetWidthOverride(420.0f);
+		Card->SetHeightOverride(360.0f);
+		if (UCanvasPanelSlot* CardSlot = Wrapper->AddChildToCanvas(Card))
+		{
+			CardSlot->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
+			CardSlot->SetAlignment(FVector2D(0.5f, 0.5f));
+			CardSlot->SetAutoSize(true);
+		}
+		Card->AddChild(RootPanel);
+		Canvas = Wrapper;
+	}
 	RootPanel = Cast<UBorder>(WidgetTree->FindWidget(TEXT("W_ColorPicker_Root")));
 	if (!RootPanel)
 	{
