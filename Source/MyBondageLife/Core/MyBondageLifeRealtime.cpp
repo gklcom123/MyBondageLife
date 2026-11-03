@@ -127,6 +127,31 @@ void UMyBondageLifeAccountSubsystem::HandleRealtimeMessage(const FString& InMess
 		return;
 	}
 
+	if (Type == TEXT("difficulty.changed"))
+	{
+		FString Account;
+		FString DifficultyText;
+		Json->TryGetStringField(TEXT("account"), Account);
+		Json->TryGetStringField(TEXT("difficulty"), DifficultyText);
+		if (Account.Equals(AccountName, ESearchCase::IgnoreCase) && !DifficultyText.IsEmpty())
+		{
+			Difficulty = DifficultyText;
+			OnDifficultyChanged.Broadcast(Difficulty);
+		}
+		return;
+	}
+
+	if (Type == TEXT("chat.system"))
+	{
+		FString Text;
+		Json->TryGetStringField(TEXT("text"), Text);
+		if (!Text.IsEmpty())
+		{
+			OnSystemChatMessage.Broadcast(Text);
+		}
+		return;
+	}
+
 	if (Type == TEXT("outfits.changed"))
 	{
 		RefreshOutfits(FString());

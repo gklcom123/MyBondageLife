@@ -2594,3 +2594,7 @@ void AMyBondageLifePlayerController::HandleSkinChanged(int32 InSkinId)
 {
 	PushSkinToPawn();
 }
+void AMyBondageLifePlayerController::HandleSystemChatMessage(const FString& Text)
+{
+	ShowSystemChatMessage(Text);
+}

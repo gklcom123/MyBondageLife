@@ -38,6 +38,8 @@ struct FMyBondageLifeNotification
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeNotificationsChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeOutfitsChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeSkinChanged, int32, SkinId);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeDifficultyChanged, const FString&, Difficulty);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeSystemChat, const FString&, Text);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeAccountOutfitsChanged, const FString&, Account);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeNotificationAdded, const FMyBondageLifeNotification&, Notification);
 
@@ -188,6 +190,10 @@ struct FMyBondageLifeUserProfile
 	int32 HairIndex = 1;
 
 	int32 SkinId = 1;
+
+	FString Difficulty = TEXT("normal");
+	bool bCanChangeDifficulty = true;
+	int32 DifficultyCooldownSeconds = 0;
 };
 
 /** Raised whenever the local friend list changes. */
@@ -346,6 +352,31 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Profile")
 	void RequestUpdateSkin(int32 NewSkinId);
+
+	// ---------------------------------------------------------------- difficulty
+	UFUNCTION(BlueprintCallable, Category = "Difficulty")
+	void RequestSetDifficulty(const FString& NewDifficulty);
+
+	UFUNCTION(BlueprintCallable, Category = "Difficulty")
+	void RequestSafeword();
+
+	UFUNCTION(BlueprintPure, Category = "Difficulty")
+	FString GetDifficulty() const { return Difficulty; }
+
+	UFUNCTION(BlueprintPure, Category = "Difficulty")
+	bool GetCanChangeDifficulty() const { return bCanChangeDifficulty; }
+
+	UFUNCTION(BlueprintPure, Category = "Difficulty")
+	int32 GetDifficultyCooldownSeconds() const { return DifficultyCooldownSeconds; }
+
+	UFUNCTION(BlueprintPure, Category = "Difficulty")
+	FString GetDifficultyCooldownText() const;
+
+	UPROPERTY(BlueprintAssignable, Category = "Difficulty")
+	FMyBondageLifeDifficultyChanged OnDifficultyChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Difficulty")
+	FMyBondageLifeSystemChat OnSystemChatMessage;
 
 	UFUNCTION(BlueprintPure, Category = "Profile")
 	int32 GetSkinId() const { return SkinId; }
@@ -628,6 +659,10 @@ private:
 	int32 HairIndex = 1;
 
 	int32 SkinId = 1;
+
+	FString Difficulty = TEXT("normal");
+	bool bCanChangeDifficulty = true;
+	int32 DifficultyCooldownSeconds = 0;
 
 	/** Slot -> item id of the equipped restraints. */
 	TMap<int32, FString> EquippedRestraints;

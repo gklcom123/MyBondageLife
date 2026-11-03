@@ -258,6 +258,19 @@ bool UMyBondageLifeAccountSubsystem::ApplyAuthPayload(const TSharedPtr<FJsonObje
 		HairIndex = FMath::Clamp(static_cast<int32>(HairValue), 1, 64);
 	}
 
+	// Difficulty: normal / extreme, plus the server-computed switch state.
+	FString DifficultyText;
+	if ((*UserObject)->TryGetStringField(TEXT("difficulty"), DifficultyText) && !DifficultyText.IsEmpty())
+	{
+		Difficulty = DifficultyText;
+	}
+	(*UserObject)->TryGetBoolField(TEXT("canChangeDifficulty"), bCanChangeDifficulty);
+	double CooldownValue = 0.0;
+	if ((*UserObject)->TryGetNumberField(TEXT("difficultyCooldownSeconds"), CooldownValue))
+	{
+		DifficultyCooldownSeconds = FMath::Max(0, static_cast<int32>(CooldownValue));
+	}
+
 	// Skin: the DT_Skin row ID, 1 based.
 	double SkinValue = 1.0;
 	if ((*UserObject)->TryGetNumberField(TEXT("skinId"), SkinValue))
@@ -1194,6 +1207,18 @@ void UMyBondageLifeAccountSubsystem::RequestUserProfile(const FString& InAccount
 				Profile.HairIndex = FMath::Clamp(static_cast<int32>(HairValue), 1, 64);
 			}
 
+			FString ProfileDifficulty;
+			if (Json->TryGetStringField(TEXT("difficulty"), ProfileDifficulty) && !ProfileDifficulty.IsEmpty())
+			{
+				Profile.Difficulty = ProfileDifficulty;
+			}
+			Json->TryGetBoolField(TEXT("canChangeDifficulty"), Profile.bCanChangeDifficulty);
+			double ProfileCooldown = 0.0;
+			if (Json->TryGetNumberField(TEXT("difficultyCooldownSeconds"), ProfileCooldown))
+			{
+				Profile.DifficultyCooldownSeconds = FMath::Max(0, static_cast<int32>(ProfileCooldown));
+			}
+
 			double SkinValue = 1.0;
 			if (Json->TryGetNumberField(TEXT("skinId"), SkinValue))
 			{
@@ -1924,5 +1949,111 @@ void UMyBondageLifeAccountSubsystem::RequestUpdateSkin(int32 NewSkinId)
 
 			Self->SkinId = ClampedId;
 			Self->OnSkinChanged.Broadcast(ClampedId);
+		});
+}
+
+// ---------------------------------------------------------------------------
+// Difficulty & safeword
+// ---------------------------------------------------------------------------
+
+FString UMyBondageLifeAccountSubsystem::GetDifficultyCooldownText() const
+{
+	if (DifficultyCooldownSeconds <= 0)
+	{
+		return FString();
+	}
+
+	const int32 Days = DifficultyCooldownSeconds / 86400;
+	const int32 Hours = (DifficultyCooldownSeconds % 86400) / 3600;
+	if (Days > 0)
+	{
+		return FString::Printf(TEXT("%d天%d小时"), Days, Hours);
+	}
+	return FString::Printf(TEXT("%d小时"), FMath::Max(Hours, 1));
+}
+
+void UMyBondageLifeAccountSubsystem::RequestSetDifficulty(const FString& NewDifficulty)
+{
+	const FString Target = NewDifficulty.Equals(TEXT("extreme"), ESearchCase::IgnoreCase)
+		? FString(TEXT("extreme"))
+		: FString(TEXT("normal"));
+
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("difficulty"), Target);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	SendFriendApiRequest(TEXT("PATCH"), TEXT("/users/me/difficulty"), Body,
+		[WeakThis, Target](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self)
+			{
+				return;
+			}
+
+			if (!bOk || !Json.IsValid())
+			{
+				FString Code;
+				if (Json.IsValid())
+				{
+					const TSharedPtr<FJsonObject>* ErrorObject = nullptr;
+					if (Json->TryGetObjectField(TEXT("error"), ErrorObject) && ErrorObject)
+					{
+						(*ErrorObject)->TryGetStringField(TEXT("code"), Code);
+					}
+				}
+				UE_LOG(LogMyBondageLife, Warning, TEXT("Difficulty: switch failed (%d) %s."), StatusCode, *Code);
+				Self->OnSystemChatMessage.Broadcast(Code == TEXT("DIFFICULTY_COOLDOWN")
+					? FString(TEXT("难度冷却中，暂时无法切换为通常"))
+					: FString(TEXT("难度切换失败")));
+				return;
+			}
+
+			Self->Difficulty = Target;
+			double LockedValue = 0.0;
+			double CooldownValue = 0.0;
+			Self->bCanChangeDifficulty = true;
+			if (Json->TryGetBoolField(TEXT("canChangeDifficulty"), Self->bCanChangeDifficulty) == false)
+			{
+				Self->bCanChangeDifficulty = Target != TEXT("extreme");
+			}
+			Json->TryGetNumberField(TEXT("difficultyCooldownSeconds"), CooldownValue);
+			Self->DifficultyCooldownSeconds = FMath::Max(0, static_cast<int32>(CooldownValue));
+
+			Self->OnDifficultyChanged.Broadcast(Self->Difficulty);
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::RequestSafeword()
+{
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	SendFriendApiRequest(TEXT("POST"), TEXT("/safeword"), nullptr,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self)
+			{
+				return;
+			}
+
+			if (!bOk)
+			{
+				FString Code;
+				if (Json.IsValid())
+				{
+					const TSharedPtr<FJsonObject>* ErrorObject = nullptr;
+					if (Json->TryGetObjectField(TEXT("error"), ErrorObject) && ErrorObject)
+					{
+						(*ErrorObject)->TryGetStringField(TEXT("code"), Code);
+					}
+				}
+				Self->OnSystemChatMessage.Broadcast(Code == TEXT("SAFEWORD_DISABLED")
+					? FString(TEXT("极限难度下无法使用安全词"))
+					: FString::Printf(TEXT("安全词使用失败 (%d)"), StatusCode));
+				return;
+			}
+
+			// 服务端已经清空拘束并广播消息，这里只刷新本地状态。
+			Self->RefreshRestraints();
 		});
 }

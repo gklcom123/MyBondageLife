@@ -530,6 +530,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Chat")
 	void ShowSystemChatMessage(const FString& Message);
 
+	/** 处理 / 开头的聊天指令。 */
+	void ExecuteChatCommand(const FString& CommandLine);
+
+	UFUNCTION()
+	void HandleSystemChatMessage(const FString& Text);
+
 	// ---------------------------------------------------------------- message center
 	UFUNCTION(BlueprintCallable, Category = "Message")
 	void ShowMessageHud();
