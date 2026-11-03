@@ -793,6 +793,7 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 
 	RestraintHiddenParts = HiddenParts;
 	ApplyBodyPartHiding();
+	ApplySkin();
 }
 
 FName AMyBondageLifeCharacter::GetGagProfileId() const
@@ -1109,6 +1110,7 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 	OutfitFeetOffset = FeetOffset;
 	ApplyOutfitCapsule();
 	ApplyBodyPartHiding();
+	ApplySkin();
 }
 void AMyBondageLifeCharacter::ServerSetAccountName_Implementation(const FString& InAccount)
 {
@@ -1157,37 +1159,59 @@ void AMyBondageLifeCharacter::ApplySkin()
 
 	SkinBodyMaterials.Reset();
 
-	auto ApplyToSlot = [this, BodyMesh](const FName& SlotName, UMaterialInterface* Material)
-	{
-		if (!Material)
-		{
-			return;
-		}
-
-		const int32 Index = BodyMesh->GetMaterialIndex(SlotName);
-		if (Index == INDEX_NONE)
-		{
-			return;
-		}
-
-		UMaterialInstanceDynamic* Mid = UMaterialInstanceDynamic::Create(Material, this);
-		if (!Mid)
-		{
-			return;
-		}
-
-		SkinBodyMaterials.Add(SlotName, Mid);
-		BodyMesh->SetMaterial(Index, Mid);
-	};
-
 	static const FName BodySlots[] = { TEXT("upbody"), TEXT("leg"), TEXT("hand"), TEXT("feet") };
-	for (const FName& SlotName : BodySlots)
-	{
-		ApplyToSlot(SlotName, BodyMaterial);
-	}
-	ApplyToSlot(TEXT("yatoe"), YatoeMaterial);
 
-	// 隐藏材质优先级最高：皮肤铺完之后再盖透明材质。
+	// 身体网格 + 所有挂载网格（头发/衣物/拘束）里同名的材质槽一起换。
+	TArray<USkeletalMeshComponent*> Components;
+	GetComponents<USkeletalMeshComponent>(Components);
+
+	for (USkeletalMeshComponent* Component : Components)
+	{
+		if (!Component)
+		{
+			continue;
+		}
+
+		if (BodyMaterial)
+		{
+			for (const FName& SlotName : BodySlots)
+			{
+				const int32 Index = Component->GetMaterialIndex(SlotName);
+				if (Index == INDEX_NONE)
+				{
+					continue;
+				}
+
+				UMaterialInstanceDynamic* Mid = UMaterialInstanceDynamic::Create(BodyMaterial, this);
+				if (Mid)
+				{
+					if (Component == BodyMesh)
+					{
+						SkinBodyMaterials.Add(SlotName, Mid);
+					}
+					Component->SetMaterial(Index, Mid);
+				}
+			}
+		}
+
+		if (YatoeMaterial)
+		{
+			const int32 YatoeIndex = Component->GetMaterialIndex(TEXT("yatoe"));
+			if (YatoeIndex != INDEX_NONE)
+			{
+				if (UMaterialInstanceDynamic* Mid = UMaterialInstanceDynamic::Create(YatoeMaterial, this))
+				{
+					if (Component == BodyMesh)
+					{
+						SkinBodyMaterials.Add(TEXT("yatoe"), Mid);
+					}
+					Component->SetMaterial(YatoeIndex, Mid);
+				}
+			}
+		}
+	}
+
+	// 隐藏材质优先级最高：皮肤铺完之后再盖透明材质（只作用于身体）。
 	ApplyBodyPartHiding();
 }
 void AMyBondageLifeCharacter::ServerSetSkin_Implementation(int32 InSkinId)
