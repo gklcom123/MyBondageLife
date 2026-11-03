@@ -13,6 +13,7 @@
 #include "Components/Image.h"
 #include "Components/SizeBox.h"
 #include "Components/Slider.h"
+#include "Engine/Texture2D.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
@@ -205,6 +206,22 @@ void UMyBondageLifeColorPickerWidget::BuildLayout()
 	if (HueSlider)
 	{
 		HueSlider->SetValue(Hue / 360.0f);
+
+	// 色相条用真实彩虹渐变（/Game/UI/Textures/T_HueBar）
+	if (HueSlider)
+	{
+		if (UTexture2D* HueTexture = LoadObject<UTexture2D>(nullptr, TEXT("/Game/UI/Textures/T_HueBar.T_HueBar")))
+		{
+			FSliderStyle HueStyle = HueSlider->GetWidgetStyle();
+			HueStyle.SetNormalBarImage(FSlateBrush());
+			HueStyle.NormalBarImage.SetResourceObject(HueTexture);
+			HueStyle.NormalBarImage.ImageSize = FVector2D(256.0f, 16.0f);
+			HueStyle.NormalBarImage.DrawAs = ESlateBrushDrawType::Image;
+			HueStyle.HoveredBarImage = HueStyle.NormalBarImage;
+			HueStyle.DisabledBarImage = HueStyle.NormalBarImage;
+			HueSlider->SetWidgetStyle(HueStyle);
+		}
+	}
 		HueSlider->OnValueChanged.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleHueChanged);
 	}
 	if (SaturationSlider)
