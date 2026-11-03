@@ -416,7 +416,9 @@ void AMyBondageLifeCharacter::ApplyHairStyle()
 
 		HairComponent->SetupAttachment(BodyMesh);
 		HairComponent->RegisterComponent();
-		HairComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		// 布料模拟依赖组件的碰撞：NoCollision 时头发不会与身体发生碰撞。
+		HairComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		HairComponent->SetCollisionProfileName(TEXT("CharacterMesh"));
 		HairComponent->SetGenerateOverlapEvents(false);
 		HairComponent->SetCastShadow(true);
 	}
@@ -752,7 +754,8 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 
 			Component->SetupAttachment(BodyMesh);
 			Component->RegisterComponent();
-			Component->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			Component->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		Component->SetCollisionProfileName(TEXT("CharacterMesh"));
 			Component->SetGenerateOverlapEvents(false);
 			Component->SetSkeletalMeshAsset(WornMesh);
 
@@ -1075,7 +1078,8 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 		Component->SetSkeletalMeshAsset(MeshAsset);
 		Component->SetupAttachment(BodyMesh);
 		Component->RegisterComponent();
-		Component->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Component->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		Component->SetCollisionProfileName(TEXT("CharacterMesh"));
 		Component->SetGenerateOverlapEvents(false);
 
 		// 同骨骼：跟随身体动画；否则挂到同名 socket。
