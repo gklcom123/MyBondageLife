@@ -385,6 +385,11 @@ protected:
 
 	void PushOutfitsToPawn();
 
+	void PushSkinToPawn();
+
+	UFUNCTION()
+	void HandleSkinChanged(int32 InSkinId);
+
 	UFUNCTION(Server, Reliable)
 	void ServerSetOutfits(const TArray<int32>& Slots, const TArray<FName>& Items);
 

@@ -1434,6 +1434,8 @@ void AMyBondageLifePlayerController::BeginPlay()
 			OutfitAccount->OnOutfitsChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleOutfitsChanged);
 			OutfitAccount->RefreshOutfits(FString());
 			OutfitAccount->OnAccountOutfitsChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleAccountOutfitsChanged);
+			OutfitAccount->OnSkinChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleSkinChanged);
+			PushSkinToPawn();
 
 			if (UWorld* OutfitWorld = GetWorld())
 			{
@@ -2562,4 +2564,33 @@ void AMyBondageLifePlayerController::ShowSystemChatMessage(const FString& Messag
 	{
 		UE_LOG(LogMyBondageLife, Log, TEXT("System chat: %s"), *Message);
 	}
+}
+
+void AMyBondageLifePlayerController::PushSkinToPawn()
+{
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+	if (!Account)
+	{
+		return;
+	}
+
+	const int32 SkinId = Account->GetSkinId();
+	if (AMyBondageLifeCharacter* TargetCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		if (HasAuthority())
+		{
+			TargetCharacter->ServerSetSkin(SkinId);
+		}
+		else
+		{
+			TargetCharacter->ServerSetSkin(SkinId);
+		}
+	}
+}
+
+void AMyBondageLifePlayerController::HandleSkinChanged(int32 InSkinId)
+{
+	PushSkinToPawn();
 }

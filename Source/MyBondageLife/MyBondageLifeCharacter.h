@@ -416,6 +416,25 @@ protected:
 
 	void ApplyOutfitCapsule();
 
+	/** 皮肤：把 upbody/leg/hand/feet 换成 Skin_BodyMat，yatoe 换成 Skin_YatoeMat。 */
+	void ApplySkin();
+
+	UFUNCTION(BlueprintPure, Category="Skin")
+	int32 GetSkinId() const { return SkinId; }
+
+	UPROPERTY(ReplicatedUsing = OnRep_Skin, BlueprintReadOnly, Category="Skin")
+	int32 SkinId = 1;
+
+	UFUNCTION()
+	void OnRep_Skin();
+
+public:
+	UFUNCTION(Server, Reliable)
+	void ServerSetSkin(int32 InSkinId);
+
+	UPROPERTY(Transient)
+	TMap<FName, TObjectPtr<class UMaterialInstanceDynamic>> SkinBodyMaterials;
+
 	UPROPERTY(Transient)
 	TObjectPtr<class UMaterialInstanceDynamic> HiddenBodyMaterial;
 

@@ -37,6 +37,7 @@ struct FMyBondageLifeNotification
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeNotificationsChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeOutfitsChanged);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeSkinChanged, int32, SkinId);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeAccountOutfitsChanged, const FString&, Account);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeNotificationAdded, const FMyBondageLifeNotification&, Notification);
 
@@ -185,6 +186,8 @@ struct FMyBondageLifeUserProfile
 	/** Hair style ID worn by this character. */
 	UPROPERTY(BlueprintReadOnly, Category = "Contract")
 	int32 HairIndex = 1;
+
+	int32 SkinId = 1;
 };
 
 /** Raised whenever the local friend list changes. */
@@ -340,6 +343,15 @@ public:
 	/** PATCH /users/me - persists a new hair style and applies it locally. */
 	UFUNCTION(BlueprintCallable, Category = "Account")
 	void RequestUpdateHair(int32 NewHairIndex);
+
+	UFUNCTION(BlueprintCallable, Category = "Profile")
+	void RequestUpdateSkin(int32 NewSkinId);
+
+	UFUNCTION(BlueprintPure, Category = "Profile")
+	int32 GetSkinId() const { return SkinId; }
+
+	UPROPERTY(BlueprintAssignable, Category = "Profile")
+	FMyBondageLifeSkinChanged OnSkinChanged;
 
 	//~ Restraints ---------------------------------------------------------
 
@@ -614,6 +626,8 @@ private:
 
 	/** Hair style ID from DT_Hair (1 based). */
 	int32 HairIndex = 1;
+
+	int32 SkinId = 1;
 
 	/** Slot -> item id of the equipped restraints. */
 	TMap<int32, FString> EquippedRestraints;

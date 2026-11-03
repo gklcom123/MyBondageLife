@@ -212,6 +212,14 @@ protected:
 	/** Rewrites the hair caption from the current style. */
 	void RefreshHairLabel();
 
+	void RefreshSkinLabel();
+
+	UFUNCTION()
+	void HandleSkinDownClicked();
+
+	UFUNCTION()
+	void HandleSkinUpClicked();
+
 	/** Greys out the hair arrow that would leave the table range. */
 	void RefreshHairArrowStates();
 
@@ -235,6 +243,21 @@ protected:
 
 	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UTextBlock> HairValueLabel;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> SkinValueLabel;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UButton> SkinDownButton;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UButton> SkinUpButton;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> SkinDownLabel;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> SkinUpLabel;
 
 	/** Current DT_Hair style ID shown by the selector. */
 	int32 HairId = 1;

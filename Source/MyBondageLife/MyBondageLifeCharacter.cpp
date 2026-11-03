@@ -5,6 +5,7 @@
 #include "Core/MyBondageLifeHairCatalog.h"
 #include "Core/MyBondageLifeRestraintCatalog.h"
 #include "Core/MyBondageLifeOutfitCatalog.h"
+#include "Core/MyBondageLifeSkinCatalog.h"
 #include "Core/Garbler/MyBondageLifeGagTypeMap.h"
 #include "Animation/AnimMontage.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -167,6 +168,7 @@ void AMyBondageLifeCharacter::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(AMyBondageLifeCharacter, OutfitSlots);
 	DOREPLIFETIME(AMyBondageLifeCharacter, OutfitItemIds);
 	DOREPLIFETIME(AMyBondageLifeCharacter, AccountName);
+	DOREPLIFETIME(AMyBondageLifeCharacter, SkinId);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bRestraintLeg);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bCantMove);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bInPetMode);
@@ -981,7 +983,15 @@ void AMyBondageLifeCharacter::ApplyBodyPartHiding()
 		const int32 MaterialIndex = MeshComponent->GetMaterialIndex(Pair.Key);
 		if (MaterialIndex != INDEX_NONE && Pair.Value)
 		{
-			MeshComponent->SetMaterial(MaterialIndex, Pair.Value);
+			// 该槽位已被皮肤接管时，还原成皮肤材质而不是旧材质。
+			if (const TObjectPtr<UMaterialInstanceDynamic>* SkinMaterial = SkinBodyMaterials.Find(Pair.Key))
+			{
+				MeshComponent->SetMaterial(MaterialIndex, *SkinMaterial);
+			}
+			else
+			{
+				MeshComponent->SetMaterial(MaterialIndex, Pair.Value);
+			}
 		}
 	}
 	OriginalBodyMaterials.Reset();
@@ -1125,4 +1135,62 @@ void AMyBondageLifeCharacter::ApplyOutfitCapsule()
 		BodyMesh->GetRelativeLocation().X,
 		BodyMesh->GetRelativeLocation().Y,
 		OutfitBaseMeshZ));
+}
+
+void AMyBondageLifeCharacter::OnRep_Skin()
+{
+	ApplySkin();
+}
+
+void AMyBondageLifeCharacter::ApplySkin()
+{
+	USkeletalMeshComponent* BodyMesh = GetMesh();
+	if (!BodyMesh)
+	{
+		return;
+	}
+
+	const FMyBondageLifeSkinItem* Skin = FMyBondageLifeSkinCatalog::Find(SkinId);
+	UMaterialInterface* BodyMaterial = Skin ? Skin->BodyMaterial.LoadSynchronous() : nullptr;
+	UMaterialInterface* YatoeMaterial = Skin ? Skin->YatoeMaterial.LoadSynchronous() : nullptr;
+
+	SkinBodyMaterials.Reset();
+
+	auto ApplyToSlot = [this, BodyMesh](const FName& SlotName, UMaterialInterface* Material)
+	{
+		if (!Material)
+		{
+			return;
+		}
+
+		const int32 Index = BodyMesh->GetMaterialIndex(SlotName);
+		if (Index == INDEX_NONE)
+		{
+			return;
+		}
+
+		UMaterialInstanceDynamic* Mid = UMaterialInstanceDynamic::Create(Material, this);
+		if (!Mid)
+		{
+			return;
+		}
+
+		SkinBodyMaterials.Add(SlotName, Mid);
+		BodyMesh->SetMaterial(Index, Mid);
+	};
+
+	static const FName BodySlots[] = { TEXT("upbody"), TEXT("leg"), TEXT("hand"), TEXT("feet") };
+	for (const FName& SlotName : BodySlots)
+	{
+		ApplyToSlot(SlotName, BodyMaterial);
+	}
+	ApplyToSlot(TEXT("yatoe"), YatoeMaterial);
+
+	// 隐藏材质优先级最高：皮肤铺完之后再盖透明材质。
+	ApplyBodyPartHiding();
+}
+void AMyBondageLifeCharacter::ServerSetSkin_Implementation(int32 InSkinId)
+{
+	SkinId = FMath::Clamp(InSkinId, 1, 64);
+	ApplySkin();
 }

@@ -1877,3 +1877,31 @@ TMap<int32, FString> UMyBondageLifeAccountSubsystem::GetOutfitsForAccount(const 
 	}
 	return TMap<int32, FString>();
 }
+
+void UMyBondageLifeAccountSubsystem::RequestUpdateSkin(int32 NewSkinId)
+{
+	const int32 ClampedId = FMath::Clamp(NewSkinId, 1, 64);
+
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetNumberField(TEXT("skinId"), ClampedId);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	SendFriendApiRequest(TEXT("PATCH"), TEXT("/users/me"), Body,
+		[WeakThis, ClampedId](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self)
+			{
+				return;
+			}
+
+			if (!bOk)
+			{
+				UE_LOG(LogMyBondageLife, Warning, TEXT("Skin: update rejected (%d)."), StatusCode);
+				return;
+			}
+
+			Self->SkinId = ClampedId;
+			Self->OnSkinChanged.Broadcast(ClampedId);
+		});
+}

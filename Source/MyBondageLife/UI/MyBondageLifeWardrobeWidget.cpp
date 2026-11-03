@@ -29,6 +29,7 @@
 #include "Components/VerticalBoxSlot.h"
 #include "Core/MyBondageLifeAccountSubsystem.h"
 #include "Core/MyBondageLifeHairCatalog.h"
+#include "Core/MyBondageLifeSkinCatalog.h"
 #include "Core/MyBondageLifeRestraintCatalog.h"
 #include "Engine/Texture2D.h"
 #include "MyBondageLife.h"
@@ -374,6 +375,57 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 	HairUpButton = AddHairArrow(TEXT(">"), 470.0f);
 	HairUpButton->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleHairUpClicked);
 	HairUpLabel = Cast<UTextBlock>(HairUpButton->GetChildAt(0));
+
+	// ------------------------------------------------------- skin row (below hair)
+	UTextBlock* SkinCaption = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+	SkinCaption->SetText(FText::FromString(TEXT("\u76AE\u80A4\uFF1A")));
+	SkinCaption->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
+	{
+		FSlateFontInfo CaptionFont = SkinCaption->GetFont();
+		CaptionFont.Size = 28;
+		SkinCaption->SetFont(CaptionFont);
+	}
+	if (UCanvasPanelSlot* SkinCaptionSlot = BodyPage->AddChildToCanvas(SkinCaption))
+	{
+		SkinCaptionSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
+		SkinCaptionSlot->SetAlignment(FVector2D(0.0f, 0.0f));
+		SkinCaptionSlot->SetPosition(FVector2D(56.0f, 450.0f));
+		SkinCaptionSlot->SetAutoSize(true);
+	}
+
+	SkinDownButton = AddHairArrow(TEXT("<"), 180.0f);
+	if (UCanvasPanelSlot* SkinDownSlot = Cast<UCanvasPanelSlot>(SkinDownButton->GetParent()->Slot))
+	{
+		SkinDownSlot->SetPosition(FVector2D(180.0f, 430.0f));
+	}
+	SkinDownButton->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleSkinDownClicked);
+	SkinDownLabel = Cast<UTextBlock>(SkinDownButton->GetChildAt(0));
+
+	SkinValueLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+	SkinValueLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
+	SkinValueLabel->SetJustification(ETextJustify::Center);
+	{
+		FSlateFontInfo ValueFont = SkinValueLabel->GetFont();
+		ValueFont.Size = 28;
+		SkinValueLabel->SetFont(ValueFont);
+	}
+	if (UCanvasPanelSlot* SkinValueSlot = BodyPage->AddChildToCanvas(SkinValueLabel))
+	{
+		SkinValueSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
+		SkinValueSlot->SetAlignment(FVector2D(0.0f, 0.0f));
+		SkinValueSlot->SetPosition(FVector2D(276.0f, 442.0f));
+		SkinValueSlot->SetSize(FVector2D(170.0f, 44.0f));
+	}
+
+	SkinUpButton = AddHairArrow(TEXT(">"), 470.0f);
+	if (UCanvasPanelSlot* SkinUpSlot = Cast<UCanvasPanelSlot>(SkinUpButton->GetParent()->Slot))
+	{
+		SkinUpSlot->SetPosition(FVector2D(470.0f, 430.0f));
+	}
+	SkinUpButton->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleSkinUpClicked);
+	SkinUpLabel = Cast<UTextBlock>(SkinUpButton->GetChildAt(0));
+
+	RefreshSkinLabel();
 
 	SelectTab(0);
 
@@ -2046,6 +2098,18 @@ bool UMyBondageLifeWardrobeWidget::TryAdoptBlueprintLayout()
 	HairValueLabel = FindEither<UTextBlock>(WidgetTree, TEXT("W_Hair_Value"), TEXT("HairValueLabel"));
 	HairDownButton = FindNamedButton(WidgetTree, TEXT("W_Hair_Down"), TEXT("HairDownButton"));
 	HairUpButton = FindNamedButton(WidgetTree, TEXT("W_Hair_Up"), TEXT("HairUpButton"));
+
+	SkinValueLabel = FindEither<UTextBlock>(WidgetTree, TEXT("W_Skin_Value"), TEXT("SkinValueLabel"));
+	SkinDownButton = FindNamedButton(WidgetTree, TEXT("W_Skin_Down"), TEXT("SkinDownButton"));
+	SkinUpButton = FindNamedButton(WidgetTree, TEXT("W_Skin_Up"), TEXT("SkinUpButton"));
+	if (SkinDownButton)
+	{
+		SkinDownButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleSkinDownClicked);
+	}
+	if (SkinUpButton)
+	{
+		SkinUpButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleSkinUpClicked);
+	}
 	HairDownLabel = FindEither<UTextBlock>(WidgetTree, TEXT("W_Hair_Down_Label"), TEXT("HairDownLabel"));
 	HairUpLabel = FindEither<UTextBlock>(WidgetTree, TEXT("W_Hair_Up_Label"), TEXT("HairUpLabel"));
 
@@ -2470,4 +2534,71 @@ void UMyBondageLifeWardrobeWidget::HandleAccountOutfitsChanged(const FString& Ac
 	{
 		RefreshOutfitSlots();
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Skin row (mirrors the hair row)
+// ---------------------------------------------------------------------------
+
+void UMyBondageLifeWardrobeWidget::RefreshSkinLabel()
+{
+	if (!SkinValueLabel)
+	{
+		return;
+	}
+
+	const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+	const int32 CurrentId = Account ? Account->GetSkinId() : 1;
+
+	SkinValueLabel->SetText(FText::FromString(FMyBondageLifeSkinCatalog::GetSkinName(CurrentId)));
+}
+
+void UMyBondageLifeWardrobeWidget::HandleSkinDownClicked()
+{
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+	if (!Account)
+	{
+		return;
+	}
+
+	const int32 NextId = FMyBondageLifeSkinCatalog::GetNextSkinId(Account->GetSkinId(), -1);
+	Account->RequestUpdateSkin(NextId);
+
+	if (APlayerController* PC = GetOwningPlayer())
+	{
+		if (AMyBondageLifeCharacter* Character = Cast<AMyBondageLifeCharacter>(PC->GetPawn()))
+		{
+			Character->ServerSetSkin(NextId);
+		}
+	}
+
+	RefreshSkinLabel();
+}
+
+void UMyBondageLifeWardrobeWidget::HandleSkinUpClicked()
+{
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+	if (!Account)
+	{
+		return;
+	}
+
+	const int32 NextId = FMyBondageLifeSkinCatalog::GetNextSkinId(Account->GetSkinId(), 1);
+	Account->RequestUpdateSkin(NextId);
+
+	if (APlayerController* PC = GetOwningPlayer())
+	{
+		if (AMyBondageLifeCharacter* Character = Cast<AMyBondageLifeCharacter>(PC->GetPawn()))
+		{
+			Character->ServerSetSkin(NextId);
+		}
+	}
+
+	RefreshSkinLabel();
 }
