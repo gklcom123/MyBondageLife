@@ -264,6 +264,40 @@ void UMyBondageLifePlayerInfoWidget::BuildLayout()
 	NameValue = AddInfoLine(TEXT("\u59D3\u540D\uFF1A---"));
 	ClassValue = AddInfoLine(TEXT("\u89D2\u8272\uFF1A---"));
 	JoinedValue = AddInfoLine(TEXT("\u52A0\u5165\u65F6\u95F4\uFF1A---"));
+	DifficultyValue = AddInfoLine(TEXT("\u96BE\u5EA6\uFF1A---"));
+
+	// 自己看自己时显示两个切换按钮；看别人只显示文字。
+	DifficultyRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("W_DifficultyRow"));
+	if (UVerticalBox* InfoBox = Cast<UVerticalBox>(DifficultyValue ? DifficultyValue->GetParent() : nullptr))
+	{
+		InfoBox->AddChildToVerticalBox(DifficultyRow);
+	}
+
+	auto MakeDifficultyButton = [this](FString Caption, TObjectPtr<UTextBlock>& OutLabel)
+	{
+		USizeBox* Size = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		Size->SetWidthOverride(110.0f);
+		Size->SetHeightOverride(40.0f);
+		UButton* Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
+		Size->AddChild(Button);
+		OutLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		OutLabel->SetText(FText::FromString(Caption));
+		OutLabel->SetJustification(ETextJustify::Center);
+		Button->AddChild(OutLabel);
+		if (UVerticalBox* InfoBox = Cast<UVerticalBox>(DifficultyValue ? DifficultyValue->GetParent() : nullptr))
+		{
+			if (UHorizontalBoxSlot* ButtonSlot = DifficultyRow->AddChildToHorizontalBox(Size))
+			{
+				ButtonSlot->SetPadding(FMargin(0.0f, 0.0f, 12.0f, 0.0f));
+			}
+		}
+		return Button;
+	};
+
+	DifficultyNormalButton = MakeDifficultyButton(TEXT("\u901A\u5E38"), DifficultyNormalLabel);
+	DifficultyNormalButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifePlayerInfoWidget::HandleDifficultyNormalClicked);
+	DifficultyExtremeButton = MakeDifficultyButton(TEXT("\u6781\u9650"), DifficultyExtremeLabel);
+	DifficultyExtremeButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifePlayerInfoWidget::HandleDifficultyExtremeClicked);
 	ContractStatusLine = AddInfoLine(TEXT(""));
 	ContractStatusLine->SetVisibility(ESlateVisibility::Collapsed);
 
@@ -389,12 +423,14 @@ void UMyBondageLifePlayerInfoWidget::NativeConstruct()
 
 void UMyBondageLifePlayerInfoWidget::ShowCharacterInfo(const AMyBondageLifeCharacter* Character)
 {
+	TargetAccountName = Character ? Character->GetAccountName() : FString();
 	DisplayedCharacter = Character;
 	RefreshContents();
 }
 
 void UMyBondageLifePlayerInfoWidget::RefreshContents()
 {
+	RefreshDifficultyRow();
 	const AMyBondageLifeCharacter* Character = DisplayedCharacter.Get();
 
 	const FString CharacterName = (Character && !Character->GetCharacterName().IsEmpty())
@@ -1055,4 +1091,96 @@ void UMyBondageLifePlayerInfoWidget::BuildEntryButtonOnly()
 	{
 		LabelSlot->SetHorizontalAlignment(HAlign_Center);
 	}
+}
+
+void UMyBondageLifePlayerInfoWidget::RefreshDifficultyRow()
+{
+	if (!DifficultyValue)
+	{
+		return;
+	}
+
+	const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+	if (!Account)
+	{
+		return;
+	}
+
+	const FString SelfAccount = Account->GetAccountName();
+	const FString TargetAccount = TargetAccountName;
+	const bool bSelf = TargetAccount.IsEmpty() || TargetAccount.Equals(SelfAccount, ESearchCase::IgnoreCase);
+
+	FString Difficulty = Account->GetDifficulty();
+	if (!bSelf)
+	{
+		FMyBondageLifeUserProfile Profile;
+		if (Account->GetUserProfile(TargetAccount, Profile))
+		{
+			Difficulty = Profile.Difficulty;
+		}
+	}
+	const bool bExtreme = Difficulty.Equals(TEXT("extreme"), ESearchCase::IgnoreCase);
+
+	DifficultyValue->SetText(FText::FromString(FString::Printf(TEXT("\u96BE\u5EA6\uFF1A%s"),
+		bExtreme ? TEXT("\u6781\u9650") : TEXT("\u901A\u5E38"))));
+
+	if (DifficultyRow)
+	{
+		DifficultyRow->SetVisibility(bSelf ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+	}
+
+	if (!bSelf)
+	{
+		return;
+	}
+
+	const bool bCanChange = Account->GetCanChangeDifficulty();
+	if (DifficultyNormalButton)
+	{
+		DifficultyNormalButton->SetIsEnabled(!bExtreme ? false : bCanChange);
+	}
+	if (DifficultyExtremeButton)
+	{
+		DifficultyExtremeButton->SetIsEnabled(!bExtreme);
+	}
+
+	if (DifficultyNormalLabel)
+	{
+		const FString CooldownText = Account->GetDifficultyCooldownText();
+		DifficultyNormalLabel->SetText(FText::FromString(
+			(bExtreme && !bCanChange && !CooldownText.IsEmpty()) ? CooldownText : FString(TEXT("\u901A\u5E38"))));
+	}
+
+	// 当前难度高亮（绿色）
+	DifficultyNormalButton->SetBackgroundColor(bExtreme
+		? FLinearColor(0.22f, 0.22f, 0.24f, 1.0f) : FLinearColor(0.1f, 0.6f, 0.2f, 1.0f));
+	DifficultyExtremeButton->SetBackgroundColor(bExtreme
+		? FLinearColor(0.1f, 0.6f, 0.2f, 1.0f) : FLinearColor(0.22f, 0.22f, 0.24f, 1.0f));
+}
+
+void UMyBondageLifePlayerInfoWidget::HandleDifficultyNormalClicked()
+{
+	if (UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr)
+	{
+		Account->RequestSetDifficulty(TEXT("normal"));
+	}
+}
+
+void UMyBondageLifePlayerInfoWidget::HandleDifficultyExtremeClicked()
+{
+	if (UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr)
+	{
+		Account->RequestSetDifficulty(TEXT("extreme"));
+	}
+}
+
+void UMyBondageLifePlayerInfoWidget::HandleDifficultyChanged(const FString& Difficulty)
+{
+	RefreshDifficultyRow();
 }

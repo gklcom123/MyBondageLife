@@ -62,6 +62,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PlayerInfo")
 	void RefreshContents();
 
+	void RefreshDifficultyRow();
+
+	UFUNCTION()
+	void HandleDifficultyNormalClicked();
+
+	UFUNCTION()
+	void HandleDifficultyExtremeClicked();
+
+	UFUNCTION()
+	void HandleDifficultyChanged(const FString& Difficulty);
+
 	/** Shows the "按[F]与[xxx]进行交互" hint for a character (null hides it). */
 	UFUNCTION(BlueprintCallable, Category = "PlayerInfo")
 	void SetInteractionHintTarget(const AMyBondageLifeCharacter* Character);
@@ -178,6 +189,24 @@ protected:
 	TObjectPtr<UTextBlock> JoinedValue;
 
 	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> DifficultyValue;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UHorizontalBox> DifficultyRow;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UButton> DifficultyNormalButton;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UButton> DifficultyExtremeButton;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> DifficultyNormalLabel;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> DifficultyExtremeLabel;
+
+	UPROPERTY(Transient)
 	TObjectPtr<UButton> CloseButton;
 
 	//~ Proximity hint: "按[F]与[" + <name> + "]进行交互"
@@ -190,6 +219,8 @@ protected:
 	/** Character the hint currently names, so the text is only touched on change. */
 	UPROPERTY(Transient)
 	TWeakObjectPtr<const AMyBondageLifeCharacter> HintTarget;
+
+	FString TargetAccountName;
 
 	/** Cached name shown in the hint, compared to detect late replication. */
 	FString HintName;
