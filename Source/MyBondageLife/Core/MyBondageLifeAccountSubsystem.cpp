@@ -1834,6 +1834,8 @@ void UMyBondageLifeAccountSubsystem::EquipOutfitFor(const FString& Owner, int32 
 						Detail = FString::Printf(TEXT(" %s: %s"), *Code, *Message);
 					}
 				}
+				UE_LOG(LogMyBondageLife, Log, TEXT("Outfit: unequip result %d."), StatusCode);
+
 				UE_LOG(LogMyBondageLife, Log, TEXT("Outfit: equip slot %d %s (%d)%s."),
 					Slot, bOk ? TEXT("ok") : TEXT("failed"), StatusCode, *Detail);
 				if (!bOk)
@@ -1853,6 +1855,8 @@ void UMyBondageLifeAccountSubsystem::UnequipOutfitFor(const FString& Owner, int3
 
 	const bool bOwn = Owner.IsEmpty() || Owner.Equals(AccountName, ESearchCase::IgnoreCase);
 	const FString Target = bOwn ? FString(TEXT("me")) : Owner;
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("Outfit: unequip slot %d (owner '%s')."), Slot, *Owner);
 
 	if (bOwn)
 	{
