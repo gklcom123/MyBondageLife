@@ -112,6 +112,7 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 		RefreshRestraintSlots();
 		RefreshHeightLabel();
 		RefreshHairLabel();
+		RefreshSkinLabel();
 		SelectTab(0);
 		OnLayoutBuilt();
 		return;
@@ -442,6 +443,7 @@ void UMyBondageLifeWardrobeWidget::NativeConstruct()
 		: nullptr)
 	{
 		Account->OnRestraintsChanged.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleRestraintsChanged);
+		Account->OnSkinChanged.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleSkinChanged);
 	}
 
 	// Start from the height the account service already has.
@@ -2600,5 +2602,9 @@ void UMyBondageLifeWardrobeWidget::HandleSkinUpClicked()
 		}
 	}
 
+	RefreshSkinLabel();
+}
+void UMyBondageLifeWardrobeWidget::HandleSkinChanged(int32 InSkinId)
+{
 	RefreshSkinLabel();
 }

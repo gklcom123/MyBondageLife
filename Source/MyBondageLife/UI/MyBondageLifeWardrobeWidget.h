@@ -220,6 +220,9 @@ protected:
 	UFUNCTION()
 	void HandleSkinUpClicked();
 
+	UFUNCTION()
+	void HandleSkinChanged(int32 InSkinId);
+
 	/** Greys out the hair arrow that would leave the table range. */
 	void RefreshHairArrowStates();
 

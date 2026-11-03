@@ -263,6 +263,7 @@ bool UMyBondageLifeAccountSubsystem::ApplyAuthPayload(const TSharedPtr<FJsonObje
 	if ((*UserObject)->TryGetNumberField(TEXT("skinId"), SkinValue))
 	{
 		SkinId = FMath::Clamp(static_cast<int32>(SkinValue), 1, 64);
+		OnSkinChanged.Broadcast(SkinId);
 	}
 
 	// e.g. "2026-10-26T10:39:29.323Z" - the account creation date shown in the
@@ -1198,6 +1199,9 @@ void UMyBondageLifeAccountSubsystem::RequestUserProfile(const FString& InAccount
 			{
 				Profile.SkinId = FMath::Clamp(static_cast<int32>(SkinValue), 1, 64);
 			}
+			Self->SkinId = Profile.SkinId;
+			Self->OnSkinChanged.Broadcast(Self->SkinId);
+
 			Profile.CreatedAt = ParseIsoField(Json, TEXT("createdAt"));
 
 			const TSharedPtr<FJsonObject>* ContractObject = nullptr;
@@ -1894,6 +1898,10 @@ TMap<int32, FString> UMyBondageLifeAccountSubsystem::GetOutfitsForAccount(const 
 void UMyBondageLifeAccountSubsystem::RequestUpdateSkin(int32 NewSkinId)
 {
 	const int32 ClampedId = FMath::Clamp(NewSkinId, 1, 64);
+
+	// 先本地生效：文字与材质必须同时变，不能等服务器回包。
+	SkinId = ClampedId;
+	OnSkinChanged.Broadcast(ClampedId);
 
 	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
 	Body->SetNumberField(TEXT("skinId"), ClampedId);
