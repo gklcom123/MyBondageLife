@@ -935,6 +935,28 @@ bool UMyBondageLifePlayerInfoWidget::TryAdoptBlueprintLayout()
 	JoinedValue = AdoptFind<UTextBlock>(WidgetTree, TEXT("W_Joined"));
 	ContractStatusLine = AdoptFind<UTextBlock>(WidgetTree, TEXT("W_ContractLine"));
 
+	// 难度行（可选设计版）：W_Difficulty_Value / W_Difficulty_Normal / W_Difficulty_Extreme
+	DifficultyValue = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_Difficulty_Value")));
+	DifficultyNormalButton = AdoptFindNamedButton(WidgetTree, TEXT("W_Difficulty_Normal"));
+	DifficultyExtremeButton = AdoptFindNamedButton(WidgetTree, TEXT("W_Difficulty_Extreme"));
+	DifficultyNormalLabel = Cast<UTextBlock>(DifficultyNormalButton
+		? DifficultyNormalButton->GetChildAt(0) : nullptr);
+	DifficultyExtremeLabel = Cast<UTextBlock>(DifficultyExtremeButton
+		? DifficultyExtremeButton->GetChildAt(0) : nullptr);
+
+	if (DifficultyNormalButton)
+	{
+		DifficultyNormalButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifePlayerInfoWidget::HandleDifficultyNormalClicked);
+	}
+	if (DifficultyExtremeButton)
+	{
+		DifficultyExtremeButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifePlayerInfoWidget::HandleDifficultyExtremeClicked);
+	}
+	if (UMyBondageLifeAccountSubsystem* DifficultyAccount = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		DifficultyAccount->OnDifficultyChanged.AddUniqueDynamic(this, &UMyBondageLifePlayerInfoWidget::HandleDifficultyChanged);
+	}
 	AddFriendButton = AdoptFindNamedButton(WidgetTree, TEXT("W_AddFriend"));
 	AddFriendLabel = AdoptFind<UTextBlock>(WidgetTree, TEXT("W_AddFriend_Label"));
 	ContractButton = AdoptFindNamedButton(WidgetTree, TEXT("W_Contract"));
