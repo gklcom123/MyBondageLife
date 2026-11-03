@@ -167,6 +167,7 @@ void AMyBondageLifeCharacter::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(AMyBondageLifeCharacter, RestraintBlindLevel);
 	DOREPLIFETIME(AMyBondageLifeCharacter, OutfitSlots);
 	DOREPLIFETIME(AMyBondageLifeCharacter, OutfitItemIds);
+	DOREPLIFETIME(AMyBondageLifeCharacter, OutfitColorHex);
 	DOREPLIFETIME(AMyBondageLifeCharacter, AccountName);
 	DOREPLIFETIME(AMyBondageLifeCharacter, SkinId);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bRestraintLeg);
@@ -770,6 +771,8 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 			Component->RegisterComponent();
 			Component->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		Component->SetCollisionProfileName(TEXT("CharacterMesh"));
+
+		OutfitComponents.Add(Item->Slot, Component);
 			Component->SetGenerateOverlapEvents(false);
 			Component->SetSkeletalMeshAsset(WornMesh);
 
@@ -1105,6 +1108,8 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 		Component->RegisterComponent();
 		Component->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		Component->SetCollisionProfileName(TEXT("CharacterMesh"));
+
+		OutfitComponents.Add(Item->Slot, Component);
 		Component->SetGenerateOverlapEvents(false);
 
 		// 同骨骼：跟随身体动画；否则挂到同名 socket。
@@ -1123,6 +1128,7 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 	OutfitFeetOffset = FeetOffset;
 	ApplyOutfitCapsule();
 	ApplySkin();
+	ApplyOutfitColors();
 	ApplyBodyPartHiding();
 }
 void AMyBondageLifeCharacter::ServerSetAccountName_Implementation(const FString& InAccount)
@@ -1231,4 +1237,80 @@ void AMyBondageLifeCharacter::ServerSetSkin_Implementation(int32 InSkinId)
 {
 	SkinId = FMath::Clamp(InSkinId, 1, 64);
 	ApplySkin();
+}
+
+void AMyBondageLifeCharacter::SetOutfitColors(const TArray<FString>& InColors)
+{
+	OutfitColorHex = InColors;
+	ApplyOutfitColors();
+}
+
+void AMyBondageLifeCharacter::ApplyOutfitColors()
+{
+	for (const TPair<int32, TObjectPtr<USkeletalMeshComponent>>& Pair : OutfitComponents)
+	{
+		USkeletalMeshComponent* Component = Pair.Value;
+		if (!Component)
+		{
+			continue;
+		}
+
+		for (int32 Channel = 1; Channel <= 3; ++Channel)
+		{
+			const int32 ColorIndex = Pair.Key * 3 + (Channel - 1);
+			if (!OutfitColorHex.IsValidIndex(ColorIndex))
+			{
+				continue;
+			}
+
+			const FString Hex = OutfitColorHex[ColorIndex];
+			if (Hex.IsEmpty())
+			{
+				continue;
+			}
+
+			const FColor Parsed = FColor::FromHex(Hex);
+			const FLinearColor Color = FLinearColor::FromSRGBColor(Parsed);
+			const FName ParameterName(*FString::Printf(TEXT("Color%d"), Channel));
+
+			for (int32 MaterialIndex = 0; MaterialIndex < Component->GetNumMaterials(); ++MaterialIndex)
+			{
+				UMaterialInterface* Material = Component->GetMaterial(MaterialIndex);
+				if (!Material)
+				{
+					continue;
+				}
+
+				// Only tint materials that actually expose ColorN.
+				TArray<FMaterialParameterInfo> ParamInfos;
+				TArray<FGuid> ParamIds;
+				Material->GetAllVectorParameterInfo(ParamInfos, ParamIds);
+				bool bHasParameter = false;
+				for (const FMaterialParameterInfo& ParamInfo : ParamInfos)
+				{
+					if (ParamInfo.Name == ParameterName)
+					{
+						bHasParameter = true;
+						break;
+					}
+				}
+				if (!bHasParameter)
+				{
+					continue;
+				}
+
+				UMaterialInstanceDynamic* Mid = Cast<UMaterialInstanceDynamic>(Material);
+				if (!Mid)
+				{
+					Mid = UMaterialInstanceDynamic::Create(Material, this);
+					if (!Mid)
+					{
+						continue;
+					}
+					Component->SetMaterial(MaterialIndex, Mid);
+				}
+				Mid->SetVectorParameterValue(ParameterName, Color);
+			}
+		}
+	}
 }

@@ -16,6 +16,11 @@
 
 namespace
 {
+	void ParseOutfitColors(const TSharedPtr<FJsonObject>& Item, TMap<int32, FString>& OutColors);
+}
+
+namespace
+{
 	/** Maps the service role string to the enum used by the UI. */
 	EMyBondageLifeContractRole ParseContractRole(const FString& RoleText)
 	{
@@ -1734,6 +1739,7 @@ void UMyBondageLifeAccountSubsystem::RefreshOutfits(const FString& InAccount)
 			}
 
 			TMap<int32, FString> Parsed;
+			TMap<int32, TMap<int32, FString>> ColorResult;
 			const TArray<TSharedPtr<FJsonValue>>* Equipped = nullptr;
 			if (Json->TryGetArrayField(TEXT("equipped"), Equipped) && Equipped)
 			{
@@ -1750,7 +1756,12 @@ void UMyBondageLifeAccountSubsystem::RefreshOutfits(const FString& InAccount)
 					if (Item->TryGetNumberField(TEXT("slot"), SlotValue) &&
 						Item->TryGetStringField(TEXT("itemId"), ItemId) && !ItemId.IsEmpty())
 					{
-						Parsed.Add(FMath::Clamp(static_cast<int32>(SlotValue), 0, FMyBondageLifeOutfitCatalog::SlotCount - 1), ItemId);
+						const int32 ParsedSlot = FMath::Clamp(static_cast<int32>(SlotValue), 0, FMyBondageLifeOutfitCatalog::SlotCount - 1);
+					Parsed.Add(ParsedSlot, ItemId);
+
+					TMap<int32, FString> ParsedColors;
+					ParseOutfitColors(Item, ParsedColors);
+					ColorResult.Add(ParsedSlot, ParsedColors);
 					}
 				}
 			}
@@ -1758,6 +1769,7 @@ void UMyBondageLifeAccountSubsystem::RefreshOutfits(const FString& InAccount)
 			if (bOwn)
 			{
 				Self->EquippedOutfits = Parsed;
+				Self->OwnOutfitColors = ColorResult;
 			}
 			else
 			{
@@ -1889,6 +1901,7 @@ void UMyBondageLifeAccountSubsystem::RefreshOutfitsForAccount(const FString& InA
 			}
 
 			TMap<int32, FString> Parsed;
+			TMap<int32, TMap<int32, FString>> ColorResult;
 			const TArray<TSharedPtr<FJsonValue>>* Equipped = nullptr;
 			if (Json->TryGetArrayField(TEXT("equipped"), Equipped) && Equipped)
 			{
@@ -1905,12 +1918,18 @@ void UMyBondageLifeAccountSubsystem::RefreshOutfitsForAccount(const FString& InA
 					if (Item->TryGetNumberField(TEXT("slot"), SlotValue) &&
 						Item->TryGetStringField(TEXT("itemId"), ItemId) && !ItemId.IsEmpty())
 					{
-						Parsed.Add(FMath::Clamp(static_cast<int32>(SlotValue), 0, FMyBondageLifeOutfitCatalog::SlotCount - 1), ItemId);
+						const int32 ParsedSlot = FMath::Clamp(static_cast<int32>(SlotValue), 0, FMyBondageLifeOutfitCatalog::SlotCount - 1);
+					Parsed.Add(ParsedSlot, ItemId);
+
+					TMap<int32, FString> ParsedColors;
+					ParseOutfitColors(Item, ParsedColors);
+					ColorResult.Add(ParsedSlot, ParsedColors);
 					}
 				}
 			}
 
 			Self->OtherOutfits.Add(Account, Parsed);
+			Self->OtherOutfitColors.Add(Account, ColorResult);
 			Self->OnAccountOutfitsChanged.Broadcast(Account);
 		});
 }
@@ -2060,4 +2079,90 @@ void UMyBondageLifeAccountSubsystem::RequestSafeword()
 			// 服务端已经清空拘束并广播消息，这里只刷新本地状态。
 			Self->RefreshRestraints();
 		});
+}
+
+// ---------------------------------------------------------------------------
+// Outfit colours
+// ---------------------------------------------------------------------------
+
+namespace
+{
+	/** Reads the "colors" object of one equipped entry. */
+	void ParseOutfitColors(const TSharedPtr<FJsonObject>& Item, TMap<int32, FString>& OutColors)
+	{
+		const TSharedPtr<FJsonObject>* ColorsObject = nullptr;
+		if (!Item.IsValid() || !Item->TryGetObjectField(TEXT("colors"), ColorsObject) || !ColorsObject)
+		{
+			return;
+		}
+
+		for (int32 Channel = 1; Channel <= 3; ++Channel)
+		{
+			FString Value;
+			if ((*ColorsObject)->TryGetStringField(FString::FromInt(Channel), Value) && !Value.IsEmpty())
+			{
+				OutColors.Add(Channel, Value);
+			}
+		}
+	}
+}
+
+void UMyBondageLifeAccountSubsystem::SetOutfitColor(int32 Slot, int32 Channel, const FString& HexColor, const FString& Owner)
+{
+	if (Slot < 0 || Slot >= FMyBondageLifeOutfitCatalog::SlotCount || Channel < 1 || Channel > 3)
+	{
+		return;
+	}
+
+	const bool bOwn = Owner.IsEmpty() || Owner.Equals(AccountName, ESearchCase::IgnoreCase);
+	const FString Target = bOwn ? FString(TEXT("me")) : Owner;
+
+	if (bOwn)
+	{
+		OwnOutfitColors.FindOrAdd(Slot).Add(Channel, HexColor);
+	}
+	else
+	{
+		OtherOutfitColors.FindOrAdd(Target).FindOrAdd(Slot).Add(Channel, HexColor);
+	}
+
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetNumberField(TEXT("channel"), Channel);
+	if (HexColor.IsEmpty())
+	{
+		Body->SetField(TEXT("color"), MakeShared<FJsonValueNull>());
+	}
+	else
+	{
+		Body->SetStringField(TEXT("color"), HexColor.ToUpper());
+	}
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	const FString Path = FString::Printf(TEXT("/users/%s/outfits/%d/colors"), *Target, Slot);
+	SendFriendApiRequest(TEXT("PUT"), Path, Body,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			if (!bOk)
+			{
+				UE_LOG(LogMyBondageLife, Warning, TEXT("Outfit colors: save failed (%d)."), StatusCode);
+			}
+		});
+}
+
+TMap<int32, FString> UMyBondageLifeAccountSubsystem::GetOutfitColors(int32 Slot) const
+{
+	if (const TMap<int32, FString>* Found = OwnOutfitColors.Find(Slot))
+	{
+		return *Found;
+	}
+	return TMap<int32, FString>();
+}
+
+TMap<int32, TMap<int32, FString>> UMyBondageLifeAccountSubsystem::GetOutfitColorsForAccount(const FString& InAccount) const
+{
+	if (const TMap<int32, TMap<int32, FString>>* Found = OtherOutfitColors.Find(InAccount))
+	{
+		return *Found;
+	}
+	return TMap<int32, TMap<int32, FString>>();
 }

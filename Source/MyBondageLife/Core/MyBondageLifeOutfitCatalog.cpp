@@ -5,6 +5,7 @@
 #include "Engine/DataTable.h"
 #include "Engine/SkeletalMesh.h"
 #include "Engine/Texture2D.h"
+#include "Materials/MaterialInterface.h"
 #include "MyBondageLife.h"
 #include "UObject/UnrealType.h"
 
@@ -296,4 +297,43 @@ FString FMyBondageLifeOutfitCatalog::GetSlotName(int32 Slot)
 	};
 
 	return FMath::IsWithinInclusive(Slot, 0, SlotCount - 1) ? FString(Names[Slot]) : FString();
+}
+
+int32 FMyBondageLifeOutfitCatalog::GetColorChannelMask(FName ItemId)
+{
+	static TMap<FName, int32> Cache;
+
+	if (const int32* Cached = Cache.Find(ItemId))
+	{
+		return *Cached;
+	}
+
+	int32 Mask = 0;
+	const FMyBondageLifeOutfitItem* Item = Find(ItemId);
+	USkeletalMesh* Mesh = Item ? Item->Mesh.LoadSynchronous() : nullptr;
+	if (Mesh)
+	{
+		const TArray<FSkeletalMaterial>& Materials = Mesh->GetMaterials();
+		for (const FSkeletalMaterial& MaterialSlot : Materials)
+		{
+			UMaterialInterface* Material = MaterialSlot.MaterialInterface;
+			if (!Material)
+			{
+				continue;
+			}
+
+			TArray<FMaterialParameterInfo> Infos;
+			TArray<FGuid> Ids;
+			Material->GetAllVectorParameterInfo(Infos, Ids);
+			for (const FMaterialParameterInfo& Info : Infos)
+			{
+				if (Info.Name == TEXT("Color1")) { Mask |= 1; }
+				else if (Info.Name == TEXT("Color2")) { Mask |= 2; }
+				else if (Info.Name == TEXT("Color3")) { Mask |= 4; }
+			}
+		}
+	}
+
+	Cache.Add(ItemId, Mask);
+	return Mask;
 }

@@ -38,6 +38,9 @@ public:
 	/** Display name of a slot ("帽子", "项链", ...). */
 	static FString GetSlotName(int32 Slot);
 
+	/** Bitmask of Color1/2/3 (bit0..bit2) found on the item's materials. */
+	static int32 GetColorChannelMask(FName ItemId);
+
 	/** Total feet offset of the given worn items (heels raise the character). */
 	static float SumFeetOffsets(const TArray<FName>& ItemIds);
 

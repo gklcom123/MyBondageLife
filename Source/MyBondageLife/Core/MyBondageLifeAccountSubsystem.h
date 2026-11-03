@@ -732,6 +732,15 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Outfit")
 	TMap<int32, FString> GetEquippedOutfits() const { return EquippedOutfits; }
 
+	UFUNCTION(BlueprintCallable, Category = "Outfit")
+	void SetOutfitColor(int32 Slot, int32 Channel, const FString& HexColor, const FString& Owner = FString());
+
+	/** 槽位 -> 通道(1..3) -> #RRGGBB */
+	UFUNCTION(BlueprintPure, Category = "Outfit")
+	TMap<int32, FString> GetOutfitColors(int32 Slot) const;
+
+	TMap<int32, TMap<int32, FString>> GetOutfitColorsForAccount(const FString& InAccount) const;
+
 	UFUNCTION(BlueprintPure, Category = "Outfit")
 	TMap<int32, FString> GetViewedOutfits() const { return ViewedOutfits; }
 
@@ -771,6 +780,9 @@ protected:
 
 	UPROPERTY(Transient)
 	TMap<int32, FString> ViewedOutfits;
+
+	TMap<int32, TMap<int32, FString>> OwnOutfitColors;
+	TMap<FString, TMap<int32, TMap<int32, FString>>> OtherOutfitColors;
 
 	TMap<FString, TMap<int32, FString>> OtherOutfits;
 

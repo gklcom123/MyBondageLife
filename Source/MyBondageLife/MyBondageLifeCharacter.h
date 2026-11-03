@@ -143,6 +143,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Outfit")
 	void SetOutfits(const TArray<int32>& InSlots, const TArray<FName>& InItems);
 
+	/** 每个槽位 3 个通道的 #RRGGBB（与 OutfitItemIds 对应，3 个一组）。 */
+	UFUNCTION(BlueprintCallable, Category="Outfit")
+	void SetOutfitColors(const TArray<FString>& InColors);
+
+	void ApplyOutfitColors();
+
 	/** 账号名（复制到其他客户端，用来拉取该玩家的衣物）。 */
 	UFUNCTION(Server, Reliable)
 	void ServerSetAccountName(const FString& InAccount);
@@ -301,6 +307,12 @@ protected:
 
 	UPROPERTY(ReplicatedUsing = OnRep_Outfits, BlueprintReadOnly, Category="Outfit", meta = (AllowPrivateAccess = "true"))
 	TArray<FName> OutfitItemIds;
+
+	UPROPERTY(ReplicatedUsing = OnRep_Outfits, BlueprintReadOnly, Category="Outfit", meta = (AllowPrivateAccess = "true"))
+	TArray<FString> OutfitColorHex;
+
+	UPROPERTY(Transient)
+	TMap<int32, TObjectPtr<class USkeletalMeshComponent>> OutfitComponents;
 
 	UPROPERTY(ReplicatedUsing = OnRep_Restraints, BlueprintReadOnly, Category="Restraint")
 	bool bRestraintBlind = false;
