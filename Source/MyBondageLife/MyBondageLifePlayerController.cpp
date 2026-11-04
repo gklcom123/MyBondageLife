@@ -1532,6 +1532,12 @@ void AMyBondageLifePlayerController::SetupInputComponent()
 	InputComponent->BindKey(EKeys::G, IE_Pressed, this,
 		&AMyBondageLifePlayerController::HandleSitKeyPressed);
 
+	// 坐着时按任意移动键起身
+	InputComponent->BindKey(EKeys::W, IE_Pressed, this, &AMyBondageLifePlayerController::HandleSitKeyPressed);
+	InputComponent->BindKey(EKeys::A, IE_Pressed, this, &AMyBondageLifePlayerController::HandleSitKeyPressed);
+	InputComponent->BindKey(EKeys::S, IE_Pressed, this, &AMyBondageLifePlayerController::HandleSitKeyPressed);
+	InputComponent->BindKey(EKeys::D, IE_Pressed, this, &AMyBondageLifePlayerController::HandleSitKeyPressed);
+
 	if (UWorld* SeatWorld = GetWorld())
 	{
 		SeatWorld->GetTimerManager().SetTimer(SeatProximityTimer, this,
