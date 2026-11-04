@@ -53,6 +53,9 @@ protected:
 	UFUNCTION() void HandleSaturationChanged(float Value);
 	UFUNCTION() void HandleValueChanged(float Value);
 	UFUNCTION() void HandleHexCommitted(const FText& Text, ETextCommit::Type CommitType);
+	UFUNCTION() void HandleHexChanged(const FText& Text);
+
+	bool bUpdatingHex = false;
 	UFUNCTION() void HandleConfirmClicked();
 	UFUNCTION() void HandleCancelClicked();
 	UFUNCTION() void HandleCloseClicked();

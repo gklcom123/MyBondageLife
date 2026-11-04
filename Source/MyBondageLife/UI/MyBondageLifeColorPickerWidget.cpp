@@ -145,6 +145,7 @@ void UMyBondageLifeColorPickerWidget::BuildLayout()
 		HexBox->SetHintText(FText::FromString(TEXT("#RRGGBB")));
 		AddRow(TEXT("#"), [this](UWidgetTree*) -> UWidget* { return HexBox; });
 		HexBox->OnTextCommitted.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleHexCommitted);
+		HexBox->OnTextChanged.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleHexChanged);
 	}
 
 	UHorizontalBox* Buttons = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
@@ -237,6 +238,7 @@ void UMyBondageLifeColorPickerWidget::BuildLayout()
 	if (HexBox)
 	{
 		HexBox->OnTextCommitted.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleHexCommitted);
+		HexBox->OnTextChanged.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleHexChanged);
 	}
 	if (ConfirmButton)
 	{
@@ -354,4 +356,37 @@ void UMyBondageLifeColorPickerWidget::HandleCancelClicked()
 void UMyBondageLifeColorPickerWidget::HandleCloseClicked()
 {
 	HandleCancelClicked();
+}
+
+void UMyBondageLifeColorPickerWidget::HandleHexChanged(const FText& Text)
+{
+	if (bUpdatingHex)
+	{
+		return;
+	}
+
+	const FString Hex = Text.ToString().TrimStartAndEnd();
+	if (Hex.Len() != 7 || !Hex.StartsWith(TEXT("#")))
+	{
+		return;
+	}
+
+	for (int32 Index = 1; Index < Hex.Len(); ++Index)
+	{
+		if (!FChar::IsHexDigit(Hex[Index]))
+		{
+			return;
+		}
+	}
+
+	const FLinearColor Color = FLinearColor::FromSRGBColor(FColor::FromHex(Hex));
+	const FLinearColor Hsv = Color.LinearRGBToHSV();
+	Hue = Hsv.R;
+	Saturation = Hsv.G;
+	Brightness = Hsv.B;
+
+	if (SaturationSlider) { SaturationSlider->SetValue(Saturation); }
+	if (ValueSlider) { ValueSlider->SetValue(Brightness); }
+	if (PreviewImage) { PreviewImage->SetColorAndOpacity(Color); }
+	bUpdatingHex = false;
 }

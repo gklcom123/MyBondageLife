@@ -1543,6 +1543,10 @@ void AMyBondageLifePlayerController::SetupInputComponent()
 	{
 		SeatWorld->GetTimerManager().SetTimer(SeatProximityTimer, this,
 			&AMyBondageLifePlayerController::UpdateSeatProximity, 0.25f, true);
+
+		// 拘束染色：低频重申，保证远端一定拿到最新颜色
+		SeatWorld->GetTimerManager().SetTimer(RestraintColorSyncTimer, this,
+			&AMyBondageLifePlayerController::PushRestraintColors, 2.0f, true);
 	}
 
 	// Escape: the in-game menu (or closes whatever is on top).
@@ -2911,5 +2915,39 @@ void AMyBondageLifePlayerController::ServerSetRestraintColors_Implementation(con
 	if (AMyBondageLifeCharacter* TargetCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
 	{
 		TargetCharacter->SetRestraintColors(Colors);
+	}
+}
+
+void AMyBondageLifePlayerController::PushRestraintColors()
+{
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
+		: nullptr;
+	if (!Account)
+	{
+		return;
+	}
+
+	TArray<FString> Colors;
+	for (int32 SlotIndex = 0; SlotIndex < FMyBondageLifeRestraintCatalog::SlotCount; ++SlotIndex)
+	{
+		const TMap<int32, FString> SlotColors = Account->GetRestraintColors(SlotIndex);
+		for (int32 Channel = 1; Channel <= 3; ++Channel)
+		{
+			const FString* Hex = SlotColors.Find(Channel);
+			Colors.Add(Hex ? *Hex : FString());
+		}
+	}
+
+	if (AMyBondageLifeCharacter* ColorPawn = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		if (HasAuthority())
+		{
+			ColorPawn->SetRestraintColors(Colors);
+		}
+		else
+		{
+			ServerSetRestraintColors(Colors);
+		}
 	}
 }

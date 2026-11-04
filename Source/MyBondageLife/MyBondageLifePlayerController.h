@@ -388,6 +388,11 @@ protected:
 	void PushSkinToPawn();
 
 	UFUNCTION()
+	void PushRestraintColors();
+
+	FTimerHandle RestraintColorSyncTimer;
+
+	UFUNCTION()
 	void HandleSkinChanged(int32 InSkinId);
 
 	UFUNCTION(Server, Reliable)
