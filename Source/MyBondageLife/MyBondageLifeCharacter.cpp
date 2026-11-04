@@ -360,7 +360,7 @@ void AMyBondageLifeCharacter::Tick(float DeltaSeconds)
 	{
 		if (USkeletalMeshComponent* SittingMesh = GetMesh())
 		{
-			const float TargetZ = OutfitBaseMeshZ + SittingOffset;
+			const float TargetZ = OutfitBaseMeshZ + SittingOffset * GetActorScale3D().Z;
 			FVector Location = SittingMesh->GetRelativeLocation();
 			if (!FMath::IsNearlyEqual(Location.Z, TargetZ, 0.1f))
 			{
@@ -1404,8 +1404,9 @@ void AMyBondageLifeCharacter::ApplySitting()
 				OutfitBaseHalfHeight, true);
 		}
 
-		// 1) 站到坐点上：胶囊底部贴合 SitPoint（相当于踩在椅子上）
-		const float CapsuleHalfHeight = OutfitBaseHalfHeight;
+		// 1) 站到坐点上：胶囊底部贴合 SitPoint（身高缩放要一起算进去）
+		const float ActorScaleZ = GetActorScale3D().Z;
+		const float CapsuleHalfHeight = OutfitBaseHalfHeight * ActorScaleZ;
 		SetActorLocation(SittingLocation + FVector(0.0f, 0.0f, CapsuleHalfHeight), false, nullptr, ETeleportType::TeleportPhysics);
 		SetActorRotation(SittingRotation, ETeleportType::TeleportPhysics);
 
@@ -1428,7 +1429,7 @@ void AMyBondageLifeCharacter::ApplySitting()
 				bOutfitBaseCaptured = true;
 			}
 
-			SittingMeshDrop = -SittingOffset;
+			SittingMeshDrop = -SittingOffset * ActorScaleZ;
 
 			UE_LOG(LogMyBondageLife, Log, TEXT("Sit: capsuleHalf=%.1f offset=%.1f drop=%.1f"),
 				GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), SittingOffset, SittingMeshDrop);
