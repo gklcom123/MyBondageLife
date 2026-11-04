@@ -431,6 +431,12 @@ void AMyBondageLifeCharacter::ApplyHeightScale()
 	{
 		SetActorScale3D(FVector(Scale));
 	}
+
+	// 坐着时改身高：重新按新缩放贴合坐点，否则坐姿会错位。
+	if (bSitting)
+	{
+		ApplySitting();
+	}
 }
 
 void AMyBondageLifeCharacter::OnRep_HairIndex()
