@@ -1770,6 +1770,8 @@ void UMyBondageLifeAccountSubsystem::RefreshOutfits(const FString& InAccount)
 				}
 			}
 
+			UE_LOG(LogMyBondageLife, Log, TEXT("Outfit: fetched %d item(s) for self (own=%d)."), Parsed.Num(), bOwn ? 1 : 0);
+
 			if (bOwn)
 			{
 				Self->EquippedOutfits = Parsed;
@@ -1935,6 +1937,8 @@ void UMyBondageLifeAccountSubsystem::RefreshOutfitsForAccount(const FString& InA
 					}
 				}
 			}
+
+			UE_LOG(LogMyBondageLife, Log, TEXT("Outfit: fetched %d item(s) for '%s'."), Parsed.Num(), *Account);
 
 			Self->OtherOutfits.Add(Account, Parsed);
 			Self->OtherOutfitColors.Add(Account, ColorResult);
