@@ -349,26 +349,27 @@ void AMyBondageLifeCharacter::Tick(float DeltaSeconds)
 		RefreshRestraintPose();
 	}
 
-	if (bOutfitBaseCaptured)
+	if (bOutfitBaseCaptured && !bSitting)
 	{
 		ApplyOutfitCapsule();
 	}
 
 	// 坐着时按移动键（WASD）立即起身。
-	if (bSitting && GetPendingMovementInputVector().SizeSquared() > 0.01f)
+	if (bSitting && GetWorld())
 	{
-		const FVector StandLocation = GetActorLocation() + GetActorForwardVector() * 150.0f;
-		ServerSetSitting(false, StandLocation, GetActorRotation());
+		const APlayerController* OwningPC = Cast<APlayerController>(GetController());
+		const bool bMoveKeyDown = OwningPC && (
+			OwningPC->IsInputKeyDown(EKeys::W) || OwningPC->IsInputKeyDown(EKeys::A)
+			|| OwningPC->IsInputKeyDown(EKeys::S) || OwningPC->IsInputKeyDown(EKeys::D));
+
+		if (bMoveKeyDown)
+		{
+			const FVector StandLocation = GetActorLocation() + GetActorForwardVector() * 150.0f;
+			ServerSetSitting(false, StandLocation, GetActorRotation());
+		}
 	}
 
-	// 坐着时按移动键（WASD）立即起身。
-	if (bSitting && GetPendingMovementInputVector().SizeSquared() > 0.01f)
-	{
-		const FVector StandLocation = GetActorLocation() + GetActorForwardVector() * 150.0f;
-		ServerSetSitting(false, StandLocation, GetActorRotation());
-	}
-
-	// 皮肤/衣物任何一次换材质都可能把透明槽位盖回来，这里做低频兜底。
+	// 隐藏材质兜底重申（每 3 秒）
 	if (RestraintHiddenParts.Num() + OutfitHiddenParts.Num() > 0)
 	{
 		HideReassertAccumulator += DeltaSeconds;
@@ -378,10 +379,6 @@ void AMyBondageLifeCharacter::Tick(float DeltaSeconds)
 			ApplyBodyPartHiding();
 		}
 	}
-
-	ApplyBlindEffect(DeltaSeconds);
-
-	// CantMove: kill any residual velocity every frame (a single speed clamp left a slow drift).
 	if (bCantMove)
 	{
 		if (UCharacterMovementComponent* Movement = GetCharacterMovement())
@@ -1382,8 +1379,14 @@ void AMyBondageLifeCharacter::ApplySitting()
 			SittingBoom->TargetArmLength = 220.0f;
 		}
 
-		SetActorLocation(SittingLocation, false, nullptr, ETeleportType::TeleportPhysics);
+		// 1) 站到坐点上：胶囊底部贴合 SitPoint（相当于踩在椅子上）
+		const float CapsuleHalfHeight = GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
+		SetActorLocation(SittingLocation + FVector(0.0f, 0.0f, CapsuleHalfHeight), false, nullptr, ETeleportType::TeleportPhysics);
 		SetActorRotation(SittingRotation, ETeleportType::TeleportPhysics);
+
+		// 2) 动画（InSit 已在上面设置）
+		// 3) 偏移：SitOffset 正数上抬、负数下沉
+		SittingMeshDrop = -SittingOffset;
 
 		if (UCharacterMovementComponent* Movement = GetCharacterMovement())
 		{
@@ -1400,7 +1403,6 @@ void AMyBondageLifeCharacter::ApplySitting()
 				bOutfitBaseCaptured = true;
 			}
 
-			// SitOffset = mesh height correction in cm: 0 keeps it, positive lifts, negative lowers.
 			SittingMeshDrop = -SittingOffset;
 
 			UE_LOG(LogMyBondageLife, Log, TEXT("Sit: capsuleHalf=%.1f offset=%.1f drop=%.1f"),
