@@ -52,7 +52,7 @@ namespace
 	constexpr float TabGap = 18.0f;
 
 	/** Height presets: 娇小 / 普通 / 高大. */
-	const float HeightPresets[] = { 0.5f, 0.75f, 1.0f, 1.25f, 1.5f };   // 测试范围 0.5~1.5
+	const float HeightPresets[] = { 0.9f, 0.95f, 1.0f, 1.05f, 1.1f };   // 服务端只接受这 5 档
 	const TCHAR* HeightLabels[] = {
 		TEXT("\u5A07\u5C0F"),   // 娇小  0.90
 		TEXT("\u8F83\u5C0F"),   // 较小  0.95
