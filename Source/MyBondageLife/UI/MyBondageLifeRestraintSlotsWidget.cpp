@@ -102,6 +102,25 @@ void UMyBondageLifeRestraintSlotsWidget::BuildLayout()
 			Proxy->Slot = SlotIndex;
 			ClickProxies.Add(Proxy);
 			DesignedButton->OnClicked.AddUniqueDynamic(Proxy, &UMyBondageLifeRestraintSlotClickProxy::HandleClicked);
+
+			// 染色按钮：W_ChangeColor_{槽}_{1..3}
+			for (int32 Channel = 1; Channel <= 3; ++Channel)
+			{
+				const FString ColorName = FString::Printf(TEXT("W_ChangeColor_%d_%d"), SlotIndex, Channel);
+				if (UButton* ColorButton = Cast<UButton>(WidgetTree->FindWidget(*ColorName)))
+				{
+					ColorButtons.Add(ColorName, ColorButton);
+					ColorButton->SetVisibility(ESlateVisibility::Collapsed);
+
+					UMyBondageLifeRestraintColorProxy* ColorProxy = NewObject<UMyBondageLifeRestraintColorProxy>(this);
+					ColorProxy->Owner = this;
+					ColorProxy->Slot = SlotIndex;
+					ColorProxy->Channel = Channel;
+					ColorProxies.Add(ColorProxy);
+					ColorButton->OnClicked.AddUniqueDynamic(ColorProxy, &UMyBondageLifeRestraintColorProxy::HandleClicked);
+				}
+			}
+
 			continue;
 		}
 		const int32 Col = SlotIndex / 3;
