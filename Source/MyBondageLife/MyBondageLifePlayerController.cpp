@@ -1520,23 +1520,22 @@ void AMyBondageLifePlayerController::BeginPlay()
 
 void AMyBondageLifePlayerController::SetupInputComponent()
 {
-	// G：靠近椅子时坐下 / 起身
-	if (InputComponent)
+	Super::SetupInputComponent();
+
+
+	if (!InputComponent)
 	{
-		InputComponent->BindKey(EKeys::G, IE_Pressed, this,
-			&AMyBondageLifePlayerController::HandleSitKeyPressed);
+		return;
 	}
+
+	// G：靠近椅子时坐下 / 起身
+	InputComponent->BindKey(EKeys::G, IE_Pressed, this,
+		&AMyBondageLifePlayerController::HandleSitKeyPressed);
 
 	if (UWorld* SeatWorld = GetWorld())
 	{
 		SeatWorld->GetTimerManager().SetTimer(SeatProximityTimer, this,
 			&AMyBondageLifePlayerController::UpdateSeatProximity, 0.25f, true);
-	}
-	Super::SetupInputComponent();
-
-	if (!InputComponent)
-	{
-		return;
 	}
 
 	// Escape: the in-game menu (or closes whatever is on top).
@@ -2743,7 +2742,7 @@ void AMyBondageLifePlayerController::UpdateSeatProximity()
 	}
 
 	AActor* Best = nullptr;
-	float BestDistance = 250.0f;
+	float BestDistance = 50.0f;
 
 	if (!SittingPawn->IsSitting())
 	{
