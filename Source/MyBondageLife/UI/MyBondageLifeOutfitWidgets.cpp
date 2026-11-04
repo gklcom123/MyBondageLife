@@ -591,9 +591,17 @@ void UMyBondageLifeOutfitSlotsWidget::SetViewAccount(const FString& InAccount)
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
 		: nullptr)
 	{
-		RefreshSlots(ViewAccount.IsEmpty()
+		const TMap<int32, FString> Equipped = ViewAccount.IsEmpty()
 			? Account->GetEquippedOutfits()
-			: Account->GetOutfitsForAccount(ViewAccount));
+			: Account->GetOutfitsForAccount(ViewAccount);
+
+		// 数据为空时不要刷新（好友数据可能还没回来），保留上次显示。
+		if (Equipped.Num() == 0 && !ViewAccount.IsEmpty())
+		{
+			return;
+		}
+
+		RefreshSlots(Equipped);
 	}
 }
 void UMyBondageLifeOutfitColorProxy::HandleClicked()
