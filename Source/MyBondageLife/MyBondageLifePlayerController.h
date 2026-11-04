@@ -400,6 +400,11 @@ protected:
 
 	void ServerSetOutfitColors_Implementation(const TArray<FString>& Colors);
 
+	UFUNCTION(Server, Reliable)
+	void ServerSetRestraintColors(const TArray<FString>& Colors);
+
+	void ServerSetRestraintColors_Implementation(const TArray<FString>& Colors);
+
 	UFUNCTION()
 	void HandleOutfitsChanged();
 

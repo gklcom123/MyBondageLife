@@ -175,6 +175,7 @@ void AMyBondageLifeCharacter::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(AMyBondageLifeCharacter, SittingRotation);
 	DOREPLIFETIME(AMyBondageLifeCharacter, SittingOffset);
 	DOREPLIFETIME(AMyBondageLifeCharacter, OccupiedSeat);
+	DOREPLIFETIME(AMyBondageLifeCharacter, RestraintColorArray);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bRestraintLeg);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bCantMove);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bInPetMode);
@@ -1545,4 +1546,27 @@ void AMyBondageLifeCharacter::ApplyRestraintColors()
 			}
 		}
 	}
+}
+void AMyBondageLifeCharacter::SetRestraintColors(const TArray<FString>& Colors)
+{
+	RestraintColorArray = Colors;
+	RestraintColorHex.Reset();
+
+	for (int32 Index = 0; Index < Colors.Num(); ++Index)
+	{
+		if (Colors[Index].IsEmpty())
+		{
+			continue;
+		}
+		const int32 SlotIndex = Index / 3;
+		const int32 Channel = (Index % 3) + 1;
+		RestraintColorHex.FindOrAdd(SlotIndex).Add(Channel, Colors[Index]);
+	}
+
+	ApplyRestraintColors();
+}
+
+void AMyBondageLifeCharacter::OnRep_RestraintColors()
+{
+	SetRestraintColors(RestraintColorArray);
 }

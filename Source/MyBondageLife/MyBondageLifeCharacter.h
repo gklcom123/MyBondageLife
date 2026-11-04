@@ -164,6 +164,16 @@ public:
 
 	void ApplyRestraintColors();
 
+	/** 远端同步用：槽位×3 的扁平颜色数组（空串=未染色）。 */
+	UFUNCTION(BlueprintCallable, Category="Restraint")
+	void SetRestraintColors(const TArray<FString>& Colors);
+
+	UPROPERTY(ReplicatedUsing = OnRep_RestraintColors)
+	TArray<FString> RestraintColorArray;
+
+	UFUNCTION()
+	void OnRep_RestraintColors();
+
 	TMap<int32, TMap<int32, FString>> RestraintColorHex;
 
 	UPROPERTY(Replicated)

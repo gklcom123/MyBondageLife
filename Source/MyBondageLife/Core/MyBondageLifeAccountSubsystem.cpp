@@ -1345,6 +1345,10 @@ void UMyBondageLifeAccountSubsystem::RefreshRestraints()
 					const int32 SlotIndex = FMath::Clamp(static_cast<int32>(SlotValue), 0, FMyBondageLifeRestraintCatalog::SlotCount - 1);
 					Self->EquippedRestraints.Add(SlotIndex, ItemId);
 
+					TMap<int32, FString> RestraintCols;
+					ParseOutfitColors(Item, RestraintCols);
+					Self->OwnRestraintColors.Add(SlotIndex, RestraintCols);
+
 					const TSharedPtr<FJsonObject>* LockObject = nullptr;
 					if (!Item->TryGetObjectField(TEXT("lock"), LockObject) || !LockObject || !LockObject->IsValid())
 					{

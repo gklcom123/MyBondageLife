@@ -4,6 +4,7 @@
 
 #include "Core/MyBondageLifeAccountSubsystem.h"
 #include "Core/MyBondageLifeOutfitCatalog.h"
+#include "Core/MyBondageLifeRestraintCatalog.h"
 #include "Core/Garbler/MyBondageLifeGarbler.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -2554,6 +2555,18 @@ void AMyBondageLifePlayerController::PushOutfitsToPawn()
 		{
 			TargetCharacter->SetOutfits(Slots, Items);
 			TargetCharacter->SetOutfitColors(Colors);
+
+			TArray<FString> RestraintColors;
+			for (int32 SlotIndex = 0; SlotIndex < FMyBondageLifeRestraintCatalog::SlotCount; ++SlotIndex)
+			{
+				const TMap<int32, FString> SlotColors = Account->GetRestraintColors(SlotIndex);
+				for (int32 Channel = 1; Channel <= 3; ++Channel)
+				{
+					const FString* Hex = SlotColors.Find(Channel);
+					RestraintColors.Add(Hex ? *Hex : FString());
+				}
+			}
+			TargetCharacter->SetRestraintColors(RestraintColors);
 		}
 	}
 	else
@@ -2868,4 +2881,11 @@ void AMyBondageLifePlayerController::HandleStandUpOnMove()
 	const FVector StandLocation = MovingPawn->GetActorLocation()
 		+ MovingPawn->GetActorForwardVector() * 150.0f;
 	MovingPawn->ServerSetSitting(false, StandLocation, MovingPawn->GetActorRotation());
+}
+void AMyBondageLifePlayerController::ServerSetRestraintColors_Implementation(const TArray<FString>& Colors)
+{
+	if (AMyBondageLifeCharacter* TargetCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		TargetCharacter->SetRestraintColors(Colors);
+	}
 }
