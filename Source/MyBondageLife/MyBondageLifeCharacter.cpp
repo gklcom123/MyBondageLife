@@ -1400,7 +1400,8 @@ void AMyBondageLifeCharacter::ApplySitting()
 				bOutfitBaseCaptured = true;
 			}
 
-			SittingMeshDrop = FMath::Max(0.0f, GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() - SittingOffset);
+			// SitOffset = mesh height correction in cm: 0 keeps it, positive lifts, negative lowers.
+			SittingMeshDrop = -SittingOffset;
 
 			UE_LOG(LogMyBondageLife, Log, TEXT("Sit: capsuleHalf=%.1f offset=%.1f drop=%.1f"),
 				GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), SittingOffset, SittingMeshDrop);
