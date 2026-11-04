@@ -1373,6 +1373,13 @@ void AMyBondageLifeCharacter::ApplySitting()
 
 	if (bSitting)
 	{
+		// 坐着时关掉弹簧臂碰撞并把镜头拉近，避免摄像机卡进身体/椅子。
+		if (USpringArmComponent* SittingBoom = GetCameraBoom())
+		{
+			SittingBoom->bDoCollisionTest = false;
+			SittingBoom->TargetArmLength = 220.0f;
+		}
+
 		SetActorLocation(SittingLocation, false, nullptr, ETeleportType::TeleportPhysics);
 		SetActorRotation(SittingRotation, ETeleportType::TeleportPhysics);
 
@@ -1408,6 +1415,11 @@ void AMyBondageLifeCharacter::ApplySitting()
 				OutfitBaseMeshZ));
 		}
 		SittingMeshDrop = 0.0f;
+
+		if (USpringArmComponent* StandingBoom = GetCameraBoom())
+		{
+			StandingBoom->bDoCollisionTest = true;
+		}
 
 		if (UCharacterMovementComponent* Movement = GetCharacterMovement())
 		{
