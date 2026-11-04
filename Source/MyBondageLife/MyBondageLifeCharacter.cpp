@@ -173,6 +173,7 @@ void AMyBondageLifeCharacter::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(AMyBondageLifeCharacter, bSitting);
 	DOREPLIFETIME(AMyBondageLifeCharacter, SittingLocation);
 	DOREPLIFETIME(AMyBondageLifeCharacter, SittingRotation);
+	DOREPLIFETIME(AMyBondageLifeCharacter, SittingOffset);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bRestraintLeg);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bCantMove);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bInPetMode);
@@ -356,14 +357,14 @@ void AMyBondageLifeCharacter::Tick(float DeltaSeconds)
 	// 坐着时按移动键（WASD）立即起身。
 	if (bSitting && GetPendingMovementInputVector().SizeSquared() > 0.01f)
 	{
-		const FVector StandLocation = GetActorLocation() + GetActorForwardVector() * 80.0f;
+		const FVector StandLocation = GetActorLocation() + GetActorForwardVector() * 150.0f;
 		ServerSetSitting(false, StandLocation, GetActorRotation());
 	}
 
 	// 坐着时按移动键（WASD）立即起身。
 	if (bSitting && GetPendingMovementInputVector().SizeSquared() > 0.01f)
 	{
-		const FVector StandLocation = GetActorLocation() + GetActorForwardVector() * 80.0f;
+		const FVector StandLocation = GetActorLocation() + GetActorForwardVector() * 150.0f;
 		ServerSetSitting(false, StandLocation, GetActorRotation());
 	}
 
@@ -1345,11 +1346,12 @@ void AMyBondageLifeCharacter::SetOutfitColorChannel(int32 SlotIndex, int32 Chann
 // Sitting
 // ---------------------------------------------------------------------------
 
-void AMyBondageLifeCharacter::ServerSetSitting_Implementation(bool bSit, FVector SeatLocation, FRotator SeatRotation)
+void AMyBondageLifeCharacter::ServerSetSitting_Implementation(bool bSit, FVector SeatLocation, FRotator SeatRotation, float SeatOffset)
 {
 	bSitting = bSit;
 	SittingLocation = SeatLocation;
 	SittingRotation = SeatRotation;
+	SittingOffset = SeatOffset;
 	ApplySitting();
 }
 
@@ -1398,7 +1400,7 @@ void AMyBondageLifeCharacter::ApplySitting()
 				bOutfitBaseCaptured = true;
 			}
 
-			SittingMeshDrop = FMath::Max(0.0f, GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() - 55.0f);
+			SittingMeshDrop = FMath::Max(0.0f, GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() - SittingOffset);
 			BodyMesh->SetRelativeLocation(FVector(
 				BodyMesh->GetRelativeLocation().X,
 				BodyMesh->GetRelativeLocation().Y,

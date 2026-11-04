@@ -151,12 +151,15 @@ public:
 
 	// ---------------------------------------------------------------- sitting
 	UFUNCTION(Server, Reliable)
-	void ServerSetSitting(bool bSit, FVector SeatLocation, FRotator SeatRotation);
+	void ServerSetSitting(bool bSit, FVector SeatLocation, FRotator SeatRotation, float SeatOffset = 0.0f);
 
 	UFUNCTION(BlueprintPure, Category="Sitting")
 	bool IsSitting() const { return bSitting; }
 
 	void ApplySitting();
+
+	UPROPERTY(Replicated)
+	float SittingOffset = 0.0f;
 
 	UPROPERTY(ReplicatedUsing = OnRep_Sitting, BlueprintReadOnly, Category="Sitting")
 	bool bSitting = false;

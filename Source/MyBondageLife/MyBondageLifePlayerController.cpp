@@ -2711,7 +2711,7 @@ void AMyBondageLifePlayerController::TryToggleSitting()
 	if (SittingPawn->IsSitting())
 	{
 		const FVector StandLocation = SittingPawn->GetActorLocation()
-			+ SittingPawn->GetActorForwardVector() * 80.0f;
+			+ SittingPawn->GetActorForwardVector() * 150.0f;
 		SittingPawn->ServerSetSitting(false, StandLocation, SittingPawn->GetActorRotation());
 		return;
 	}
@@ -2739,7 +2739,22 @@ void AMyBondageLifePlayerController::TryToggleSitting()
 	const FVector SeatLocation = SitPoint ? SitPoint->GetComponentLocation() : NearSeatActor->GetActorLocation();
 	const FRotator SeatRotation = SitPoint ? SitPoint->GetComponentRotation() : NearSeatActor->GetActorRotation();
 
-	SittingPawn->ServerSetSitting(true, SeatLocation, SeatRotation);
+	// 家具蓝图里的浮点变量 SitOffset（BP float 在 UE5 里是 double）
+	float SitOffset = 0.0f;
+	AActor* SeatActorPtr = NearSeatActor.Get();
+	if (SeatActorPtr)
+	{
+		if (const FDoubleProperty* DoubleProperty = CastField<FDoubleProperty>(SeatActorPtr->GetClass()->FindPropertyByName(TEXT("SitOffset"))))
+		{
+			SitOffset = static_cast<float>(DoubleProperty->GetPropertyValue_InContainer(SeatActorPtr));
+		}
+		else if (const FFloatProperty* FloatProperty = CastField<FFloatProperty>(SeatActorPtr->GetClass()->FindPropertyByName(TEXT("SitOffset"))))
+		{
+			SitOffset = FloatProperty->GetPropertyValue_InContainer(SeatActorPtr);
+		}
+	}
+
+	SittingPawn->ServerSetSitting(true, SeatLocation, SeatRotation, SitOffset);
 }
 
 void AMyBondageLifePlayerController::UpdateSeatProximity()
