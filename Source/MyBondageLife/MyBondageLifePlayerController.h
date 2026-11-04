@@ -544,6 +544,16 @@ public:
 
 	void TryToggleSitting();
 
+	UFUNCTION()
+	void UpdateSeatProximity();
+
+	TWeakObjectPtr<AActor> NearSeatActor;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UMyBondageLifeSitHintWidget> SeatHintWidget;
+
+	FTimerHandle SeatProximityTimer;
+
 	void HandleSitKeyPressed();
 
 	UFUNCTION()

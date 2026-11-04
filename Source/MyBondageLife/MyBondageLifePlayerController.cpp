@@ -12,6 +12,7 @@
 #include "GameFramework/PlayerState.h"
 #include "InputMappingContext.h"
 #include "MyBondageLife.h"
+#include "UI/MyBondageLifeSitHintWidget.h"
 #include "MyBondageLifeCharacter.h"
 #include "Network/MyBondageLifeSessionSubsystem.h"
 #include "UI/MainSceneWidget.h"
@@ -1519,11 +1520,17 @@ void AMyBondageLifePlayerController::BeginPlay()
 
 void AMyBondageLifePlayerController::SetupInputComponent()
 {
-	// 右键：椅子交互（坐下 / 起身）
+	// G：靠近椅子时坐下 / 起身
 	if (InputComponent)
 	{
-		InputComponent->BindKey(EKeys::RightMouseButton, IE_Pressed, this,
-			&AMyBondageLifePlayerController::HandleInteractPressed);
+		InputComponent->BindKey(EKeys::G, IE_Pressed, this,
+			&AMyBondageLifePlayerController::HandleSitKeyPressed);
+	}
+
+	if (UWorld* SeatWorld = GetWorld())
+	{
+		SeatWorld->GetTimerManager().SetTimer(SeatProximityTimer, this,
+			&AMyBondageLifePlayerController::UpdateSeatProximity, 0.25f, true);
 	}
 	Super::SetupInputComponent();
 
@@ -2696,59 +2703,22 @@ void AMyBondageLifePlayerController::TryToggleSitting()
 		return;
 	}
 
-	// 正在坐着 -> 起身（先站到坐点前方一点，避免卡在椅子里）。
 	if (SittingPawn->IsSitting())
 	{
 		const FVector StandLocation = SittingPawn->GetActorLocation()
 			+ SittingPawn->GetActorForwardVector() * 80.0f;
-		if (HasAuthority())
-		{
-			SittingPawn->ServerSetSitting(false, StandLocation, SittingPawn->GetActorRotation());
-			SittingPawn->SetActorLocation(StandLocation, false, nullptr, ETeleportType::TeleportPhysics);
-		}
-		else
-		{
-			SittingPawn->ServerSetSitting(false, StandLocation, SittingPawn->GetActorRotation());
-		}
+		SittingPawn->ServerSetSitting(false, StandLocation, SittingPawn->GetActorRotation());
 		return;
 	}
 
-	// 找鼠标下的椅子：优先用鼠标位置，没有鼠标位置就用屏幕中心。
-	FVector WorldOrigin = FVector::ZeroVector;
-	FVector WorldDirection = FVector::ZeroVector;
-	float MouseX = 0.0f;
-	float MouseY = 0.0f;
-	bool bDeprojected = GetMousePosition(MouseX, MouseY)
-		&& DeprojectScreenPositionToWorld(MouseX, MouseY, WorldOrigin, WorldDirection);
-
-	if (!bDeprojected)
-	{
-		if (const APlayerCameraManager* CameraManager = PlayerCameraManager)
-		{
-			WorldOrigin = CameraManager->GetCameraLocation();
-			WorldDirection = CameraManager->GetCameraRotation().Vector();
-		}
-	}
-
-	const FVector TraceEnd = WorldOrigin + WorldDirection * 600.0f;
-	FHitResult Hit;
-	FCollisionQueryParams Params(SCENE_QUERY_STAT(SitTrace), false, SittingPawn);
-
-	if (!GetWorld()->LineTraceSingleByChannel(Hit, WorldOrigin, TraceEnd, ECC_Visibility, Params))
+	if (!NearSeatActor.IsValid())
 	{
 		return;
 	}
 
-	AActor* HitActor = Hit.GetActor();
-	if (!HitActor)
-	{
-		return;
-	}
-
-	// 椅子的坐下点：BP 里加一个 SceneComponent 命名为 SitPoint
 	USceneComponent* SitPoint = nullptr;
 	TArray<USceneComponent*> Components;
-	HitActor->GetComponents<USceneComponent>(Components);
+	NearSeatActor->GetComponents<USceneComponent>(Components);
 	for (USceneComponent* Component : Components)
 	{
 		if (Component && Component->GetFName() == TEXT("SitPoint"))
@@ -2758,15 +2728,83 @@ void AMyBondageLifePlayerController::TryToggleSitting()
 		}
 	}
 
-	const FVector SeatLocation = SitPoint ? SitPoint->GetComponentLocation() : HitActor->GetActorLocation();
-	const FRotator SeatRotation = SitPoint ? SitPoint->GetComponentRotation() : HitActor->GetActorRotation();
+	const FVector SeatLocation = SitPoint ? SitPoint->GetComponentLocation() : NearSeatActor->GetActorLocation();
+	const FRotator SeatRotation = SitPoint ? SitPoint->GetComponentRotation() : NearSeatActor->GetActorRotation();
 
-	if (HasAuthority())
+	SittingPawn->ServerSetSitting(true, SeatLocation, SeatRotation);
+}
+
+void AMyBondageLifePlayerController::UpdateSeatProximity()
+{
+	AMyBondageLifeCharacter* SittingPawn = Cast<AMyBondageLifeCharacter>(GetPawn());
+	if (!SittingPawn)
 	{
-		SittingPawn->ServerSetSitting(true, SeatLocation, SeatRotation);
+		return;
 	}
-	else
+
+	AActor* Best = nullptr;
+	float BestDistance = 250.0f;
+
+	if (!SittingPawn->IsSitting())
 	{
-		SittingPawn->ServerSetSitting(true, SeatLocation, SeatRotation);
+		for (TActorIterator<AActor> It(GetWorld()); It; ++It)
+		{
+			AActor* Actor = *It;
+			if (!Actor)
+			{
+				continue;
+			}
+
+			bool bHasSitPoint = false;
+			TArray<USceneComponent*> Components;
+			Actor->GetComponents<USceneComponent>(Components);
+			FVector SitLocation = Actor->GetActorLocation();
+			for (USceneComponent* Component : Components)
+			{
+				if (Component && Component->GetFName() == TEXT("SitPoint"))
+				{
+					bHasSitPoint = true;
+					SitLocation = Component->GetComponentLocation();
+					break;
+				}
+			}
+
+			if (!bHasSitPoint)
+			{
+				continue;
+			}
+
+			const float Distance = FVector::Dist(SittingPawn->GetActorLocation(), SitLocation);
+			if (Distance < BestDistance)
+			{
+				BestDistance = Distance;
+				Best = Actor;
+			}
+		}
+	}
+
+	NearSeatActor = Best;
+
+	// UI 提示："按[G]坐下"
+	const bool bShowHint = Best != nullptr;
+	if (bShowHint && !SeatHintWidget)
+	{
+		UClass* HintClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_SitHint.WBP_SitHint_C"));
+		if (!HintClass)
+		{
+			HintClass = UMyBondageLifeSitHintWidget::StaticClass();
+		}
+		SeatHintWidget = CreateWidget<UMyBondageLifeSitHintWidget>(this, HintClass);
+		if (SeatHintWidget)
+		{
+			SeatHintWidget->AddToViewport(40);
+		}
+	}
+
+	if (SeatHintWidget)
+	{
+		SeatHintWidget->SetVisibility(bShowHint
+			? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+		SeatHintWidget->SetPositionInViewport(FVector2D(560.0f, 470.0f), false);
 	}
 }

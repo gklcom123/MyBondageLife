@@ -353,6 +353,20 @@ void AMyBondageLifeCharacter::Tick(float DeltaSeconds)
 		ApplyOutfitCapsule();
 	}
 
+	// 坐着时按移动键（WASD）立即起身。
+	if (bSitting && GetPendingMovementInputVector().SizeSquared() > 0.01f)
+	{
+		const FVector StandLocation = GetActorLocation() + GetActorForwardVector() * 80.0f;
+		ServerSetSitting(false, StandLocation, GetActorRotation());
+	}
+
+	// 坐着时按移动键（WASD）立即起身。
+	if (bSitting && GetPendingMovementInputVector().SizeSquared() > 0.01f)
+	{
+		const FVector StandLocation = GetActorLocation() + GetActorForwardVector() * 80.0f;
+		ServerSetSitting(false, StandLocation, GetActorRotation());
+	}
+
 	// 皮肤/衣物任何一次换材质都可能把透明槽位盖回来，这里做低频兜底。
 	if (RestraintHiddenParts.Num() + OutfitHiddenParts.Num() > 0)
 	{
