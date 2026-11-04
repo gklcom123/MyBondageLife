@@ -149,6 +149,10 @@ public:
 
 	void ApplyOutfitColors();
 
+	/** 当前穿着的衣物件数（用于 UI 空数据保护）。 */
+	UFUNCTION(BlueprintPure, Category = "Outfit")
+	int32 GetWornOutfitCount() const { return OutfitItemIds.Num(); }
+
 	// ---------------------------------------------------------------- sitting
 	UFUNCTION(Server, Reliable)
 	void ServerSetSitting(bool bSit, FVector SeatLocation, FRotator SeatRotation, float SeatOffset = 0.0f, AActor* SeatActor = nullptr);

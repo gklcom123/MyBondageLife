@@ -2410,11 +2410,25 @@ void UMyBondageLifeWardrobeWidget::RefreshOutfitSlots()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>()
 		: nullptr)
 	{
-		OutfitSlots->RefreshSlots(bFriendMode
+		const TMap<int32, FString> Equipped = bFriendMode
 			? (Account->GetOutfitsForAccount(FriendAccount).Num() > 0
 				? Account->GetOutfitsForAccount(FriendAccount)
 				: Account->GetViewedOutfits())
-			: Account->GetEquippedOutfits());
+			: Account->GetEquippedOutfits();
+
+		// 数据是空但角色身上还穿着：不要用空数据把面板清空（偶发一次空刷新会白屏）。
+		if (!bFriendMode && Equipped.Num() == 0)
+		{
+			const AMyBondageLifeCharacter* WearingCharacter = Cast<AMyBondageLifeCharacter>(
+				GetOwningPlayer() ? GetOwningPlayer()->GetPawn() : nullptr);
+			if (WearingCharacter && WearingCharacter->GetWornOutfitCount() > 0)
+			{
+				UE_LOG(LogMyBondageLife, Warning, TEXT("Wardrobe: skip empty outfit refresh (still dressed)."));
+				return;
+			}
+		}
+
+		OutfitSlots->RefreshSlots(Equipped);
 	}
 }
 
