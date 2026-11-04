@@ -360,8 +360,10 @@ void AMyBondageLifeCharacter::Tick(float DeltaSeconds)
 	{
 		if (USkeletalMeshComponent* SittingMesh = GetMesh())
 		{
-			// 网格相对位置是组件局部空间，会随 Actor 缩放，所以这里直接用未缩放的 SitOffset。
-			const float TargetZ = OutfitBaseMeshZ + SittingOffset;
+			// SitOffset 按标准身高标定：局部空间要除以 Actor 缩放，
+			// 让世界空间的位移保持不变（身高越高，需要下沉的相对量越小）。
+			const float ScaleZ = FMath::Max(GetActorScale3D().Z, 0.01f);
+			const float TargetZ = OutfitBaseMeshZ + SittingOffset / ScaleZ;
 			FVector Location = SittingMesh->GetRelativeLocation();
 			if (!FMath::IsNearlyEqual(Location.Z, TargetZ, 0.1f))
 			{
@@ -1430,7 +1432,7 @@ void AMyBondageLifeCharacter::ApplySitting()
 				bOutfitBaseCaptured = true;
 			}
 
-			SittingMeshDrop = -SittingOffset;
+			SittingMeshDrop = -SittingOffset / FMath::Max(ActorScaleZ, 0.01f);
 
 			UE_LOG(LogMyBondageLife, Log, TEXT("Sit: capsuleHalf=%.1f offset=%.1f drop=%.1f"),
 				GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), SittingOffset, SittingMeshDrop);
