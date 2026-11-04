@@ -2719,5 +2719,11 @@ void UMyBondageLifeWardrobeWidget::HandleRestraintColorCommitted(int32 SlotIndex
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
 	{
 		Account->SetRestraintColor(SlotIndex, Channel, HexColor, bFriendMode ? FriendAccount : FString());
+
+		// 自己染色后重新下发，远端才能立刻看到新颜色
+		if (!bFriendMode)
+		{
+			Account->OnRestraintsChanged.Broadcast();
+		}
 	}
 }
