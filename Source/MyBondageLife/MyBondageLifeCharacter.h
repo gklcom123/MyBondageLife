@@ -151,7 +151,7 @@ public:
 
 	// ---------------------------------------------------------------- sitting
 	UFUNCTION(Server, Reliable)
-	void ServerSetSitting(bool bSit, FVector SeatLocation, FRotator SeatRotation, float SeatOffset = 0.0f);
+	void ServerSetSitting(bool bSit, FVector SeatLocation, FRotator SeatRotation, float SeatOffset = 0.0f, AActor* SeatActor = nullptr);
 
 	UFUNCTION(BlueprintPure, Category="Sitting")
 	bool IsSitting() const { return bSitting; }
@@ -174,6 +174,13 @@ public:
 	void OnRep_Sitting();
 
 	float SittingMeshDrop = 0.0f;
+
+	/** 当前坐着的椅子（用于占座判定）。 */
+	UPROPERTY(Replicated, BlueprintReadOnly, Category="Sitting")
+	TObjectPtr<AActor> OccupiedSeat;
+
+	UFUNCTION(BlueprintPure, Category="Sitting")
+	AActor* GetOccupiedSeat() const { return OccupiedSeat; }
 
 	/** 设置某槽位某通道的颜色（空字符串=清除）。 */
 	UFUNCTION(BlueprintCallable, Category="Outfit")

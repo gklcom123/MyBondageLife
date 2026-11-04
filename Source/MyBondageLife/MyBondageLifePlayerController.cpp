@@ -2756,7 +2756,7 @@ void AMyBondageLifePlayerController::TryToggleSitting()
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("Seat: SitOffset=%.1f (class=%s)"), SitOffset, *SeatActorPtr->GetClass()->GetName());
 
-	SittingPawn->ServerSetSitting(true, SeatLocation, SeatRotation, SitOffset);
+	SittingPawn->ServerSetSitting(true, SeatLocation, SeatRotation, SitOffset, NearSeatActor.Get());
 }
 
 void AMyBondageLifePlayerController::UpdateSeatProximity()
@@ -2795,6 +2795,24 @@ void AMyBondageLifePlayerController::UpdateSeatProximity()
 			}
 
 			if (!bHasSitPoint)
+			{
+				continue;
+			}
+
+			// 已被别人坐着的椅子不能选
+			bool bOccupiedByOther = false;
+			for (TActorIterator<AMyBondageLifeCharacter> CharIt(GetWorld()); CharIt; ++CharIt)
+			{
+				AMyBondageLifeCharacter* OtherCharacter = *CharIt;
+				if (OtherCharacter && OtherCharacter != SittingPawn
+					&& OtherCharacter->GetOccupiedSeat() == Actor)
+				{
+					bOccupiedByOther = true;
+					break;
+				}
+			}
+
+			if (bOccupiedByOther)
 			{
 				continue;
 			}

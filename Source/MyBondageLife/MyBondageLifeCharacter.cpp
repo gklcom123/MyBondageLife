@@ -174,6 +174,7 @@ void AMyBondageLifeCharacter::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(AMyBondageLifeCharacter, SittingLocation);
 	DOREPLIFETIME(AMyBondageLifeCharacter, SittingRotation);
 	DOREPLIFETIME(AMyBondageLifeCharacter, SittingOffset);
+	DOREPLIFETIME(AMyBondageLifeCharacter, OccupiedSeat);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bRestraintLeg);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bCantMove);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bInPetMode);
@@ -352,6 +353,21 @@ void AMyBondageLifeCharacter::Tick(float DeltaSeconds)
 	if (bOutfitBaseCaptured && !bSitting)
 	{
 		ApplyOutfitCapsule();
+	}
+
+	// 坐着时保持坐下偏移（本地与远端客户端都生效，换鞋也不会重置）
+	if (bSitting)
+	{
+		if (USkeletalMeshComponent* SittingMesh = GetMesh())
+		{
+			const float TargetZ = OutfitBaseMeshZ + SittingOffset;
+			FVector Location = SittingMesh->GetRelativeLocation();
+			if (!FMath::IsNearlyEqual(Location.Z, TargetZ, 0.1f))
+			{
+				Location.Z = TargetZ;
+				SittingMesh->SetRelativeLocation(Location);
+			}
+		}
 	}
 
 	// 坐着时按移动键（WASD）立即起身。
@@ -1343,12 +1359,13 @@ void AMyBondageLifeCharacter::SetOutfitColorChannel(int32 SlotIndex, int32 Chann
 // Sitting
 // ---------------------------------------------------------------------------
 
-void AMyBondageLifeCharacter::ServerSetSitting_Implementation(bool bSit, FVector SeatLocation, FRotator SeatRotation, float SeatOffset)
+void AMyBondageLifeCharacter::ServerSetSitting_Implementation(bool bSit, FVector SeatLocation, FRotator SeatRotation, float SeatOffset, AActor* SeatActor)
 {
 	bSitting = bSit;
 	SittingLocation = SeatLocation;
 	SittingRotation = SeatRotation;
 	SittingOffset = SeatOffset;
+	OccupiedSeat = bSit ? SeatActor : nullptr;
 	ApplySitting();
 }
 
