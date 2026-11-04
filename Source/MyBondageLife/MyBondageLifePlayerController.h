@@ -557,6 +557,9 @@ public:
 	void HandleSitKeyPressed();
 
 	UFUNCTION()
+	void HandleStandUpOnMove();
+
+	UFUNCTION()
 	void HandleSystemChatMessage(const FString& Text);
 
 	// ---------------------------------------------------------------- message center

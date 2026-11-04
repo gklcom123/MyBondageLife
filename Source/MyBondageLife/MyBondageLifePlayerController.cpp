@@ -1532,11 +1532,11 @@ void AMyBondageLifePlayerController::SetupInputComponent()
 	InputComponent->BindKey(EKeys::G, IE_Pressed, this,
 		&AMyBondageLifePlayerController::HandleSitKeyPressed);
 
-	// 坐着时按任意移动键起身
-	InputComponent->BindKey(EKeys::W, IE_Pressed, this, &AMyBondageLifePlayerController::HandleSitKeyPressed);
-	InputComponent->BindKey(EKeys::A, IE_Pressed, this, &AMyBondageLifePlayerController::HandleSitKeyPressed);
-	InputComponent->BindKey(EKeys::S, IE_Pressed, this, &AMyBondageLifePlayerController::HandleSitKeyPressed);
-	InputComponent->BindKey(EKeys::D, IE_Pressed, this, &AMyBondageLifePlayerController::HandleSitKeyPressed);
+	// 坐着时按任意移动键起身（只起身，不会触发坐下）
+	InputComponent->BindKey(EKeys::W, IE_Pressed, this, &AMyBondageLifePlayerController::HandleStandUpOnMove);
+	InputComponent->BindKey(EKeys::A, IE_Pressed, this, &AMyBondageLifePlayerController::HandleStandUpOnMove);
+	InputComponent->BindKey(EKeys::S, IE_Pressed, this, &AMyBondageLifePlayerController::HandleStandUpOnMove);
+	InputComponent->BindKey(EKeys::D, IE_Pressed, this, &AMyBondageLifePlayerController::HandleStandUpOnMove);
 
 	if (UWorld* SeatWorld = GetWorld())
 	{
@@ -2837,4 +2837,17 @@ void AMyBondageLifePlayerController::UpdateSeatProximity()
 			? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 		SeatHintWidget->SetPositionInViewport(FVector2D(560.0f, 470.0f), false);
 	}
+}
+
+void AMyBondageLifePlayerController::HandleStandUpOnMove()
+{
+	AMyBondageLifeCharacter* MovingPawn = Cast<AMyBondageLifeCharacter>(GetPawn());
+	if (!MovingPawn || !MovingPawn->IsSitting())
+	{
+		return;
+	}
+
+	const FVector StandLocation = MovingPawn->GetActorLocation()
+		+ MovingPawn->GetActorForwardVector() * 150.0f;
+	MovingPawn->ServerSetSitting(false, StandLocation, MovingPawn->GetActorRotation());
 }
