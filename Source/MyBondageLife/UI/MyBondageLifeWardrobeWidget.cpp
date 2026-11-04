@@ -2632,11 +2632,18 @@ void UMyBondageLifeWardrobeWidget::OpenOutfitColorPicker(int32 SlotIndex, int32 
 		return;
 	}
 
+	// 衣物使用自己的回调（否则会沿用上一次的拘束回调）
+	OutfitColorPicker->OnColorCommitted.Clear();
+	OutfitColorPicker->OnColorCommitted.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleOutfitColorCommitted);
+
 	FString CurrentHex;
 	if (const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
 	{
-		const TMap<int32, FString> Colors = Account->GetOutfitColors(SlotIndex);
+		// 好友衣柜读对方的颜色，自己的读本地缓存
+		const TMap<int32, FString> Colors = (bFriendMode && !FriendAccount.IsEmpty())
+			? Account->GetOutfitColorsForAccount(FriendAccount).FindRef(SlotIndex)
+			: Account->GetOutfitColors(SlotIndex);
 		if (const FString* Found = Colors.Find(Channel))
 		{
 			CurrentHex = *Found;
