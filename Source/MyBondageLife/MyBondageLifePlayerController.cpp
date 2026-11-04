@@ -2712,8 +2712,11 @@ void AMyBondageLifePlayerController::TryToggleSitting()
 
 	if (!NearSeatActor.IsValid())
 	{
+		UE_LOG(LogMyBondageLife, Warning, TEXT("Seat: no chair nearby on G press."));
 		return;
 	}
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("Seat: sitting on '%s'."), *NearSeatActor->GetName());
 
 	USceneComponent* SitPoint = nullptr;
 	TArray<USceneComponent*> Components;
@@ -2742,7 +2745,7 @@ void AMyBondageLifePlayerController::UpdateSeatProximity()
 	}
 
 	AActor* Best = nullptr;
-	float BestDistance = 50.0f;
+	float BestDistance = 100.0f;
 
 	if (!SittingPawn->IsSitting())
 	{
@@ -2780,6 +2783,11 @@ void AMyBondageLifePlayerController::UpdateSeatProximity()
 				Best = Actor;
 			}
 		}
+	}
+
+	if (Best)
+	{
+		UE_LOG(LogMyBondageLife, Log, TEXT("Seat: near '%s' (%.0fcm)."), *Best->GetName(), BestDistance);
 	}
 
 	NearSeatActor = Best;
