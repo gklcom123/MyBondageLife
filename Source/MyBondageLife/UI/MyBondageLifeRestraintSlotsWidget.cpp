@@ -238,6 +238,23 @@ void UMyBondageLifeRestraintSlotsWidget::RefreshSlots()
 			}
 		}
 
+		// 染色按钮：有穿戴才显示，材质有 ColorN 才可点
+		const int32 ColorMask = bWorn
+			? FMyBondageLifeRestraintCatalog::GetColorChannelMask(FName(*ItemId))
+			: 0;
+		for (int32 Channel = 1; Channel <= 3; ++Channel)
+		{
+			const FString ColorName = FString::Printf(TEXT("W_ChangeColor_%d_%d"), SlotIndex, Channel);
+			if (TObjectPtr<UButton>* FoundButton = ColorButtons.Find(ColorName))
+			{
+				if (UButton* ColorButton = FoundButton->Get())
+				{
+					ColorButton->SetVisibility(bWorn ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+					ColorButton->SetIsEnabled(bWorn && (ColorMask & (1 << (Channel - 1))) != 0);
+				}
+			}
+		}
+
 		if (SlotLockBadges.IsValidIndex(SlotIndex) && SlotLockBadges[SlotIndex])
 		{
 			const FMyBondageLifeRestraintLock Lock = !Account
@@ -279,4 +296,17 @@ void UMyBondageLifeRestraintSlotsWidget::HandleSlotClicked(int32 SlotIndex)
 void UMyBondageLifeRestraintSlotsWidget::HandleRestraintsChanged()
 {
 	RefreshSlots();
+}
+
+void UMyBondageLifeRestraintColorProxy::HandleClicked()
+{
+	if (Owner)
+	{
+		Owner->HandleColorClicked(Slot, Channel);
+	}
+}
+
+void UMyBondageLifeRestraintSlotsWidget::HandleColorClicked(int32 SlotIndex, int32 Channel)
+{
+	OnColorRequested.Broadcast(SlotIndex, Channel);
 }

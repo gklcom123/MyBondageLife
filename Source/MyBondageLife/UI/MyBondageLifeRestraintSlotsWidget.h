@@ -29,6 +29,7 @@ public:
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeRestraintSlotClicked, int32, SlotIndex);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FMyBondageLifeRestraintColorRequested, int32, Slot, int32, Channel);
 
 /**
  *  The 12 restraint slots plus the hint line under them.
@@ -36,6 +37,20 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeRestraintSlotClicked, 
  *  Split out of the wardrobe panel so it can be designed on its own in
  *  /Game/UI/WBP_RestraintSlots (parent = this class).
  */
+/** Click relay for one restraint colour button. */
+UCLASS()
+class UMyBondageLifeRestraintColorProxy : public UObject
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY() TObjectPtr<class UMyBondageLifeRestraintSlotsWidget> Owner;
+	int32 Slot = 0;
+	int32 Channel = 1;
+
+	UFUNCTION() void HandleClicked();
+};
+
 UCLASS()
 class MYBONDAGELIFE_API UMyBondageLifeRestraintSlotsWidget : public UUserWidget
 {
@@ -59,6 +74,17 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Restraint")
 	FMyBondageLifeRestraintSlotClicked OnSlotClicked;
+
+	UPROPERTY(BlueprintAssignable, Category = "Restraint")
+	FMyBondageLifeRestraintColorRequested OnColorRequested;
+
+	void HandleColorClicked(int32 Slot, int32 Channel);
+
+	UPROPERTY(Transient)
+	TMap<FString, TObjectPtr<class UButton>> ColorButtons;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<class UMyBondageLifeRestraintColorProxy>> ColorProxies;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Restraint", meta = (AllowPrivateAccess = "true"))
 	TArray<TObjectPtr<UButton>> SlotButtons;

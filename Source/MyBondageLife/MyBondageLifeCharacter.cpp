@@ -852,6 +852,7 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 
 	RestraintHiddenParts = HiddenParts;
 	ApplySkin();
+	ApplyRestraintColors();
 	ApplyBodyPartHiding();
 }
 
@@ -1473,6 +1474,75 @@ void AMyBondageLifeCharacter::ApplySitting()
 		if (UCharacterMovementComponent* Movement = GetCharacterMovement())
 		{
 			Movement->SetMovementMode(MOVE_Walking);
+		}
+	}
+}
+
+void AMyBondageLifeCharacter::SetRestraintColorChannel(int32 Slot, int32 Channel, const FString& HexColor)
+{
+	RestraintColorHex.FindOrAdd(Slot).Add(Channel, HexColor);
+	ApplyRestraintColors();
+}
+
+void AMyBondageLifeCharacter::ApplyRestraintColors()
+{
+	USkeletalMeshComponent* BodyMesh = GetMesh();
+	if (!BodyMesh)
+	{
+		return;
+	}
+
+	// 拘束网格 = 除身体/头发/衣物之外的骨骼网格组件
+	TArray<USkeletalMeshComponent*> Components;
+	GetComponents<USkeletalMeshComponent>(Components);
+
+	for (USkeletalMeshComponent* Component : Components)
+	{
+		if (!Component || Component == BodyMesh || Component->ComponentHasTag(TEXT("OutfitPart")))
+		{
+			continue;
+		}
+
+		for (const TPair<int32, TMap<int32, FString>>& SlotPair : RestraintColorHex)
+		{
+			for (const TPair<int32, FString>& ChannelPair : SlotPair.Value)
+			{
+				const FString& Hex = ChannelPair.Value;
+				if (Hex.Len() != 7)
+				{
+					continue;
+				}
+
+				const FLinearColor Color = FLinearColor::FromSRGBColor(FColor::FromHex(Hex));
+				const FName ParameterName(*FString::Printf(TEXT("Color%d"), ChannelPair.Key));
+
+				for (int32 MaterialIndex = 0; MaterialIndex < Component->GetNumMaterials(); ++MaterialIndex)
+				{
+					UMaterialInterface* Material = Component->GetMaterial(MaterialIndex);
+					if (!Material)
+					{
+						continue;
+					}
+
+					FLinearColor Dummy;
+					if (!Material->GetVectorParameterValue(FMaterialParameterInfo(ParameterName), Dummy))
+					{
+						continue;
+					}
+
+					UMaterialInstanceDynamic* Mid = Cast<UMaterialInstanceDynamic>(Material);
+					if (!Mid)
+					{
+						Mid = UMaterialInstanceDynamic::Create(Material, this);
+						if (!Mid)
+						{
+							continue;
+						}
+						Component->SetMaterial(MaterialIndex, Mid);
+					}
+					Mid->SetVectorParameterValue(ParameterName, Color);
+				}
+			}
 		}
 	}
 }

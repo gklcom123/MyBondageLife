@@ -5,6 +5,7 @@
 #include "Animation/AnimMontage.h"
 #include "Engine/DataTable.h"
 #include "Engine/SkeletalMesh.h"
+#include "Materials/MaterialInterface.h"
 #include "Engine/Texture2D.h"
 #include "MyBondageLife.h"
 #include "UObject/UnrealType.h"
@@ -356,4 +357,45 @@ FString FMyBondageLifeRestraintCatalog::GetDisplayName(FName ItemId)
 	}
 
 	return ItemId.ToString();
+}
+
+int32 FMyBondageLifeRestraintCatalog::GetColorChannelMask(FName ItemId)
+{
+	static TMap<FName, int32> Cache;
+	if (const int32* Cached = Cache.Find(ItemId))
+	{
+		return *Cached;
+	}
+
+	int32 Mask = 0;
+	USkeletalMesh* Mesh = LoadMesh(ItemId);
+	if (Mesh)
+	{
+		for (const FSkeletalMaterial& MaterialSlot : Mesh->GetMaterials())
+		{
+			UMaterialInterface* Material = MaterialSlot.MaterialInterface;
+			if (!Material)
+			{
+				continue;
+			}
+
+			for (int32 Channel = 1; Channel <= 3; ++Channel)
+			{
+				FLinearColor Dummy;
+				if (Material->GetVectorParameterValue(
+					FMaterialParameterInfo(*FString::Printf(TEXT("Color%d"), Channel)), Dummy))
+				{
+					Mask |= (1 << (Channel - 1));
+				}
+			}
+		}
+	}
+
+	Cache.Add(ItemId, Mask);
+	return Mask;
+}
+USkeletalMesh* FMyBondageLifeRestraintCatalog::LoadWornMesh(FName ItemId)
+{
+	const FMyBondageLifeRestraintItem* Item = Find(ItemId);
+	return Item ? Item->Mesh.LoadSynchronous() : nullptr;
 }

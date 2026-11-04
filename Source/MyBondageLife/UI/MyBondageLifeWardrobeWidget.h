@@ -310,6 +310,12 @@ protected:
 	UFUNCTION()
 	void HandleOutfitColorCommitted(int32 SlotIndex, int32 Channel, const FString& HexColor);
 
+	UFUNCTION()
+	void OpenRestraintColorPicker(int32 SlotIndex, int32 Channel);
+
+	UFUNCTION()
+	void HandleRestraintColorCommitted(int32 SlotIndex, int32 Channel, const FString& HexColor);
+
 	UPROPERTY(Transient)
 	TObjectPtr<class UMyBondageLifeColorPickerWidget> OutfitColorPicker;
 

@@ -158,6 +158,14 @@ public:
 
 	void ApplySitting();
 
+	/** 拘束染色：按槽位/通道应用到拘束网格材质。 */
+	UFUNCTION(BlueprintCallable, Category="Restraint")
+	void SetRestraintColorChannel(int32 Slot, int32 Channel, const FString& HexColor);
+
+	void ApplyRestraintColors();
+
+	TMap<int32, TMap<int32, FString>> RestraintColorHex;
+
 	UPROPERTY(Replicated)
 	float SittingOffset = 0.0f;
 

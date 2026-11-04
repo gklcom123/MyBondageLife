@@ -2170,3 +2170,45 @@ TMap<int32, TMap<int32, FString>> UMyBondageLifeAccountSubsystem::GetOutfitColor
 	}
 	return TMap<int32, TMap<int32, FString>>();
 }
+
+void UMyBondageLifeAccountSubsystem::SetRestraintColor(int32 Slot, int32 Channel, const FString& HexColor, const FString& Owner)
+{
+	if (Slot < 0 || Slot >= FMyBondageLifeRestraintCatalog::SlotCount || Channel < 1 || Channel > 3)
+	{
+		return;
+	}
+
+	const bool bOwn = Owner.IsEmpty() || Owner.Equals(AccountName, ESearchCase::IgnoreCase);
+	const FString Target = bOwn ? FString(TEXT("me")) : Owner;
+	OwnRestraintColors.FindOrAdd(Slot).Add(Channel, HexColor);
+
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetNumberField(TEXT("channel"), Channel);
+	if (HexColor.IsEmpty())
+	{
+		Body->SetField(TEXT("color"), MakeShared<FJsonValueNull>());
+	}
+	else
+	{
+		Body->SetStringField(TEXT("color"), HexColor.ToUpper());
+	}
+
+	const FString Path = FString::Printf(TEXT("/users/%s/restraints/%d/colors"), *Target, Slot);
+	SendFriendApiRequest(TEXT("PUT"), Path, Body,
+		[](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			if (!bOk)
+			{
+				UE_LOG(LogMyBondageLife, Warning, TEXT("Restraint colors: save failed (%d)."), StatusCode);
+			}
+		});
+}
+
+TMap<int32, FString> UMyBondageLifeAccountSubsystem::GetRestraintColors(int32 Slot) const
+{
+	if (const TMap<int32, FString>* Found = OwnRestraintColors.Find(Slot))
+	{
+		return *Found;
+	}
+	return TMap<int32, FString>();
+}

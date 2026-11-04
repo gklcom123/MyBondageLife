@@ -822,6 +822,7 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 	{
 		RestraintGrid->SetViewAccount(bFriendMode ? FriendAccount : FString());
 		RestraintGrid->OnSlotClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleGridSlotClicked);
+		RestraintGrid->OnColorRequested.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::OpenRestraintColorPicker);
 		UE_LOG(LogMyBondageLife, Log, TEXT("Wardrobe: using the designed slot grid."));
 	}
 
@@ -2665,4 +2666,58 @@ void UMyBondageLifeWardrobeWidget::HandleOutfitColorCommitted(int32 SlotIndex, i
 	}
 
 	Account->SetOutfitColor(SlotIndex, Channel, HexColor, bFriendMode ? FriendAccount : FString());
+}
+void UMyBondageLifeWardrobeWidget::OpenRestraintColorPicker(int32 SlotIndex, int32 Channel)
+{
+	if (!OutfitColorPicker)
+	{
+		UClass* PickerClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_ColorPicker.WBP_ColorPicker_C"));
+		if (PickerClass)
+		{
+			OutfitColorPicker = CreateWidget<UMyBondageLifeColorPickerWidget>(this, PickerClass);
+			if (OutfitColorPicker)
+			{
+				OutfitColorPicker->AddToViewport(310);
+			}
+		}
+	}
+
+	if (!OutfitColorPicker)
+	{
+		return;
+	}
+
+	// 复用同一个取色器：先解绑衣物回调，改绑拘束回调
+	OutfitColorPicker->OnColorCommitted.Clear();
+	OutfitColorPicker->OnColorCommitted.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleRestraintColorCommitted);
+
+	FString CurrentHex;
+	if (const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		const TMap<int32, FString> Colors = Account->GetRestraintColors(SlotIndex);
+		if (const FString* Found = Colors.Find(Channel))
+		{
+			CurrentHex = *Found;
+		}
+	}
+
+	OutfitColorPicker->OpenForColor(SlotIndex, Channel, CurrentHex);
+}
+
+void UMyBondageLifeWardrobeWidget::HandleRestraintColorCommitted(int32 SlotIndex, int32 Channel, const FString& HexColor)
+{
+	if (AMyBondageLifeCharacter* Character = Cast<AMyBondageLifeCharacter>(GetOwningPlayer() ? GetOwningPlayer()->GetPawn() : nullptr))
+	{
+		if (!bFriendMode)
+		{
+			Character->SetRestraintColorChannel(SlotIndex, Channel, HexColor);
+		}
+	}
+
+	if (UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		Account->SetRestraintColor(SlotIndex, Channel, HexColor, bFriendMode ? FriendAccount : FString());
+	}
 }

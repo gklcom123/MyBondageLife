@@ -72,6 +72,12 @@ public:
 	/** Display name of a slot ("嘴部", "项圈", ...). */
 	static FString GetSlotName(int32 Slot);
 
+	/** Bitmask of Color1/2/3 found on the item's materials. */
+	static int32 GetColorChannelMask(FName ItemId);
+
+	/** Worn mesh of an item (null when the row has none). */
+	static class USkeletalMesh* LoadWornMesh(FName ItemId);
+
 	/** Loads the mesh of an equipped item. */
 	static USkeletalMesh* LoadMesh(FName ItemId);
 

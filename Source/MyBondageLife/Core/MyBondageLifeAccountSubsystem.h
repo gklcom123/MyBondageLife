@@ -741,6 +741,14 @@ public:
 
 	TMap<int32, TMap<int32, FString>> GetOutfitColorsForAccount(const FString& InAccount) const;
 
+	UFUNCTION(BlueprintCallable, Category = "Restraint")
+	void SetRestraintColor(int32 Slot, int32 Channel, const FString& HexColor, const FString& Owner = FString());
+
+	UFUNCTION(BlueprintPure, Category = "Restraint")
+	TMap<int32, FString> GetRestraintColors(int32 Slot) const;
+
+	TMap<int32, TMap<int32, FString>> OwnRestraintColors;
+
 	UFUNCTION(BlueprintPure, Category = "Outfit")
 	TMap<int32, FString> GetViewedOutfits() const { return ViewedOutfits; }
 
