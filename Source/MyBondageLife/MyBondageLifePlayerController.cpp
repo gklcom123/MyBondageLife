@@ -2754,6 +2754,8 @@ void AMyBondageLifePlayerController::TryToggleSitting()
 		}
 	}
 
+	UE_LOG(LogMyBondageLife, Log, TEXT("Seat: SitOffset=%.1f (class=%s)"), SitOffset, *SeatActorPtr->GetClass()->GetName());
+
 	SittingPawn->ServerSetSitting(true, SeatLocation, SeatRotation, SitOffset);
 }
 

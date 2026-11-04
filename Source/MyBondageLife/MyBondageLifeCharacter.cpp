@@ -1401,6 +1401,9 @@ void AMyBondageLifeCharacter::ApplySitting()
 			}
 
 			SittingMeshDrop = FMath::Max(0.0f, GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() - SittingOffset);
+
+			UE_LOG(LogMyBondageLife, Log, TEXT("Sit: capsuleHalf=%.1f offset=%.1f drop=%.1f"),
+				GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), SittingOffset, SittingMeshDrop);
 			BodyMesh->SetRelativeLocation(FVector(
 				BodyMesh->GetRelativeLocation().X,
 				BodyMesh->GetRelativeLocation().Y,
