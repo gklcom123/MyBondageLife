@@ -1988,6 +1988,9 @@ void UMyBondageLifeWardrobeWidget::EnterFriendMode(const FString& InAccount)
 		OutfitSlots->SetViewAccount(bFriendMode ? FriendAccount : FString());
 	}
 
+	// 切换模式（含退出好友衣柜）后都要用对应数据重刷一次
+	RefreshOutfitSlots();
+
 	if (bFriendMode && !FriendAccount.IsEmpty())
 	{
 		if (UMyBondageLifeAccountSubsystem* OutfitAccount = GetGameInstance()
@@ -2416,14 +2419,19 @@ void UMyBondageLifeWardrobeWidget::RefreshOutfitSlots()
 				: Account->GetViewedOutfits())
 			: Account->GetEquippedOutfits();
 
-		// 数据是空但角色身上还穿着：不要用空数据把面板清空（偶发一次空刷新会白屏）。
-		if (!bFriendMode && Equipped.Num() == 0)
+		// 空数据不要清空面板：好友数据可能还没拉回来，自己的数据也可能是一次空回包。
+		if (Equipped.Num() == 0)
 		{
 			const AMyBondageLifeCharacter* WearingCharacter = Cast<AMyBondageLifeCharacter>(
 				GetOwningPlayer() ? GetOwningPlayer()->GetPawn() : nullptr);
-			if (WearingCharacter && WearingCharacter->GetWornOutfitCount() > 0)
+			if (!bFriendMode && WearingCharacter && WearingCharacter->GetWornOutfitCount() > 0)
 			{
 				UE_LOG(LogMyBondageLife, Warning, TEXT("Wardrobe: skip empty outfit refresh (still dressed)."));
+				return;
+			}
+			if (bFriendMode)
+			{
+				// 好友数据未到：保持上一次显示，等 OnAccountOutfitsChanged 再刷。
 				return;
 			}
 		}
