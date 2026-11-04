@@ -1379,8 +1379,16 @@ void AMyBondageLifeCharacter::ApplySitting()
 			SittingBoom->TargetArmLength = 220.0f;
 		}
 
+		// 坐着时忽略高跟鞋 FeetOffset：先把胶囊恢复成基础半高，
+		// 否则鞋子抬高会把坐姿整体顶起来。
+		if (UCapsuleComponent* SitCapsule = GetCapsuleComponent())
+		{
+			SitCapsule->SetCapsuleSize(SitCapsule->GetUnscaledCapsuleRadius(),
+				OutfitBaseHalfHeight, true);
+		}
+
 		// 1) 站到坐点上：胶囊底部贴合 SitPoint（相当于踩在椅子上）
-		const float CapsuleHalfHeight = GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
+		const float CapsuleHalfHeight = OutfitBaseHalfHeight;
 		SetActorLocation(SittingLocation + FVector(0.0f, 0.0f, CapsuleHalfHeight), false, nullptr, ETeleportType::TeleportPhysics);
 		SetActorRotation(SittingRotation, ETeleportType::TeleportPhysics);
 
@@ -1423,6 +1431,8 @@ void AMyBondageLifeCharacter::ApplySitting()
 				OutfitBaseMeshZ));
 		}
 		SittingMeshDrop = 0.0f;
+
+		ApplyOutfitCapsule();
 
 		if (USpringArmComponent* StandingBoom = GetCameraBoom())
 		{
