@@ -170,6 +170,9 @@ void AMyBondageLifeCharacter::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(AMyBondageLifeCharacter, OutfitColorHex);
 	DOREPLIFETIME(AMyBondageLifeCharacter, AccountName);
 	DOREPLIFETIME(AMyBondageLifeCharacter, SkinId);
+	DOREPLIFETIME(AMyBondageLifeCharacter, bSitting);
+	DOREPLIFETIME(AMyBondageLifeCharacter, SittingLocation);
+	DOREPLIFETIME(AMyBondageLifeCharacter, SittingRotation);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bRestraintLeg);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bCantMove);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bInPetMode);
@@ -1323,4 +1326,78 @@ void AMyBondageLifeCharacter::SetOutfitColorChannel(int32 SlotIndex, int32 Chann
 
 	OutfitColorHex[Index] = HexColor;
 	ApplyOutfitColors();
+}
+// ---------------------------------------------------------------------------
+// Sitting
+// ---------------------------------------------------------------------------
+
+void AMyBondageLifeCharacter::ServerSetSitting_Implementation(bool bSit, FVector SeatLocation, FRotator SeatRotation)
+{
+	bSitting = bSit;
+	SittingLocation = SeatLocation;
+	SittingRotation = SeatRotation;
+	ApplySitting();
+}
+
+void AMyBondageLifeCharacter::OnRep_Sitting()
+{
+	ApplySitting();
+}
+
+void AMyBondageLifeCharacter::ApplySitting()
+{
+	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	if (AnimInstance)
+	{
+		// AnimBP 里的 BOOL 变量 InSit
+		if (FBoolProperty* Property = CastField<FBoolProperty>(
+			AnimInstance->GetClass()->FindPropertyByName(TEXT("InSit"))))
+		{
+			Property->SetPropertyValue_InContainer(AnimInstance, bSitting);
+		}
+	}
+
+	if (bSitting)
+	{
+		SetActorLocation(SittingLocation, false, nullptr, ETeleportType::TeleportPhysics);
+		SetActorRotation(SittingRotation, ETeleportType::TeleportPhysics);
+
+		if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+		{
+			Movement->StopMovementImmediately();
+			Movement->DisableMovement();
+		}
+
+		// 坐下时把骨骼往下压到坐垫上（胶囊不动机器人就不会悬空）。
+		if (USkeletalMeshComponent* BodyMesh = GetMesh())
+		{
+			if (!bOutfitBaseCaptured)
+			{
+				OutfitBaseMeshZ = BodyMesh->GetRelativeLocation().Z;
+				bOutfitBaseCaptured = true;
+			}
+
+			SittingMeshDrop = FMath::Max(0.0f, GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() - 55.0f);
+			BodyMesh->SetRelativeLocation(FVector(
+				BodyMesh->GetRelativeLocation().X,
+				BodyMesh->GetRelativeLocation().Y,
+				OutfitBaseMeshZ - SittingMeshDrop));
+		}
+	}
+	else
+	{
+		if (USkeletalMeshComponent* BodyMesh = GetMesh())
+		{
+			BodyMesh->SetRelativeLocation(FVector(
+				BodyMesh->GetRelativeLocation().X,
+				BodyMesh->GetRelativeLocation().Y,
+				OutfitBaseMeshZ));
+		}
+		SittingMeshDrop = 0.0f;
+
+		if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+		{
+			Movement->SetMovementMode(MOVE_Walking);
+		}
+	}
 }

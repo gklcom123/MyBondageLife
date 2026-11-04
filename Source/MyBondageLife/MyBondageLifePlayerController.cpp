@@ -1519,6 +1519,12 @@ void AMyBondageLifePlayerController::BeginPlay()
 
 void AMyBondageLifePlayerController::SetupInputComponent()
 {
+	// 右键：椅子交互（坐下 / 起身）
+	if (InputComponent)
+	{
+		InputComponent->BindKey(EKeys::RightMouseButton, IE_Pressed, this,
+			&AMyBondageLifePlayerController::HandleInteractPressed);
+	}
 	Super::SetupInputComponent();
 
 	if (!InputComponent)
@@ -2670,5 +2676,97 @@ void AMyBondageLifePlayerController::ServerSetOutfitColors_Implementation(const 
 	if (AMyBondageLifeCharacter* TargetCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
 	{
 		TargetCharacter->SetOutfitColors(Colors);
+	}
+}
+void AMyBondageLifePlayerController::HandleInteractPressed()
+{
+	TryToggleSitting();
+}
+
+void AMyBondageLifePlayerController::HandleSitKeyPressed()
+{
+	TryToggleSitting();
+}
+
+void AMyBondageLifePlayerController::TryToggleSitting()
+{
+	AMyBondageLifeCharacter* SittingPawn = Cast<AMyBondageLifeCharacter>(GetPawn());
+	if (!SittingPawn)
+	{
+		return;
+	}
+
+	// 正在坐着 -> 起身（先站到坐点前方一点，避免卡在椅子里）。
+	if (SittingPawn->IsSitting())
+	{
+		const FVector StandLocation = SittingPawn->GetActorLocation()
+			+ SittingPawn->GetActorForwardVector() * 80.0f;
+		if (HasAuthority())
+		{
+			SittingPawn->ServerSetSitting(false, StandLocation, SittingPawn->GetActorRotation());
+			SittingPawn->SetActorLocation(StandLocation, false, nullptr, ETeleportType::TeleportPhysics);
+		}
+		else
+		{
+			SittingPawn->ServerSetSitting(false, StandLocation, SittingPawn->GetActorRotation());
+		}
+		return;
+	}
+
+	// 找鼠标下的椅子：优先用鼠标位置，没有鼠标位置就用屏幕中心。
+	FVector WorldOrigin = FVector::ZeroVector;
+	FVector WorldDirection = FVector::ZeroVector;
+	float MouseX = 0.0f;
+	float MouseY = 0.0f;
+	bool bDeprojected = GetMousePosition(MouseX, MouseY)
+		&& DeprojectScreenPositionToWorld(MouseX, MouseY, WorldOrigin, WorldDirection);
+
+	if (!bDeprojected)
+	{
+		if (const APlayerCameraManager* CameraManager = PlayerCameraManager)
+		{
+			WorldOrigin = CameraManager->GetCameraLocation();
+			WorldDirection = CameraManager->GetCameraRotation().Vector();
+		}
+	}
+
+	const FVector TraceEnd = WorldOrigin + WorldDirection * 600.0f;
+	FHitResult Hit;
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(SitTrace), false, SittingPawn);
+
+	if (!GetWorld()->LineTraceSingleByChannel(Hit, WorldOrigin, TraceEnd, ECC_Visibility, Params))
+	{
+		return;
+	}
+
+	AActor* HitActor = Hit.GetActor();
+	if (!HitActor)
+	{
+		return;
+	}
+
+	// 椅子的坐下点：BP 里加一个 SceneComponent 命名为 SitPoint
+	USceneComponent* SitPoint = nullptr;
+	TArray<USceneComponent*> Components;
+	HitActor->GetComponents<USceneComponent>(Components);
+	for (USceneComponent* Component : Components)
+	{
+		if (Component && Component->GetFName() == TEXT("SitPoint"))
+		{
+			SitPoint = Component;
+			break;
+		}
+	}
+
+	const FVector SeatLocation = SitPoint ? SitPoint->GetComponentLocation() : HitActor->GetActorLocation();
+	const FRotator SeatRotation = SitPoint ? SitPoint->GetComponentRotation() : HitActor->GetActorRotation();
+
+	if (HasAuthority())
+	{
+		SittingPawn->ServerSetSitting(true, SeatLocation, SeatRotation);
+	}
+	else
+	{
+		SittingPawn->ServerSetSitting(true, SeatLocation, SeatRotation);
 	}
 }

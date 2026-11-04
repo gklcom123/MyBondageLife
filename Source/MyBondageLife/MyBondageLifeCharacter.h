@@ -149,6 +149,29 @@ public:
 
 	void ApplyOutfitColors();
 
+	// ---------------------------------------------------------------- sitting
+	UFUNCTION(Server, Reliable)
+	void ServerSetSitting(bool bSit, FVector SeatLocation, FRotator SeatRotation);
+
+	UFUNCTION(BlueprintPure, Category="Sitting")
+	bool IsSitting() const { return bSitting; }
+
+	void ApplySitting();
+
+	UPROPERTY(ReplicatedUsing = OnRep_Sitting, BlueprintReadOnly, Category="Sitting")
+	bool bSitting = false;
+
+	UPROPERTY(Replicated)
+	FVector SittingLocation = FVector::ZeroVector;
+
+	UPROPERTY(Replicated)
+	FRotator SittingRotation = FRotator::ZeroRotator;
+
+	UFUNCTION()
+	void OnRep_Sitting();
+
+	float SittingMeshDrop = 0.0f;
+
 	/** 设置某槽位某通道的颜色（空字符串=清除）。 */
 	UFUNCTION(BlueprintCallable, Category="Outfit")
 	void SetOutfitColorChannel(int32 Slot, int32 Channel, const FString& HexColor);

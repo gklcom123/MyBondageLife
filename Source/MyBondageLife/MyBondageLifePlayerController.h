@@ -538,6 +538,14 @@ public:
 	/** 处理 / 开头的聊天指令。 */
 	void ExecuteChatCommand(const FString& CommandLine);
 
+	/** 右键点椅子：坐下 / 起身。 */
+	UFUNCTION()
+	void HandleInteractPressed();
+
+	void TryToggleSitting();
+
+	void HandleSitKeyPressed();
+
 	UFUNCTION()
 	void HandleSystemChatMessage(const FString& Text);
 
