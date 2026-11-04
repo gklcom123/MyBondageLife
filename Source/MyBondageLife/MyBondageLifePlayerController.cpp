@@ -2126,6 +2126,30 @@ void AMyBondageLifePlayerController::PushRestraintsToPawn()
 	else
 	{
 		ServerSetRestraints(Slots, Items);
+
+	// 拘束染色：每次推送拘束时一起下发，远端才能看到颜色
+	TArray<FString> RestraintColors;
+	for (int32 SlotIndex = 0; SlotIndex < FMyBondageLifeRestraintCatalog::SlotCount; ++SlotIndex)
+	{
+		const TMap<int32, FString> SlotColors = Account->GetRestraintColors(SlotIndex);
+		for (int32 Channel = 1; Channel <= 3; ++Channel)
+		{
+			const FString* Hex = SlotColors.Find(Channel);
+			RestraintColors.Add(Hex ? *Hex : FString());
+		}
+	}
+
+	if (HasAuthority())
+	{
+		if (AMyBondageLifeCharacter* ColorCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+		{
+			ColorCharacter->SetRestraintColors(RestraintColors);
+		}
+	}
+	else
+	{
+		ServerSetRestraintColors(RestraintColors);
+	}
 	}
 }
 
