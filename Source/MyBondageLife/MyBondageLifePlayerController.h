@@ -582,6 +582,10 @@ public:
 	UFUNCTION()
 	void HandleRulesCacheChanged();
 
+	/** 防止同一条聊天被提交两次（Enter + OnTextCommitted 会各触发一次）。 */
+	FString LastSubmittedChatText;
+	double LastSubmittedChatTime = 0.0;
+
 	UPROPERTY(Transient)
 	TObjectPtr<class UMyBondageLifeRulePanelWidget> RulePanelWidget;
 

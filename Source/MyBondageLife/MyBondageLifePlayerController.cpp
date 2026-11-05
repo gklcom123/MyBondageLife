@@ -491,6 +491,16 @@ void AMyBondageLifePlayerController::HandleAltReleased()
 
 void AMyBondageLifePlayerController::HandleChatMessageSubmitted(const FString& Message)
 {
+	// 同一条内容在极短时间内重复提交：直接忽略（Enter 与 OnTextCommitted 会各来一次）。
+	const double Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
+	if (Message == LastSubmittedChatText && (Now - LastSubmittedChatTime) < 0.8)
+	{
+		UE_LOG(LogMyBondageLife, Log, TEXT("Chat: duplicate submit ignored"));
+		return;
+	}
+	LastSubmittedChatText = Message;
+	LastSubmittedChatTime = Now;
+
 	// "/" 开头的输入是指令（如 /safeword），不当作聊天内容发送。
 	const FString Trimmed = Message.TrimStartAndEnd();
 	if (Trimmed.StartsWith(TEXT("/")))
