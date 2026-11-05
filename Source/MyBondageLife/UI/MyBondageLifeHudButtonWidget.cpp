@@ -128,6 +128,8 @@ TSharedRef<SWidget> UMyBondageLifeHudButtonWidget::RebuildWidget()
 
 		if (EntryButton)
 		{
+			// 按下即触发：第一次点击不再被"抢焦点"吃掉
+			EntryButton->SetClickMethod(EButtonClickMethod::MouseDown);
 			EntryButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeHudButtonWidget::HandleClicked);
 		}
 
