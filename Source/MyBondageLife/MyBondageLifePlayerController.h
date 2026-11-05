@@ -626,6 +626,8 @@ public:
 	UPROPERTY(Transient)
 	bool bMessageCenterOpen = false;
 
+	bool bEmotePanelOpen = false;
+
 	UFUNCTION()
 	void HandleMessageKeyPressed();
 

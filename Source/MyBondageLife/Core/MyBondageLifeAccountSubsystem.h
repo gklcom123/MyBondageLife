@@ -360,6 +360,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Difficulty")
 	void RequestSafeword();
 
+	UFUNCTION(BlueprintCallable, Category = "Emote")
+	void BroadcastEmote(const FString& EmoteId, const FString& EmoteName);
+
 	UFUNCTION(BlueprintPure, Category = "Difficulty")
 	FString GetDifficulty() const { return Difficulty; }
 

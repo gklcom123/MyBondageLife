@@ -2220,3 +2220,24 @@ TMap<int32, FString> UMyBondageLifeAccountSubsystem::GetRestraintColors(int32 Sl
 	}
 	return TMap<int32, FString>();
 }
+
+void UMyBondageLifeAccountSubsystem::BroadcastEmote(const FString& EmoteId, const FString& EmoteName)
+{
+	if (EmoteName.IsEmpty())
+	{
+		return;
+	}
+
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("emoteId"), EmoteId);
+	Body->SetStringField(TEXT("emoteName"), EmoteName);
+
+	SendFriendApiRequest(TEXT("POST"), TEXT("/emotes/broadcast"), Body,
+		[](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			if (!bOk)
+			{
+				UE_LOG(LogMyBondageLife, Warning, TEXT("Emote: broadcast failed (%d)."), StatusCode);
+			}
+		});
+}
