@@ -425,12 +425,27 @@ void UMyBondageLifePlayerInfoWidget::ShowCharacterInfo(const AMyBondageLifeChara
 {
 	TargetAccountName = Character ? Character->GetAccountName() : FString();
 
-	// 远端角色的 AccountName 可能还没复制过来，退回到 PlayerState（玩家名就是账号）。
+	// 远端角色的 AccountName 可能还没复制过来：依次尝试
+	// 1) PlayerState 玩家名（账号）
+	// 2) 遍历所有控制器，找到 Pawn 就是该角色的那个
 	if (TargetAccountName.IsEmpty() && Character)
 	{
 		if (const APlayerState* OwnerState = Character->GetPlayerState())
 		{
 			TargetAccountName = OwnerState->GetPlayerName();
+		}
+
+		if (TargetAccountName.IsEmpty())
+		{
+			for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+			{
+				const APlayerController* OtherController = It->Get();
+				if (OtherController && OtherController->GetPawn() == Character && OtherController->PlayerState)
+				{
+					TargetAccountName = OtherController->PlayerState->GetPlayerName();
+					break;
+				}
+			}
 		}
 	}
 

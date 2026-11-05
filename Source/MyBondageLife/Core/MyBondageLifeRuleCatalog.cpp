@@ -102,6 +102,10 @@ void FMyBondageLifeRuleCatalog::Refresh()
 
 		FMyBondageLifeRuleItem Item;
 		Item.Name = ReadText(RowStruct, RowData, { TEXT("Name") });
+		if (Item.Name.IsEmpty())
+		{
+			Item.Name = RowName.ToString();
+		}
 		Item.Desc = ReadText(RowStruct, RowData, { TEXT("Desc") });
 		Item.RuleId = ReadText(RowStruct, RowData, { TEXT("Rule_Effect_String") });
 		if (Item.RuleId.IsEmpty())
