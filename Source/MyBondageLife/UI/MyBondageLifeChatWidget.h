@@ -44,6 +44,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Chat")
 	void AddSystemMessage(const FString& Message);
 
+	/** 同一句系统消息在 1 秒内重复到达时只显示一次。 */
+	FString LastSystemMessageText;
+	double LastSystemMessageTime = 0.0;
+
 	/** Enables and focuses the input box. */
 	UFUNCTION(BlueprintCallable, Category = "Chat")
 	void BeginTextInput();
