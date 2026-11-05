@@ -586,6 +586,9 @@ public:
 	UFUNCTION()
 	void CloseRuleDetailPanel();
 
+	UFUNCTION()
+	void HandleEscapePressed();
+
 	UPROPERTY(Transient)
 	TObjectPtr<class UMyBondageLifeRuleDetailPanelWidget> RuleDetailWidget;
 

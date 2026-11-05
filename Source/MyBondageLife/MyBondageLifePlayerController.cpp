@@ -1681,6 +1681,10 @@ void AMyBondageLifePlayerController::SetupInputComponent()
 	InputComponent->BindKey(EKeys::Z, IE_Pressed, this,
 		&AMyBondageLifePlayerController::HandleEmoteKeyPressed);
 
+	// ESC：先关细节面板，再关规则面板
+	InputComponent->BindKey(EKeys::Escape, IE_Pressed, this,
+		&AMyBondageLifePlayerController::HandleEscapePressed);
+
 	// 坐着时按任意移动键起身（只起身，不会触发坐下）
 	InputComponent->BindKey(EKeys::W, IE_Pressed, this, &AMyBondageLifePlayerController::HandleStandUpOnMove);
 	InputComponent->BindKey(EKeys::A, IE_Pressed, this, &AMyBondageLifePlayerController::HandleStandUpOnMove);
@@ -3332,13 +3336,6 @@ void AMyBondageLifePlayerController::OpenRulePanelNow(const FString& TargetAccou
 		}
 		RulePanelWidget->SetIsFocusable(true);
 
-		// 设计版根控件可能自适应大小：强制铺满视口，避免整块看不见。
-		RulePanelWidget->SetAnchorsInViewport(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
-		RulePanelWidget->SetAlignmentInViewport(FVector2D::ZeroVector);
-		int32 ViewWidth = 1920;
-		int32 ViewHeight = 1080;
-		GetViewportSize(ViewWidth, ViewHeight);
-		RulePanelWidget->SetDesiredSizeInViewport(FVector2D(ViewWidth, ViewHeight));
 		RulePanelWidget->SetPositionInViewport(FVector2D::ZeroVector, false);
 		RulePanelWidget->OnSwitchRequested.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleRuleSwitchRequested);
 		RulePanelWidget->OnDetailRequested.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleRuleDetailRequested);
@@ -3435,15 +3432,6 @@ void AMyBondageLifePlayerController::HandleRuleDetailRequested(const FString& Ru
 
 		RuleDetailWidget->AddToViewport(700);
 
-		// 铺满视口，避免设计版自适应把面板缩成 0。
-	{
-		int32 DetailWidth = 1920;
-		int32 DetailHeight = 1080;
-		GetViewportSize(DetailWidth, DetailHeight);
-		RuleDetailWidget->SetAnchorsInViewport(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
-		RuleDetailWidget->SetDesiredSizeInViewport(FVector2D(DetailWidth, DetailHeight));
-		RuleDetailWidget->SetPositionInViewport(FVector2D::ZeroVector, false);
-	}
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("RuleDetail: created %s"), *PanelClass->GetName());
 		RuleDetailWidget->OnSaved.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleRuleDetailSaved);
@@ -3483,4 +3471,19 @@ void AMyBondageLifePlayerController::CloseRuleDetailPanel()
 	bRuleDetailOpen = false;
 	SetShowMouseCursor(bRulePanelOpen);
 	RefreshChatInputState();
+}
+
+void AMyBondageLifePlayerController::HandleEscapePressed()
+{
+	// 细节面板优先关闭，其次规则面板；两者都没开时不处理（交给其它 ESC 逻辑）。
+	if (bRuleDetailOpen)
+	{
+		CloseRuleDetailPanel();
+		return;
+	}
+
+	if (bRulePanelOpen)
+	{
+		CloseRulePanel();
+	}
 }
