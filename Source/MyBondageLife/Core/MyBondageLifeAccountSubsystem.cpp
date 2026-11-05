@@ -2485,3 +2485,89 @@ void UMyBondageLifeAccountSubsystem::BroadcastSystemText(const FString& Text, co
 			UE_LOG(LogMyBondageLife, Warning, TEXT("Emote: system broadcast failed (%d)."), StatusCode);
 		});
 }
+bool UMyBondageLifeAccountSubsystem::GetRuleDetailStruct(const FString& RuleId, FMyBondageLifeRuleDetail& Out) const
+{
+	Out = FMyBondageLifeRuleDetail();
+
+	const FString* JsonText = RuleDetailJson.Find(RuleId);
+	if (!JsonText || JsonText->IsEmpty())
+	{
+		return false;
+	}
+
+	TSharedPtr<FJsonObject> Root;
+	const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(*JsonText);
+	if (!FJsonSerializer::Deserialize(Reader, Root) || !Root.IsValid())
+	{
+		return false;
+	}
+
+	double VersionValue = 1.0;
+	if (Root->TryGetNumberField(TEXT("v"), VersionValue))
+	{
+		Out.Version = static_cast<int32>(VersionValue);
+	}
+
+	const TArray<TSharedPtr<FJsonValue>>* IntArray = nullptr;
+	if (Root->TryGetArrayField(TEXT("ints"), IntArray) && IntArray)
+	{
+		for (const TSharedPtr<FJsonValue>& Value : *IntArray)
+		{
+			Out.Ints.Add(static_cast<int32>(Value->AsNumber()));
+		}
+	}
+
+	const TArray<TSharedPtr<FJsonValue>>* StringArray = nullptr;
+	if (Root->TryGetArrayField(TEXT("strings"), StringArray) && StringArray)
+	{
+		for (const TSharedPtr<FJsonValue>& Value : *StringArray)
+		{
+			Out.Strings.Add(Value->AsString());
+		}
+	}
+
+	const TArray<TSharedPtr<FJsonValue>>* BoolArray = nullptr;
+	if (Root->TryGetArrayField(TEXT("bools"), BoolArray) && BoolArray)
+	{
+		for (const TSharedPtr<FJsonValue>& Value : *BoolArray)
+		{
+			Out.Bools.Add(Value->AsBool());
+		}
+	}
+
+	return true;
+}
+
+void UMyBondageLifeAccountSubsystem::SetRuleDetail(const FString& InAccount, const FString& RuleId, const FMyBondageLifeRuleDetail& Detail)
+{
+	TSharedPtr<FJsonObject> Root = MakeShared<FJsonObject>();
+	Root->SetNumberField(TEXT("v"), Detail.Version);
+
+	TArray<TSharedPtr<FJsonValue>> IntArray;
+	for (int32 Value : Detail.Ints) { IntArray.Add(MakeShared<FJsonValueNumber>(Value)); }
+	Root->SetArrayField(TEXT("ints"), IntArray);
+
+	TArray<TSharedPtr<FJsonValue>> StringArray;
+	for (const FString& Value : Detail.Strings) { StringArray.Add(MakeShared<FJsonValueString>(Value)); }
+	Root->SetArrayField(TEXT("strings"), StringArray);
+
+	TArray<TSharedPtr<FJsonValue>> BoolArray;
+	for (bool Value : Detail.Bools) { BoolArray.Add(MakeShared<FJsonValueBoolean>(Value)); }
+	Root->SetArrayField(TEXT("bools"), BoolArray);
+
+	FString Serialized;
+	const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Serialized);
+	FJsonSerializer::Serialize(Root.ToSharedRef(), Writer);
+
+	SetRule(InAccount, RuleId, true, Serialized);
+}
+
+FString UMyBondageLifeAccountSubsystem::GetOwnUid() const
+{
+	FMyBondageLifeUserProfile Profile;
+	if (!AccountName.IsEmpty() && GetUserProfile(AccountName, Profile))
+	{
+		return Profile.Uid;
+	}
+	return FString();
+}

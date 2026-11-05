@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "UI/MyBondageLifeHudEntryWidget.h"
+#include "Core/MyBondageLifeAccountSubsystem.h"
 #include "MyBondageLifePlayerController.generated.h"
 
 class UInputMappingContext;
@@ -578,6 +579,15 @@ public:
 
 	UFUNCTION()
 	void HandleRuleDetailRequested(const FString& RuleId);
+
+	UFUNCTION()
+	void HandleRuleDetailSaved(const FString& RuleId, const FMyBondageLifeRuleDetail& Detail);
+
+	UFUNCTION()
+	void CloseRuleDetailPanel();
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UMyBondageLifeRuleDetailPanelWidget> RuleDetailWidget;
 
 	UFUNCTION()
 	void HandleRulesCacheChanged();

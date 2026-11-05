@@ -152,7 +152,8 @@ void UMyBondageLifeRuleRowWidget::SetRule(const FString& InRuleId, const FString
 
 	if (DetailButton)
 	{
-		DetailButton->SetIsEnabled(bHasDetailPanel);
+		// 只有「主人 + 规则已启用 + 该规则有细节参数」才可点开。
+		DetailButton->SetIsEnabled(bHasDetailPanel && bCanEdit && bEnabled);
 	}
 }
 

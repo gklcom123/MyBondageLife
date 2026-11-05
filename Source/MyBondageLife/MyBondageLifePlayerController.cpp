@@ -15,6 +15,7 @@
 #include "InputMappingContext.h"
 #include "MyBondageLife.h"
 #include "UI/MyBondageLifeRuleWidgets.h"
+#include "UI/MyBondageLifeRuleDetailPanelWidget.h"
 #include "Blueprint/WidgetTree.h"
 #include "Animation/AnimMontage.h"
 #include "UI/MyBondageLifeEmoteWidgets.h"
@@ -528,7 +529,28 @@ void AMyBondageLifePlayerController::HandleChatMessageSubmitted(const FString& M
 		}
 	}
 
-	ServerSendChatMessage(Message);
+	// Whitelist_Hear：嘴被堵住时把原句和许可 UID 一起带给服务器，由收件人决定是否显示原文。
+	FString Payload = Message;
+	if (const AMyBondageLifeCharacter* ListenCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		if (ListenCharacter->GetGagActive())
+		{
+			if (const UMyBondageLifeAccountSubsystem* RuleAccount = GetGameInstance()
+				? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+			{
+				FMyBondageLifeRuleDetail HearDetail;
+				if (RuleAccount->IsRuleEnabled(TEXT("Whitelist_Hear"))
+					&& RuleAccount->GetRuleDetailStruct(TEXT("Whitelist_Hear"), HearDetail)
+					&& HearDetail.Ints.Num() > 0)
+				{
+					FString UidList = FString::JoinBy(HearDetail.Ints, TEXT(","), [](int32 Value) { return FString::FromInt(Value); });
+					Payload = FString::Printf(TEXT("<WH|%s|%s>"), *UidList, *Message);
+				}
+			}
+	}
+	}
+
+	ServerSendChatMessage(Payload);
 }
 
 void AMyBondageLifePlayerController::ExecuteChatCommand(const FString& CommandLine)
@@ -598,16 +620,33 @@ void AMyBondageLifePlayerController::ServerSendChatMessage_Implementation(const 
 
 	const FString SenderName = RoleName;
 
+	// 解析 Whitelist_Hear 标记：<WH|uid,uid|原文>
+	FString PlainMessage = TrimmedMessage;
+	FString WhitelistUids;
+	FString WhitelistOriginal;
+	if (TrimmedMessage.StartsWith(TEXT("<WH|")))
+	{
+		FString Rest = TrimmedMessage.RightChop(4);
+		int32 SeparatorIndex = INDEX_NONE;
+		if (Rest.FindChar(TCHAR('|'), SeparatorIndex))
+		{
+			WhitelistUids = Rest.Left(SeparatorIndex);
+			WhitelistOriginal = Rest.RightChop(SeparatorIndex + 1);
+			WhitelistOriginal.RemoveFromEnd(TEXT(">"));
+			PlainMessage = WhitelistOriginal;
+		}
+	}
+
 	// 嘴里塞着东西时，正文换成堵嘴后的发音再广播。
 	// 放在服务端做：所有客户端（包括自己）看到的是同一份文本，客户端也绕不过去。
-	FString OutgoingMessage = TrimmedMessage;
+	FString OutgoingMessage = PlainMessage;
 	if (SenderCharacter && SenderCharacter->GetGagActive())
 	{
 		const FName GagProfile = SenderCharacter->GetGagProfileId();
 		if (!GagProfile.IsNone())
 		{
 			FMyBondageLifeGarblerOptions GarblerOptions;
-			const FString Garbled = FMyBondageLifeGarbler::Garble(TrimmedMessage, { GagProfile }, GarblerOptions);
+			const FString Garbled = FMyBondageLifeGarbler::Garble(PlainMessage, { GagProfile }, GarblerOptions);
 			// 密封头套XL 这类"完全发不出声"的档位会得到空串：补一个省略号占位，
 			// 绝不能退回原文（否则等于没堵嘴）。
 			OutgoingMessage = Garbled.IsEmpty() ? FString(TEXT("\u2026\u2026")) : Garbled;
@@ -616,10 +655,22 @@ void AMyBondageLifePlayerController::ServerSendChatMessage_Implementation(const 
 		}
 	}
 
+	{
+	}
+
 	UWorld* World = GetWorld();
 	if (!World)
 	{
 		return;
+	}
+
+	{
+	}
+
+	// 白名单收件人需要原句：附在正文后面（不参与混淆）。
+	if (!WhitelistUids.IsEmpty())
+	{
+		OutgoingMessage = FString::Printf(TEXT("%s<WH|%s|%s>"), *OutgoingMessage, *WhitelistUids, *WhitelistOriginal);
 	}
 
 	// Deliver to everyone in the room, including the sender.
@@ -636,6 +687,40 @@ void AMyBondageLifePlayerController::ServerSendChatMessage_Implementation(const 
 
 void AMyBondageLifePlayerController::ClientReceiveChatMessage_Implementation(const FString& SenderAccount, const FString& SenderName, const FString& Message)
 {
+	// Whitelist_Hear：<WH|uid,uid|原文> 标记；命中白名单的收件人显示「混淆（原文）」。
+	FString DisplayMessage = Message;
+	{
+		int32 MarkerIndex = INDEX_NONE;
+		if (DisplayMessage.FindChar(TCHAR('<'), MarkerIndex))
+		{
+			const FString Tail = DisplayMessage.Mid(MarkerIndex);
+			if (Tail.StartsWith(TEXT("<WH|")))
+			{
+				const FString Body = Tail.RightChop(4);
+				int32 SeparatorIndex = INDEX_NONE;
+				if (Body.FindChar(TCHAR('|'), SeparatorIndex))
+				{
+					const FString UidList = Body.Left(SeparatorIndex);
+					FString Original = Body.RightChop(SeparatorIndex + 1);
+					Original.RemoveFromEnd(TEXT(">"));
+
+					const FString Garbled = DisplayMessage.Left(MarkerIndex);
+					DisplayMessage = Garbled;
+
+					if (const UMyBondageLifeAccountSubsystem* ChatAccount = GetGameInstance()
+						? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+					{
+						const FString OwnUid = ChatAccount->GetOwnUid();
+						if (!OwnUid.IsEmpty() && UidList.Contains(OwnUid))
+						{
+							DisplayMessage = FString::Printf(TEXT("%s\uFF08%s\uFF09"), *Garbled, *Original);
+						}
+					}
+				}
+			}
+		}
+	}
+
 	UE_LOG(LogMyBondageLife, Log, TEXT("Chat: [%s] %s"), *SenderName, *Message);
 
 	{
@@ -664,11 +749,11 @@ void AMyBondageLifePlayerController::ClientReceiveChatMessage_Implementation(con
 
 		if (Prefix.IsEmpty())
 		{
-			ChatWidget->AddChatMessage(SenderName, Message);
+				ChatWidget->AddChatMessage(SenderName, DisplayMessage);
 		}
 		else
 		{
-			ChatWidget->AddChatMessageWithPrefix(Prefix, PrefixColor, SenderName, Message);
+				ChatWidget->AddChatMessageWithPrefix(Prefix, PrefixColor, SenderName, DisplayMessage);
 		}
 	}
 }
@@ -688,6 +773,9 @@ void AMyBondageLifePlayerController::ClientReceiveSystemMessage_Implementation(c
 
 void AMyBondageLifePlayerController::BroadcastSystemMessage(const FString& Message)
 {
+	{
+	}
+
 	UWorld* World = GetWorld();
 	if (!World || !HasAuthority())
 	{
@@ -912,6 +1000,9 @@ void AMyBondageLifePlayerController::UpdateNearbyCharacter()
 	}
 
 	const APawn* OwnPawn = GetPawn();
+	{
+	}
+
 	UWorld* World = GetWorld();
 	if (!OwnPawn || !World)
 	{
@@ -1124,6 +1215,9 @@ void AMyBondageLifePlayerController::HandleFriendRequestAnswered(bool bAccepted)
 
 void AMyBondageLifePlayerController::ServerSendFriendRequest_Implementation(const FString& TargetAccountName)
 {
+	{
+	}
+
 	UWorld* World = GetWorld();
 	if (!World || TargetAccountName.IsEmpty())
 	{
@@ -1164,6 +1258,9 @@ void AMyBondageLifePlayerController::ServerSendFriendRequest_Implementation(cons
 
 void AMyBondageLifePlayerController::ServerAnswerFriendRequest_Implementation(const FString& RequesterAccountName, bool bAccepted)
 {
+	{
+	}
+
 	UWorld* World = GetWorld();
 	if (!World || RequesterAccountName.IsEmpty())
 	{
@@ -1252,6 +1349,9 @@ void AMyBondageLifePlayerController::RefreshFriendPresence()
 		? GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>()
 		: nullptr;
 
+	{
+	}
+
 	UWorld* World = GetWorld();
 	if (!Account || !World)
 	{
@@ -1293,6 +1393,9 @@ void AMyBondageLifePlayerController::HandleLoginCompleted()
 
 void AMyBondageLifePlayerController::ApplyAccountNameToPlayerState()
 {
+	{
+	}
+
 	UWorld* World = GetWorld();
 	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
 	const UMyBondageLifeAccountSubsystem* Account = GameInstance
@@ -3289,11 +3392,7 @@ void AMyBondageLifePlayerController::HandleRuleSwitchRequested(const FString& Ru
 	}
 }
 
-void AMyBondageLifePlayerController::HandleRuleDetailRequested(const FString& RuleId)
-{
-	// 第二期：按 DT_Rule.DetailPanel 打开对应面板。
-	UE_LOG(LogMyBondageLife, Log, TEXT("Rule: detail requested for '%s' (phase 2)."), *RuleId);
-}
+// HandleRuleDetailRequested is defined below.
 
 void AMyBondageLifePlayerController::HandleRulesCacheChanged()
 {
@@ -3301,4 +3400,58 @@ void AMyBondageLifePlayerController::HandleRulesCacheChanged()
 	{
 		RulePanelWidget->PopulateRules(RuleTargetAccount);
 	}
+}
+
+void AMyBondageLifePlayerController::HandleRuleDetailRequested(const FString& RuleId)
+{
+	if (!RuleDetailWidget)
+	{
+		UClass* PanelClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_RuleDetailPanel.WBP_RuleDetailPanel_C"));
+		if (!PanelClass)
+		{
+			PanelClass = UMyBondageLifeRuleDetailPanelWidget::StaticClass();
+		}
+
+		RuleDetailWidget = CreateWidget<UMyBondageLifeRuleDetailPanelWidget>(this, PanelClass);
+		if (!RuleDetailWidget)
+		{
+			return;
+		}
+
+		RuleDetailWidget->AddToViewport(700);
+		RuleDetailWidget->OnSaved.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleRuleDetailSaved);
+		RuleDetailWidget->OnClosed.AddUniqueDynamic(this, &AMyBondageLifePlayerController::CloseRuleDetailPanel);
+	}
+
+	RuleDetailWidget->SetVisibility(ESlateVisibility::Visible);
+	RuleDetailWidget->BuildForRule(RuleId);
+
+	SetShowMouseCursor(true);
+	FInputModeGameAndUI InputMode;
+	InputMode.SetWidgetToFocus(RuleDetailWidget->TakeWidget());
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(InputMode);
+}
+
+void AMyBondageLifePlayerController::HandleRuleDetailSaved(const FString& RuleId, const FMyBondageLifeRuleDetail& Detail)
+{
+	if (UMyBondageLifeAccountSubsystem* RuleAccount = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		RuleAccount->SetRuleDetail(RuleTargetAccount, RuleId, Detail);
+		RuleAccount->RefreshRulesFor(RuleTargetAccount, TFunction<void(bool)>());
+	}
+
+	CloseRuleDetailPanel();
+}
+
+void AMyBondageLifePlayerController::CloseRuleDetailPanel()
+{
+	if (RuleDetailWidget)
+	{
+		RuleDetailWidget->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	SetShowMouseCursor(bRulePanelOpen);
+	RefreshChatInputState();
 }

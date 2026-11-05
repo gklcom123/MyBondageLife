@@ -147,6 +147,27 @@ struct FMyBondageLifeFriendRequest
 	int32 CharacterClass = 1;
 };
 
+/** Structured rule parameters (server stores them as detail JSON). */
+USTRUCT(BlueprintType)
+struct FMyBondageLifeRuleDetail
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Rules")
+	int32 Version = 1;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Rules")
+	TArray<int32> Ints;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Rules")
+	TArray<FString> Strings;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Rules")
+	TArray<bool> Bools;
+
+	bool IsEmpty() const { return Ints.Num() + Strings.Num() + Bools.Num() == 0; }
+};
+
 /** Public profile of any account (GET /users/{account}). */
 USTRUCT(BlueprintType)
 struct FMyBondageLifeUserProfile
@@ -395,6 +416,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Rules")
 	FString GetRuleDetail(const FString& RuleId) const;
+
+	bool GetRuleDetailStruct(const FString& RuleId, FMyBondageLifeRuleDetail& Out) const;
+
+	void SetRuleDetail(const FString& InAccount, const FString& RuleId, const FMyBondageLifeRuleDetail& Detail);
+
+	FString GetOwnUid() const;
 
 	UPROPERTY(BlueprintAssignable, Category = "Rules")
 	FMyBondageLifeRulesChanged OnRulesChanged;
