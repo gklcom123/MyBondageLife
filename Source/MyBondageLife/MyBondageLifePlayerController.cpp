@@ -3200,7 +3200,7 @@ void AMyBondageLifePlayerController::OpenRulePanelNow(const FString& TargetAccou
 			return;
 		}
 
-		RulePanelWidget->AddToViewport(200);
+		// 放在个人信息面板之上，否则点击会被下层面板吞掉。`r`n`t`tRulePanelWidget->AddToViewport(600);
 		RulePanelWidget->OnSwitchRequested.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleRuleSwitchRequested);
 		RulePanelWidget->OnDetailRequested.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleRuleDetailRequested);
 		RulePanelWidget->OnClosed.AddUniqueDynamic(this, &AMyBondageLifePlayerController::CloseRulePanel);

@@ -127,6 +127,9 @@ void UMyBondageLifeRuleRowWidget::SetRule(const FString& InRuleId, const FString
 
 	if (SwitchButton)
 	{
+		SwitchButton->SetClickMethod(EButtonClickMethod::MouseDown);
+		SwitchButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeRuleRowWidget::HandleSwitchClicked);
+
 		// 只有主人能操作；本人查看时保持可读但不可点
 		SwitchButton->SetIsEnabled(bCanEdit);
 
