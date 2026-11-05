@@ -3147,9 +3147,12 @@ void AMyBondageLifePlayerController::CloseEmotePanel()
 
 void AMyBondageLifePlayerController::ToggleRulePanelFor(const FString& TargetAccount)
 {
+	// 已经打开时只刷新内容，不再关闭（防止按钮触发两次导致一开一合）。
 	if (bRulePanelOpen && RulePanelWidget)
 	{
-		CloseRulePanel();
+		RuleTargetAccount = TargetAccount;
+		RulePanelWidget->SetVisibility(ESlateVisibility::Visible);
+		RulePanelWidget->PopulateRules(TargetAccount);
 		return;
 	}
 
