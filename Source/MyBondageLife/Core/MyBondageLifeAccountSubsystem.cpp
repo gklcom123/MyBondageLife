@@ -2422,3 +2422,51 @@ void UMyBondageLifeAccountSubsystem::RefreshRulesFor(const FString& InAccount, T
 			if (OnDone) { OnDone(true); }
 		});
 }
+
+void UMyBondageLifeAccountSubsystem::BroadcastSystemText(const FString& Text, const FString& EmoteId)
+{
+	if (Text.IsEmpty())
+	{
+		return;
+	}
+
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("emoteId"), EmoteId);
+	Body->SetStringField(TEXT("emoteName"), Text);
+	Body->SetStringField(TEXT("text"), Text);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	SendFriendApiRequest(TEXT("POST"), TEXT("/emotes/broadcast"), Body,
+		[WeakThis, Text, EmoteId](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self)
+			{
+				return;
+			}
+
+			if (bOk)
+			{
+				return;
+			}
+
+			// 400 = 服务端还没支持 text 字段：退回原始格式，至少保证广播成功。
+			if (StatusCode == 400)
+			{
+				TSharedPtr<FJsonObject> Fallback = MakeShared<FJsonObject>();
+				Fallback->SetStringField(TEXT("emoteId"), EmoteId);
+				Fallback->SetStringField(TEXT("emoteName"), Text);
+				Self->SendFriendApiRequest(TEXT("POST"), TEXT("/emotes/broadcast"), Fallback,
+					[](bool, int32 Code, const TSharedPtr<FJsonObject>&)
+					{
+						if (Code >= 400)
+						{
+							UE_LOG(LogMyBondageLife, Warning, TEXT("Emote: system broadcast fallback failed (%d)."), Code);
+						}
+					});
+				return;
+			}
+
+			UE_LOG(LogMyBondageLife, Warning, TEXT("Emote: system broadcast failed (%d)."), StatusCode);
+		});
+}

@@ -364,6 +364,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Emote")
 	void BroadcastEmote(const FString& EmoteId, const FString& EmoteName);
 
+	/** 广播一条整句系统消息（复用表情接口的 text 覆盖；服务端未部署时自动回退）。 */
+	UFUNCTION(BlueprintCallable, Category = "Emote")
+	void BroadcastSystemText(const FString& Text, const FString& EmoteId);
+
 	// ---------------------------------------------------------------- slave rules
 	UFUNCTION(BlueprintCallable, Category = "Rules")
 	void RefreshRules(const FString& InAccount = FString());
