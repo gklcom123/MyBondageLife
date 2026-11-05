@@ -3328,6 +3328,14 @@ void AMyBondageLifePlayerController::OpenRulePanelNow(const FString& TargetAccou
 
 		RulePanelWidget->AddToViewport(600);
 
+		// 只给尺寸，不动锚点/位置（保持设计里的居中布局）。
+		{
+			int32 PanelWidth = 1920;
+			int32 PanelHeight = 1080;
+			GetViewportSize(PanelWidth, PanelHeight);
+			RulePanelWidget->SetDesiredSizeInViewport(FVector2D(PanelWidth, PanelHeight));
+		}
+
 		// 设计版的根控件可能是 HitTestInvisible，会把整块面板的点击吞掉。
 		if (RulePanelWidget->WidgetTree && RulePanelWidget->WidgetTree->RootWidget)
 		{
@@ -3431,6 +3439,14 @@ void AMyBondageLifePlayerController::HandleRuleDetailRequested(const FString& Ru
 		}
 
 		RuleDetailWidget->AddToViewport(700);
+
+		// 尺寸铺满视口，但不改锚点/位置。
+		{
+			int32 DetailWidth = 1920;
+			int32 DetailHeight = 1080;
+			GetViewportSize(DetailWidth, DetailHeight);
+			RuleDetailWidget->SetDesiredSizeInViewport(FVector2D(DetailWidth, DetailHeight));
+		}
 
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("RuleDetail: created %s"), *PanelClass->GetName());
