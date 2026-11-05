@@ -424,6 +424,13 @@ void UMyBondageLifePlayerInfoWidget::NativeConstruct()
 void UMyBondageLifePlayerInfoWidget::ShowCharacterInfo(const AMyBondageLifeCharacter* Character)
 {
 	TargetAccountName = Character ? Character->GetAccountName() : FString();
+
+	// 拉取被查看者的规则状态：决定【奴隶规则】按钮能否点击
+	if (UMyBondageLifeAccountSubsystem* RuleAccount = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		RuleAccount->RefreshRulesFor(TargetAccountName, TFunction<void(bool)>());
+	}
 	DisplayedCharacter = Character;
 	RefreshContents();
 }
@@ -1325,13 +1332,8 @@ void UMyBondageLifePlayerInfoWidget::UpdateRuleInfoButton()
 	const UMyBondageLifeAccountSubsystem* RuleAccount = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
 
-	// 自己看自己：取决于自己有没有主人；
-	// 看别人：由点击时的接口校验（对方有主人才允许打开），这里先不置灰。
-	const bool bViewingSelf = !RuleAccount || TargetAccountName.IsEmpty()
-		|| TargetAccountName.Equals(RuleAccount->GetAccountName(), ESearchCase::IgnoreCase);
-	const bool bHasMaster = bViewingSelf
-		? (RuleAccount && RuleAccount->HasMasterAccount())
-		: true;
+	// 统一按「被查看者」的 hasMaster 决定：没有主人 → 谁都不能点。
+	const bool bHasMaster = RuleAccount && RuleAccount->HasMasterAccount();
 
 	// 没有主人（临时契约也算）时置灰，任何人不能点。
 	RuleInfoButton->SetIsEnabled(bHasMaster);
