@@ -711,7 +711,10 @@ void AMyBondageLifePlayerController::ClientReceiveChatMessage_Implementation(con
 						? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
 					{
 						const FString OwnUid = ChatAccount->GetOwnUid();
-						if (!OwnUid.IsEmpty() && UidList.Contains(OwnUid))
+				// 自己说的话自己当然知道原句；白名单里的人也能看到。
+				const bool bSenderIsSelf = !SenderAccount.IsEmpty()
+					&& SenderAccount.Equals(ChatAccount->GetAccountName(), ESearchCase::IgnoreCase);
+				if (bSenderIsSelf || (!OwnUid.IsEmpty() && UidList.Contains(OwnUid)))
 						{
 							DisplayMessage = FString::Printf(TEXT("%s\uFF08%s\uFF09"), *Garbled, *Original);
 						}
@@ -828,7 +831,7 @@ void AMyBondageLifePlayerController::RefreshChatInputState()
 
 	const bool bBlocked = bChatTextInput || bAltMouseMode || bPlayerInfoOpen || bFriendPanelOpen
 		|| bFriendRequestPending || bWardrobeOpen || bSocialModalOpen || bMessageCenterOpen
-		|| bEmotePanelOpen || bRulePanelOpen;
+		|| bEmotePanelOpen || bRulePanelOpen || bRuleDetailOpen;
 
 	SetGameplayInputBlocked(bBlocked);
 
@@ -842,7 +845,7 @@ void AMyBondageLifePlayerController::RefreshChatInputState()
 		// Alt and the panels free the mouse; typing keeps the cursor hidden.
 		bShowMouseCursor = bAltMouseMode || bPlayerInfoOpen || bFriendPanelOpen
 			|| bFriendRequestPending || bWardrobeOpen || bSocialModalOpen || bMessageCenterOpen
-			|| bEmotePanelOpen || bRulePanelOpen;
+			|| bEmotePanelOpen || bRulePanelOpen || bRuleDetailOpen;
 	}
 	else
 	{
@@ -3265,7 +3268,8 @@ void AMyBondageLifePlayerController::ToggleRulePanelFor(const FString& TargetAcc
 	// 已经打开时只刷新内容，不再关闭（防止按钮触发两次导致一开一合）。
 	if (bRulePanelOpen && RulePanelWidget)
 	{
-		RuleTargetAccount = TargetAccount;
+		bRuleDetailOpen = false;
+	RuleTargetAccount = TargetAccount;
 		RulePanelWidget->SetVisibility(ESlateVisibility::Visible);
 		RulePanelWidget->PopulateRules(TargetAccount);
 		return;
@@ -3344,6 +3348,7 @@ void AMyBondageLifePlayerController::OpenRulePanelNow(const FString& TargetAccou
 		}
 	}
 
+	bRuleDetailOpen = false;
 	RuleTargetAccount = TargetAccount;
 	RulePanelWidget->SetVisibility(ESlateVisibility::Visible);
 	RulePanelWidget->PopulateRules(TargetAccount);
@@ -3425,6 +3430,8 @@ void AMyBondageLifePlayerController::HandleRuleDetailRequested(const FString& Ru
 
 	RuleDetailWidget->SetVisibility(ESlateVisibility::Visible);
 	RuleDetailWidget->BuildForRule(RuleId);
+	bRuleDetailOpen = true;
+	RefreshChatInputState();
 
 	SetShowMouseCursor(true);
 	FInputModeGameAndUI InputMode;
@@ -3451,7 +3458,7 @@ void AMyBondageLifePlayerController::CloseRuleDetailPanel()
 	{
 		RuleDetailWidget->SetVisibility(ESlateVisibility::Collapsed);
 	}
-
+	bRuleDetailOpen = false;
 	SetShowMouseCursor(bRulePanelOpen);
 	RefreshChatInputState();
 }

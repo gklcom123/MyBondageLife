@@ -3,6 +3,11 @@
 #include "UI/MyBondageLifeRuleDetailPanelWidget.h"
 
 #include "Blueprint/WidgetTree.h"
+#include "Components/Border.h"
+#include "Components/ScrollBox.h"
+#include "Components/SizeBox.h"
+#include "Components/ScrollBoxSlot.h"
+#include "Components/SizeBoxSlot.h"
 #include "Components/Button.h"
 #include "Components/CheckBox.h"
 #include "Components/EditableTextBox.h"

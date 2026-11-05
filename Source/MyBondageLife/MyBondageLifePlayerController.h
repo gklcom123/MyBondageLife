@@ -601,6 +601,8 @@ public:
 
 	bool bRulePanelOpen = false;
 
+	bool bRuleDetailOpen = false;
+
 public:
 	UFUNCTION(BlueprintCallable, Category="UI")
 	void ToggleEmoteListPublic() { ToggleEmoteList(); }
