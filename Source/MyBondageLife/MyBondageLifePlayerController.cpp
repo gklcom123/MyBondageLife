@@ -3337,7 +3337,6 @@ void AMyBondageLifePlayerController::OpenRulePanelNow(const FString& TargetAccou
 		}
 		RulePanelWidget->SetIsFocusable(true);
 
-		RulePanelWidget->SetPositionInViewport(FVector2D::ZeroVector, false);
 		RulePanelWidget->OnSwitchRequested.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleRuleSwitchRequested);
 		RulePanelWidget->OnDetailRequested.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleRuleDetailRequested);
 		RulePanelWidget->OnClosed.AddUniqueDynamic(this, &AMyBondageLifePlayerController::CloseRulePanel);
