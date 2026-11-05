@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "UI/MyBondageLifeHudEntryWidget.h"
 #include "MyBondageLifePlayerController.generated.h"
 
 class UInputMappingContext;
@@ -555,6 +556,11 @@ public:
 	void HandleEmotePicked(FName EmoteId);
 
 	void ToggleEmoteList();
+
+	UFUNCTION()
+	void HandleHudButtonClicked(EMyBondageLifeHudEntryAction Action);
+
+	void CloseEmotePanel();
 
 public:
 	UFUNCTION(BlueprintCallable, Category="UI")

@@ -1,3 +1,4 @@
+
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "MyBondageLifePlayerController.h"
@@ -13,6 +14,7 @@
 #include "GameFramework/PlayerState.h"
 #include "InputMappingContext.h"
 #include "MyBondageLife.h"
+#include "Blueprint/WidgetTree.h"
 #include "Animation/AnimMontage.h"
 #include "UI/MyBondageLifeEmoteWidgets.h"
 #include "Core/MyBondageLifeEmoteCatalog.h"
@@ -2470,48 +2472,25 @@ void AMyBondageLifePlayerController::ShowHudEntries()
 		return;
 	}
 
-	UClass* EntryClass = UMyBondageLifeHudButtonWidget::StaticClass();
-	if (UClass* Designed = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_HudButton.WBP_HudButton_C")))
+	// 底栏按钮已由设计器放进 MainHUD：直接找出来绑定，不再动态创建。
+	if (MainHudWidget && MainHudWidget->WidgetTree)
 	{
-		EntryClass = Designed;
-	}
+		TArray<UWidget*> AllWidgets;
+		MainHudWidget->WidgetTree->GetAllWidgets(AllWidgets);
 
-	struct FEntrySetup
-	{
-		EMyBondageLifeHudEntryAction Action;
-		FName Host;
-		FVector2D FallbackPosition;
-	};
-
-	static const FEntrySetup Setups[] =
-	{
-		{ EMyBondageLifeHudEntryAction::Message,    TEXT("W_MessageHost"),       FVector2D(20.0f, -360.0f) },
-		{ EMyBondageLifeHudEntryAction::PlayerInfo, TEXT("W_InfoEntryHost"),     FVector2D(-260.0f, -70.0f) },
-		{ EMyBondageLifeHudEntryAction::FriendList, TEXT("W_FriendsEntryHost"),  FVector2D(-90.0f, -70.0f) },
-		{ EMyBondageLifeHudEntryAction::Wardrobe,   TEXT("W_WardrobeEntryHost"), FVector2D(80.0f, -70.0f) },
-		{ EMyBondageLifeHudEntryAction::Emote,      TEXT("W_EmoteEntryHost"), FVector2D(240.0f, -70.0f) }
-	};
-
-	for (const FEntrySetup& Setup : Setups)
-	{
-		UMyBondageLifeHudButtonWidget* Entry = CreateWidget<UMyBondageLifeHudButtonWidget>(this, EntryClass);
-		if (!Entry)
+		for (UWidget* Candidate : AllWidgets)
 		{
-			continue;
+			UMyBondageLifeHudButtonWidget* Button = Cast<UMyBondageLifeHudButtonWidget>(Candidate);
+			if (!Button)
+			{
+				continue;
+			}
+
+			Button->OnClicked.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleHudButtonClicked);
+			HudEntries.Add(Button);
 		}
 
-		Entry->SetEntryAction(Setup.Action);
-		HudEntries.Add(Entry);
-
-		if (HostInMainHud(Setup.Host, Entry))
-		{
-			continue;
-		}
-
-		Entry->AddToViewport(13);
-		Entry->SetAnchorsInViewport(FAnchors(0.5f, 1.0f));
-		Entry->SetAlignmentInViewport(FVector2D(0.5f, 1.0f));
-		Entry->SetPositionInViewport(Setup.FallbackPosition, false);
+		UE_LOG(LogMyBondageLife, Log, TEXT("Hud: bound %d designed button(s)."), HudEntries.Num());
 	}
 	// Restraint status icons (gag / arms / legs / cannot move) live in the HUD too.
 	if (!RestraintStatusWidget)
@@ -2988,14 +2967,9 @@ void AMyBondageLifePlayerController::ToggleEmoteList()
 		EmoteListWidget->OnEmotePicked.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleEmotePicked);
 	}
 
-	const bool bVisible = EmoteListWidget->IsInViewport()
-		&& EmoteListWidget->GetVisibility() != ESlateVisibility::Collapsed;
-
-	if (bVisible)
+	if (bEmotePanelOpen)
 	{
-		EmoteListWidget->SetVisibility(ESlateVisibility::Collapsed);
-		bEmotePanelOpen = false;
-		RefreshChatInputState();
+		CloseEmotePanel();
 		return;
 	}
 
@@ -3019,7 +2993,7 @@ void AMyBondageLifePlayerController::HandleEmotePicked(FName EmoteId)
 		ShowSystemChatMessage(Reason);
 		if (EmoteListWidget)
 		{
-			EmoteListWidget->SetVisibility(ESlateVisibility::Collapsed);
+		CloseEmotePanel();
 		}
 		SetShowMouseCursor(false);
 	};
@@ -3062,9 +3036,52 @@ void AMyBondageLifePlayerController::HandleEmotePicked(FName EmoteId)
 
 	if (EmoteListWidget)
 	{
-		EmoteListWidget->SetVisibility(ESlateVisibility::Collapsed);
+		CloseEmotePanel();
 	}
 	SetShowMouseCursor(false);
 	bEmotePanelOpen = false;
+	RefreshChatInputState();
+}
+
+void AMyBondageLifePlayerController::HandleHudButtonClicked(EMyBondageLifeHudEntryAction Action)
+{
+	UE_LOG(LogMyBondageLife, Log, TEXT("Hud: clicked action=%d"), static_cast<int32>(Action));
+
+	switch (Action)
+	{
+	case EMyBondageLifeHudEntryAction::Message:
+		ToggleMessageCenter();
+		break;
+	case EMyBondageLifeHudEntryAction::FriendList:
+		ToggleFriendList();
+		break;
+	case EMyBondageLifeHudEntryAction::Wardrobe:
+		ToggleWardrobe();
+		break;
+	case EMyBondageLifeHudEntryAction::Emote:
+		ToggleEmoteList();
+		break;
+	default:
+		TogglePlayerInfo();
+		break;
+	}
+}
+
+void AMyBondageLifePlayerController::CloseEmotePanel()
+{
+	if (EmoteListWidget)
+	{
+		EmoteListWidget->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	bEmotePanelOpen = false;
+	SetShowMouseCursor(false);
+
+	// 面板可能加过移动/视角忽略，这里全部清干净，避免关闭后无法操作。
+	SetIgnoreMoveInput(false);
+	SetIgnoreLookInput(false);
+	ResetIgnoreMoveInput();
+	ResetIgnoreLookInput();
+	SetInputMode(FInputModeGameOnly());
 	RefreshChatInputState();
 }
