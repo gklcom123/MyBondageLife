@@ -579,6 +579,9 @@ public:
 	UFUNCTION()
 	void HandleRuleDetailRequested(const FString& RuleId);
 
+	UFUNCTION()
+	void HandleRulesCacheChanged();
+
 	UPROPERTY(Transient)
 	TObjectPtr<class UMyBondageLifeRulePanelWidget> RulePanelWidget;
 

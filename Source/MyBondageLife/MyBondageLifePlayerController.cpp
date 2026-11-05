@@ -3204,6 +3204,13 @@ void AMyBondageLifePlayerController::OpenRulePanelNow(const FString& TargetAccou
 		RulePanelWidget->OnSwitchRequested.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleRuleSwitchRequested);
 		RulePanelWidget->OnDetailRequested.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleRuleDetailRequested);
 		RulePanelWidget->OnClosed.AddUniqueDynamic(this, &AMyBondageLifePlayerController::CloseRulePanel);
+
+		// 规则数据回来（或保存回包）后，刷新面板里的行。
+		if (UMyBondageLifeAccountSubsystem* Sub = GetGameInstance()
+			? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+		{
+			Sub->OnRulesChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleRulesCacheChanged);
+		}
 	}
 
 	RuleTargetAccount = TargetAccount;
@@ -3237,13 +3244,14 @@ void AMyBondageLifePlayerController::HandleRuleSwitchRequested(const FString& Ru
 	if (UMyBondageLifeAccountSubsystem* RuleAccount = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
 	{
-		RuleAccount->SetRule(FString(), RuleId, bWantEnabled, RuleAccount->GetRuleDetail(RuleId));
-		RuleAccount->RefreshRules();
+		// 改的是「被查看者」的规则（RuleTargetAccount），不是自己。
+		RuleAccount->SetRule(RuleTargetAccount, RuleId, bWantEnabled, RuleAccount->GetRuleDetail(RuleId));
+		RuleAccount->RefreshRulesFor(RuleTargetAccount, TFunction<void(bool)>());
 	}
 
 	if (RulePanelWidget)
 	{
-		RulePanelWidget->PopulateRules(FString());
+		RulePanelWidget->PopulateRules(RuleTargetAccount);
 	}
 }
 
@@ -3251,4 +3259,12 @@ void AMyBondageLifePlayerController::HandleRuleDetailRequested(const FString& Ru
 {
 	// 第二期：按 DT_Rule.DetailPanel 打开对应面板。
 	UE_LOG(LogMyBondageLife, Log, TEXT("Rule: detail requested for '%s' (phase 2)."), *RuleId);
+}
+
+void AMyBondageLifePlayerController::HandleRulesCacheChanged()
+{
+	if (bRulePanelOpen && RulePanelWidget)
+	{
+		RulePanelWidget->PopulateRules(RuleTargetAccount);
+	}
 }

@@ -2370,6 +2370,13 @@ void UMyBondageLifeAccountSubsystem::RefreshRulesFor(const FString& InAccount, T
 			if (!bOk || !Json.IsValid())
 			{
 				UE_LOG(LogMyBondageLife, Warning, TEXT("Rules: fetch failed (%d)."), StatusCode);
+
+				// 拉不到就当作无主人/无权限，避免沿用上一个账号的状态。
+				bHasMasterAccount = false;
+				bRulesCanEdit = false;
+				EnabledRules.Reset();
+				RuleDetailJson.Reset();
+				OnRulesChanged.Broadcast();
 				if (OnDone) { OnDone(false); }
 				return;
 			}
