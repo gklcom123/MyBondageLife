@@ -3248,6 +3248,9 @@ void AMyBondageLifePlayerController::HandleRuleSwitchRequested(const FString& Ru
 		// 改的是「被查看者」的规则（RuleTargetAccount），不是自己。
 		RuleAccount->SetRule(RuleTargetAccount, RuleId, bWantEnabled, RuleAccount->GetRuleDetail(RuleId));
 		RuleAccount->RefreshRulesFor(RuleTargetAccount, TFunction<void(bool)>());
+	}else
+	{
+		ShowSystemChatMessage(TEXT("\u65E0\u6743\u4FEE\u6539\u8BE5\u89C4\u5219"));
 	}
 
 	if (RulePanelWidget)
