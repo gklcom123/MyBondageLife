@@ -3145,24 +3145,45 @@ void AMyBondageLifePlayerController::CloseEmotePanel()
 	RefreshChatInputState();
 }
 
-void AMyBondageLifePlayerController::ToggleRulePanel()
+void AMyBondageLifePlayerController::ToggleRulePanelFor(const FString& TargetAccount)
 {
-	UMyBondageLifeAccountSubsystem* RuleAccount = GetGameInstance()
-		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
-
-	// 没有主人时不允许打开（按钮也已置灰，这里再兜一层）。
-	if (!RuleAccount || !RuleAccount->HasMasterAccount())
-	{
-		ShowSystemChatMessage(TEXT("\u4F60\u8FD8\u6CA1\u6709\u4E3B\u4EBA\uFF0C\u65E0\u6CD5\u67E5\u770B\u5974\u96B6\u89C4\u5219"));
-		return;
-	}
-
 	if (bRulePanelOpen && RulePanelWidget)
 	{
 		CloseRulePanel();
 		return;
 	}
 
+	UMyBondageLifeAccountSubsystem* RuleAccount = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	if (!RuleAccount)
+	{
+		return;
+	}
+
+	// 先拉「被查看者」的规则，确认对方有主人且有权限，再开面板。
+	TWeakObjectPtr<AMyBondageLifePlayerController> WeakThis(this);
+	RuleAccount->RefreshRulesFor(TargetAccount, [WeakThis, TargetAccount](bool bOk)
+	{
+		AMyBondageLifePlayerController* Self = WeakThis.Get();
+		if (!Self)
+		{
+			return;
+		}
+
+		UMyBondageLifeAccountSubsystem* Account = Self->GetGameInstance()
+			? Self->GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+		if (!bOk || !Account || !Account->HasMasterAccount())
+		{
+			Self->ShowSystemChatMessage(TEXT("\u5BF9\u65B9\u6CA1\u6709\u4E3B\u4EBA\uFF0C\u65E0\u6CD5\u67E5\u770B\u5974\u96B6\u89C4\u5219"));
+			return;
+		}
+
+		Self->OpenRulePanelNow(TargetAccount);
+	});
+}
+
+void AMyBondageLifePlayerController::OpenRulePanelNow(const FString& TargetAccount)
+{
 	if (!RulePanelWidget)
 	{
 		UClass* PanelClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_RulePanel.WBP_RulePanel_C"));
@@ -3183,12 +3204,13 @@ void AMyBondageLifePlayerController::ToggleRulePanel()
 		RulePanelWidget->OnClosed.AddUniqueDynamic(this, &AMyBondageLifePlayerController::CloseRulePanel);
 	}
 
+	RuleTargetAccount = TargetAccount;
 	RulePanelWidget->SetVisibility(ESlateVisibility::Visible);
-	RulePanelWidget->PopulateRules(FString());
-	RuleAccount->RefreshRules();
+	RulePanelWidget->PopulateRules(TargetAccount);
 
 	bRulePanelOpen = true;
 	SetShowMouseCursor(true);
+
 	FInputModeGameAndUI InputMode;
 	InputMode.SetWidgetToFocus(RulePanelWidget->TakeWidget());
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);

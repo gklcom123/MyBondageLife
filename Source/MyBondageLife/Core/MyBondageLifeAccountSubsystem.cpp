@@ -2358,3 +2358,60 @@ FString UMyBondageLifeAccountSubsystem::GetRuleDetail(const FString& RuleId) con
 	}
 	return FString();
 }
+void UMyBondageLifeAccountSubsystem::RefreshRulesFor(const FString& InAccount, TFunction<void(bool bOk)> OnDone)
+{
+	const bool bOwn = InAccount.IsEmpty() || InAccount.Equals(AccountName, ESearchCase::IgnoreCase);
+	const FString Target = bOwn ? FString(TEXT("me")) : InAccount;
+	const FString Path = FString::Printf(TEXT("/users/%s/rules"), *Target);
+
+	SendFriendApiRequest(TEXT("GET"), Path, nullptr,
+		[this, Target, OnDone = MoveTemp(OnDone)](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			if (!bOk || !Json.IsValid())
+			{
+				UE_LOG(LogMyBondageLife, Warning, TEXT("Rules: fetch failed (%d)."), StatusCode);
+				if (OnDone) { OnDone(false); }
+				return;
+			}
+
+			bool bServerHasMaster = false;
+			Json->TryGetBoolField(TEXT("hasMaster"), bServerHasMaster);
+			bHasMasterAccount = bServerHasMaster;
+			Json->TryGetBoolField(TEXT("canEdit"), bRulesCanEdit);
+
+			EnabledRules.Reset();
+			RuleDetailJson.Reset();
+
+			const TArray<TSharedPtr<FJsonValue>>* Rules = nullptr;
+			if (Json->TryGetArrayField(TEXT("rules"), Rules) && Rules)
+			{
+				for (const TSharedPtr<FJsonValue>& Value : *Rules)
+				{
+					const TSharedPtr<FJsonObject> Item = Value.IsValid() ? Value->AsObject() : nullptr;
+					if (!Item.IsValid())
+					{
+						continue;
+					}
+
+					FString RuleId;
+					if (!Item->TryGetStringField(TEXT("ruleId"), RuleId) || RuleId.IsEmpty())
+					{
+						continue;
+					}
+
+					bool bEnabled = false;
+					Item->TryGetBoolField(TEXT("enabled"), bEnabled);
+					if (bEnabled)
+					{
+						EnabledRules.Add(RuleId);
+					}
+				}
+			}
+
+			UE_LOG(LogMyBondageLife, Log, TEXT("Rules: hasMaster=%d canEdit=%d enabled=%d (target=%s)"),
+				bHasMasterAccount ? 1 : 0, bRulesCanEdit ? 1 : 0, EnabledRules.Num(), *Target);
+
+			OnRulesChanged.Broadcast();
+			if (OnDone) { OnDone(true); }
+		});
+}

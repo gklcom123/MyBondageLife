@@ -1306,7 +1306,7 @@ void UMyBondageLifePlayerInfoWidget::HandleRuleInfoClicked()
 {
 	if (AMyBondageLifePlayerController* RuleController = Cast<AMyBondageLifePlayerController>(GetOwningPlayer()))
 	{
-		RuleController->ToggleRulePanel();
+		RuleController->ToggleRulePanelFor(TargetAccountName);
 	}
 }
 
@@ -1324,7 +1324,14 @@ void UMyBondageLifePlayerInfoWidget::UpdateRuleInfoButton()
 
 	const UMyBondageLifeAccountSubsystem* RuleAccount = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
-	const bool bHasMaster = RuleAccount && RuleAccount->HasMasterAccount();
+
+	// 自己看自己：取决于自己有没有主人；
+	// 看别人：由点击时的接口校验（对方有主人才允许打开），这里先不置灰。
+	const bool bViewingSelf = !RuleAccount || TargetAccountName.IsEmpty()
+		|| TargetAccountName.Equals(RuleAccount->GetAccountName(), ESearchCase::IgnoreCase);
+	const bool bHasMaster = bViewingSelf
+		? (RuleAccount && RuleAccount->HasMasterAccount())
+		: true;
 
 	// 没有主人（临时契约也算）时置灰，任何人不能点。
 	RuleInfoButton->SetIsEnabled(bHasMaster);

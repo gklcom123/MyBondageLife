@@ -564,7 +564,11 @@ public:
 	void CloseEmotePanel();
 
 	UFUNCTION(BlueprintCallable, Category="UI")
-	void ToggleRulePanel();
+	void ToggleRulePanelFor(const FString& TargetAccount = FString());
+
+	void OpenRulePanelNow(const FString& TargetAccount);
+
+	FString RuleTargetAccount;
 
 	UFUNCTION()
 	void CloseRulePanel();

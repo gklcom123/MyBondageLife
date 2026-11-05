@@ -368,6 +368,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Rules")
 	void RefreshRules(const FString& InAccount = FString());
 
+	/** Fetches rules of a target account ('me' when empty) and reports success. */
+	void RefreshRulesFor(const FString& InAccount, TFunction<void(bool bOk)> OnDone);
+
 	UFUNCTION(BlueprintCallable, Category = "Rules")
 	void SetRule(const FString& InAccount, const FString& RuleId, bool bEnabled, const FString& DetailJson);
 
