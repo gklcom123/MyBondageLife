@@ -156,6 +156,10 @@ struct FMyBondageLifeUserProfile
 	UPROPERTY(BlueprintReadOnly, Category = "Contract")
 	FString Account;
 
+	/** 服务端用户 ID（短 UID，用于展示与规则配置）。 */
+	UPROPERTY(BlueprintReadOnly, Category = "Contract")
+	FString Uid;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Contract")
 	FString CharacterName;
 

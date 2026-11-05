@@ -314,7 +314,7 @@ void UMyBondageLifeRulePanelWidget::PopulateRules(const FString& ForAccount)
 		// 只有「被查看者的主人」能改：完全以服务端 canEdit 为准。
 		const bool bCanEdit = Account && Account->CanEditRules();
 		UE_LOG(LogMyBondageLife, Log, TEXT("Rule: row '%s' enabled=%d canEdit=%d"), *Item.RuleId, bEnabled ? 1 : 0, bCanEdit ? 1 : 0);
-		Row->SetRule(Item.RuleId, Item.Name, Item.Desc, bEnabled, bCanEdit, !Item.DetailPanel.IsNull());
+		Row->SetRule(Item.RuleId, Item.Name, Item.Desc, bEnabled, bCanEdit, Item.HasDetail());
 	}
 
 	// 多出来的设计行隐藏。

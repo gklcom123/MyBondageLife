@@ -1196,6 +1196,21 @@ void UMyBondageLifeAccountSubsystem::RequestUserProfile(const FString& InAccount
 
 			FMyBondageLifeUserProfile Profile;
 			Json->TryGetStringField(TEXT("account"), Profile.Account);
+
+			// UID：优先字符串；兼容数字形式（uid / userId / id）
+			FString UidText;
+			if (Json->TryGetStringField(TEXT("uid"), UidText))
+			{
+				Profile.Uid = UidText;
+			}
+			else
+			{
+				double UidNumber = 0.0;
+				if (Json->TryGetNumberField(TEXT("uid"), UidNumber))
+				{
+					Profile.Uid = FString::Printf(TEXT("%lld"), static_cast<int64>(UidNumber));
+				}
+			}
 			Json->TryGetStringField(TEXT("characterName"), Profile.CharacterName);
 
 			double ClassValue = 1.0;

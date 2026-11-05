@@ -492,10 +492,25 @@ void UMyBondageLifePlayerInfoWidget::RefreshContents()
 		? Character->GetCharacterName().ToString()
 		: FString(TEXT("---"));
 
-	// "姓名：<name>"
+	// "姓名：<name>（UID）"
 	if (NameValue)
 	{
-		NameValue->SetText(FText::FromString(FString::Printf(TEXT("\u59D3\u540D\uFF1A%s"), *CharacterName)));
+		FString UidSuffix;
+		const UMyBondageLifeAccountSubsystem* UidAccount = GetGameInstance()
+			? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+		if (UidAccount)
+		{
+			FMyBondageLifeUserProfile UidProfile;
+			const FString UidTarget = TargetAccountName.IsEmpty()
+				? UidAccount->GetAccountName() : TargetAccountName;
+			if (!UidTarget.IsEmpty() && UidAccount->GetUserProfile(UidTarget, UidProfile)
+				&& !UidProfile.Uid.IsEmpty())
+			{
+				UidSuffix = FString::Printf(TEXT("  \uFF08%s\uFF09"), *UidProfile.Uid);
+			}
+		}
+
+		NameValue->SetText(FText::FromString(FString::Printf(TEXT("\u59D3\u540D\uFF1A%s%s"), *CharacterName, *UidSuffix)));
 	}
 
 	// "角色：支配者"

@@ -4,15 +4,24 @@
 
 #include "CoreMinimal.h"
 
-class UUserWidget;
-
 /** One row of DT_Rule. */
 struct FMyBondageLifeRuleItem
 {
-	FString RuleId;          // == Rule_Effect_String
+	FString RuleId;          // == Rule_Effect_String (server-side identifier)
 	FString Name;
 	FString Desc;
-	TSoftClassPtr<UUserWidget> DetailPanel;
+
+	/** Optional detail fields configured in the data table. */
+	int32 DetailIntCount = 0;
+	int32 DetailStringCount = 0;
+	int32 DetailBoolCount = 0;
+	TArray<FString> DetailDescs;
+
+	/** True when the rule has any editable detail parameter. */
+	bool HasDetail() const
+	{
+		return (DetailIntCount + DetailStringCount + DetailBoolCount) > 0;
+	}
 };
 
 /**
@@ -27,7 +36,6 @@ public:
 
 	static const TArray<FMyBondageLifeRuleItem>& GetItems();
 	static const FMyBondageLifeRuleItem* Find(const FString& RuleId);
-	static const FMyBondageLifeRuleItem* FindByEffect(const FString& Effect);
 
 private:
 	static TArray<FMyBondageLifeRuleItem> Items;

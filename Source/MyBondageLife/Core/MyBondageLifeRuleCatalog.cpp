@@ -2,7 +2,6 @@
 
 #include "Core/MyBondageLifeRuleCatalog.h"
 
-#include "Blueprint/UserWidget.h"
 #include "Engine/DataTable.h"
 #include "MyBondageLife.h"
 #include "UObject/UnrealType.h"
@@ -11,15 +10,19 @@ namespace
 {
 	const TCHAR* RuleTablePath = TEXT("/Game/DataTable/DT_Rule.DT_Rule");
 
+	bool MatchesPrefix(const FProperty* Property, const TCHAR* Prefix)
+	{
+		return Property->GetName().StartsWith(Prefix, ESearchCase::IgnoreCase);
+	}
+
 	FString ReadText(const UScriptStruct* RowStruct, const uint8* RowData, std::initializer_list<const TCHAR*> Prefixes)
 	{
 		for (TFieldIterator<FProperty> It(RowStruct); It; ++It)
 		{
-			const FString PropName = It->GetName();
 			bool bMatch = false;
 			for (const TCHAR* Prefix : Prefixes)
 			{
-				if (PropName.StartsWith(Prefix, ESearchCase::IgnoreCase))
+				if (MatchesPrefix(*It, Prefix))
 				{
 					bMatch = true;
 					break;
@@ -46,28 +49,61 @@ namespace
 		return FString();
 	}
 
-	void ReadDetailPanel(const UScriptStruct* RowStruct, const uint8* RowData, TSoftClassPtr<UUserWidget>& Out)
+	/** Number of elements in an array property whose name starts with the prefix. */
+	int32 ReadArrayCount(const UScriptStruct* RowStruct, const uint8* RowData, const TCHAR* Prefix)
 	{
-		for (TFieldIterator<FProperty> It(RowStruct); It; ++It)
+		for (TFieldIterator<FArrayProperty> It(RowStruct); It; ++It)
 		{
-			if (!It->GetName().StartsWith(TEXT("DetailPanel"), ESearchCase::IgnoreCase))
+			if (!MatchesPrefix(*It, Prefix))
 			{
 				continue;
 			}
 
-			if (const FSoftClassProperty* SoftClass = CastField<FSoftClassProperty>(*It))
+			FScriptArrayHelper Helper(*It, static_cast<uint8*>(It->ContainerPtrToValuePtr<void>(const_cast<uint8*>(RowData))));
+			return Helper.Num();
+		}
+		return 0;
+	}
+
+	/** Text/fstring elements of an array property, in order. */
+	TArray<FString> ReadTextArray(const UScriptStruct* RowStruct, const uint8* RowData, const TCHAR* Prefix)
+	{
+		TArray<FString> Out;
+
+		for (TFieldIterator<FArrayProperty> It(RowStruct); It; ++It)
+		{
+			if (!MatchesPrefix(*It, Prefix))
 			{
-				Out = TSoftClassPtr<UUserWidget>(SoftClass->GetPropertyValue_InContainer(RowData).ToSoftObjectPath());
+				continue;
 			}
-			else if (const FClassProperty* ClassProperty = CastField<FClassProperty>(*It))
+
+			FScriptArrayHelper Helper(*It, static_cast<uint8*>(It->ContainerPtrToValuePtr<void>(const_cast<uint8*>(RowData))));
+			const FProperty* Inner = It->Inner;
+
+			for (int32 Index = 0; Index < Helper.Num(); ++Index)
 			{
-				if (UClass* Value = Cast<UClass>(ClassProperty->GetObjectPropertyValue_InContainer(RowData)))
+				const uint8* ElementPtr = Helper.GetRawPtr(Index);
+				if (const FTextProperty* TextProperty = CastField<FTextProperty>(Inner))
 				{
-					Out = TSoftClassPtr<UUserWidget>(FSoftObjectPath(Value));
+					Out.Add(TextProperty->GetPropertyValue(ElementPtr).ToString());
+				}
+				else if (const FStrProperty* StringProperty = CastField<FStrProperty>(Inner))
+				{
+					Out.Add(StringProperty->GetPropertyValue(ElementPtr));
+				}
+				else if (const FNameProperty* NameProperty = CastField<FNameProperty>(Inner))
+				{
+					Out.Add(NameProperty->GetPropertyValue(ElementPtr).ToString());
+				}
+				else
+				{
+					Out.Add(FString());
 				}
 			}
-			return;
+			break;
 		}
+
+		return Out;
 	}
 }
 
@@ -102,17 +138,17 @@ void FMyBondageLifeRuleCatalog::Refresh()
 
 		FMyBondageLifeRuleItem Item;
 		Item.Name = ReadText(RowStruct, RowData, { TEXT("Name") });
-		if (Item.Name.IsEmpty())
-		{
-			Item.Name = RowName.ToString();
-		}
 		Item.Desc = ReadText(RowStruct, RowData, { TEXT("Desc") });
 		Item.RuleId = ReadText(RowStruct, RowData, { TEXT("Rule_Effect_String") });
 		if (Item.RuleId.IsEmpty())
 		{
 			Item.RuleId = RowName.ToString();
 		}
-		ReadDetailPanel(RowStruct, RowData, Item.DetailPanel);
+
+		Item.DetailIntCount = ReadArrayCount(RowStruct, RowData, TEXT("Detail_Ints"));
+		Item.DetailStringCount = ReadArrayCount(RowStruct, RowData, TEXT("Detail_Strings"));
+		Item.DetailBoolCount = ReadArrayCount(RowStruct, RowData, TEXT("Detail_Bools"));
+		Item.DetailDescs = ReadTextArray(RowStruct, RowData, TEXT("Detail_Descs"));
 
 		Items.Add(Item);
 	}
@@ -145,9 +181,4 @@ const FMyBondageLifeRuleItem* FMyBondageLifeRuleCatalog::Find(const FString& Rul
 		}
 	}
 	return nullptr;
-}
-
-const FMyBondageLifeRuleItem* FMyBondageLifeRuleCatalog::FindByEffect(const FString& Effect)
-{
-	return Find(Effect);
 }
