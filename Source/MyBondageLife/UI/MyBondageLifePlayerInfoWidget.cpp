@@ -425,6 +425,18 @@ void UMyBondageLifePlayerInfoWidget::ShowCharacterInfo(const AMyBondageLifeChara
 {
 	TargetAccountName = Character ? Character->GetAccountName() : FString();
 
+	// 远端角色的 AccountName 可能还没复制过来，退回到 PlayerState（玩家名就是账号）。
+	if (TargetAccountName.IsEmpty() && Character)
+	{
+		if (const APlayerState* OwnerState = Character->GetPlayerState())
+		{
+			TargetAccountName = OwnerState->GetPlayerName();
+		}
+	}
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("PlayerInfo: viewing '%s' (character='%s')"),
+		*TargetAccountName, Character ? *Character->GetName() : TEXT("none"));
+
 	// 拉取被查看者的规则状态：决定【奴隶规则】按钮能否点击
 	if (UMyBondageLifeAccountSubsystem* RuleAccount = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)

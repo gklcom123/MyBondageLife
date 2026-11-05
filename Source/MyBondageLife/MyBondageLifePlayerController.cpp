@@ -3160,6 +3160,8 @@ void AMyBondageLifePlayerController::ToggleRulePanelFor(const FString& TargetAcc
 		return;
 	}
 
+	UE_LOG(LogMyBondageLife, Log, TEXT("Rule: open requested for target='%s'"), *TargetAccount);
+
 	// 先拉「被查看者」的规则，确认对方有主人且有权限，再开面板。
 	TWeakObjectPtr<AMyBondageLifePlayerController> WeakThis(this);
 	RuleAccount->RefreshRulesFor(TargetAccount, [WeakThis, TargetAccount](bool bOk)
