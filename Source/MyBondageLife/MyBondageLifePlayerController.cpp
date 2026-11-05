@@ -2488,7 +2488,7 @@ void AMyBondageLifePlayerController::ShowHudEntries()
 		{ EMyBondageLifeHudEntryAction::PlayerInfo, TEXT("W_InfoEntryHost"),     FVector2D(-260.0f, -70.0f) },
 		{ EMyBondageLifeHudEntryAction::FriendList, TEXT("W_FriendsEntryHost"),  FVector2D(-90.0f, -70.0f) },
 		{ EMyBondageLifeHudEntryAction::Wardrobe,   TEXT("W_WardrobeEntryHost"), FVector2D(80.0f, -70.0f) },
-		{ EMyBondageLifeHudEntryAction::Emote,      TEXT("W_EmoteEntryHost"),   FVector2D(240.0f, -70.0f) }
+		{ EMyBondageLifeHudEntryAction::Emote,      TEXT("W_EmoteEntryHost"), FVector2D(240.0f, -70.0f) }
 	};
 
 	for (const FEntrySetup& Setup : Setups)

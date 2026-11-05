@@ -38,6 +38,9 @@ class MYBONDAGELIFE_API UMyBondageLifeHudEntryWidget : public UUserWidget
 public:
 
 	virtual TSharedRef<SWidget> RebuildWidget() override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+
+	bool bAppliedOnce = false;
 
 	/** Configures icon, caption and click action for this entry. */
 	UFUNCTION(BlueprintCallable, Category = "HUD")

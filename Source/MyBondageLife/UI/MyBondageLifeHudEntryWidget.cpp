@@ -3,6 +3,7 @@
 #include "UI/MyBondageLifeHudEntryWidget.h"
 
 #include "Blueprint/WidgetTree.h"
+#include "MyBondageLife.h"
 #include "Components/Button.h"
 #include "Components/Image.h"
 #include "Components/Overlay.h"
@@ -62,6 +63,9 @@ TSharedRef<SWidget> UMyBondageLifeHudEntryWidget::RebuildWidget()
 	{
 		bLayoutBuilt = true;
 		BuildLayout();
+
+		// 让控件本身不吞点击：只有按钮可点。
+		SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	}
 
 	return BuiltWidget;
@@ -170,6 +174,11 @@ void UMyBondageLifeHudEntryWidget::RefreshAppearance()
 {
 	const FEntryStyle Style = StyleFor(Action);
 
+	UE_LOG(LogMyBondageLife, Log, TEXT("HudEntry: action=%d icon=%s label=%s"),
+		static_cast<int32>(Action),
+		EntryIcon ? TEXT("yes") : TEXT("no"),
+		EntryLabel ? TEXT("yes") : TEXT("no"));
+
 	if (EntryLabel)
 	{
 		EntryLabel->SetText(FText::FromString(Style.Caption));
@@ -180,6 +189,11 @@ void UMyBondageLifeHudEntryWidget::RefreshAppearance()
 		if (UTexture2D* Texture = LoadObject<UTexture2D>(nullptr, Style.Icon))
 		{
 			EntryIcon->SetBrushFromTexture(Texture, true);
+			EntryIcon->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+		else
+		{
+			EntryIcon->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}
 
@@ -240,5 +254,18 @@ void UMyBondageLifeHudEntryWidget::HandleClicked()
 	default:
 		Controller->TogglePlayerInfo();
 		break;
+	}
+}
+
+void UMyBondageLifeHudEntryWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	// 设计/代码混用的控件树在第一帧才稳定，这里兜底应用一次样式。
+	if (!bAppliedOnce)
+	{
+		bAppliedOnce = true;
+		RefreshAppearance();
+		HandleNotificationsChanged();
 	}
 }
