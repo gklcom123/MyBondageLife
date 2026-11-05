@@ -5,6 +5,7 @@
 #include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
 #include "Components/PanelWidget.h"
+#include "Components/ScrollBox.h"
 #include "Components/ScrollBoxSlot.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBoxSlot.h"
@@ -20,9 +21,28 @@ namespace
 		const UWorld* World = Widget ? Widget->GetWorld() : nullptr;
 		return World && (World->WorldType == EWorldType::Game || World->WorldType == EWorldType::PIE);
 	}
-}
 
-// ---------------------------------------------------------------------------
+	/** Accepts either a panel or a nested user widget (e.g. a WBP_RuleList container). */
+	UPanelWidget* ResolveContainer(UWidget* Candidate)
+	{
+		if (UPanelWidget* Panel = Cast<UPanelWidget>(Candidate))
+		{
+			return Panel;
+		}
+
+		if (UUserWidget* AsUserWidget = Cast<UUserWidget>(Candidate))
+		{
+			if (AsUserWidget->WidgetTree)
+			{
+				if (UPanelWidget* RootPanel = Cast<UPanelWidget>(AsUserWidget->WidgetTree->RootWidget))
+				{
+					return RootPanel;
+				}
+			}
+		}
+		return nullptr;
+	}
+}// ---------------------------------------------------------------------------
 // Row
 // ---------------------------------------------------------------------------
 
@@ -133,7 +153,29 @@ TSharedRef<SWidget> UMyBondageLifeRulePanelWidget::RebuildWidget()
 	{
 		bLayoutBuilt = true;
 
-		RuleList = Cast<UPanelWidget>(WidgetTree->FindWidget(TEXT("W_RuleList")));
+		RuleList = ResolveContainer(WidgetTree->FindWidget(TEXT("W_RuleList")));
+		if (!RuleList)
+		{
+			RuleList = ResolveContainer(WidgetTree->FindWidget(TEXT("WBP_RuleList")));
+		}
+		if (!RuleList)
+		{
+			TArray<UWidget*> AllWidgets;
+			WidgetTree->GetAllWidgets(AllWidgets);
+			for (UWidget* Candidate : AllWidgets)
+			{
+				if (UPanelWidget* Panel = Cast<UPanelWidget>(Candidate))
+				{
+					if (Cast<UScrollBox>(Panel))
+					{
+						RuleList = Panel;
+						break;
+					}
+				}
+		}
+		}
+
+		UE_LOG(LogMyBondageLife, Log, TEXT("Rule: list container = %s"), RuleList ? *RuleList->GetName() : TEXT("none"));
 		CloseButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_Close")));
 		if (CloseButton)
 		{
@@ -148,18 +190,45 @@ void UMyBondageLifeRulePanelWidget::PopulateRules(const FString& ForAccount)
 {
 	ViewAccount = ForAccount;
 
-	if (!RuleList)
+	if (!RuleList && WidgetTree)
 	{
-		RuleList = Cast<UPanelWidget>(WidgetTree ? WidgetTree->FindWidget(TEXT("W_RuleList")) : nullptr);
-	}
-	if (!RuleList)
-	{
-		UE_LOG(LogMyBondageLife, Warning, TEXT("Rule: W_RuleList not found in the panel."));
-		return;
+		RuleList = ResolveContainer(WidgetTree->FindWidget(TEXT("W_RuleList")));
+		if (!RuleList)
+		{
+			RuleList = ResolveContainer(WidgetTree->FindWidget(TEXT("WBP_RuleList")));
+		}
+		if (!RuleList)
+		{
+			TArray<UWidget*> All;
+			WidgetTree->GetAllWidgets(All);
+			for (UWidget* Candidate : All)
+			{
+				if (UScrollBox* Scroll = Cast<UScrollBox>(Candidate))
+				{
+					RuleList = Scroll;
+					break;
+				}
+			}
+		}
 	}
 
-	RuleList->ClearChildren();
+	// 收集设计器里已经摆好的行（WBP_RuleList 的子项）。
 	Rows.Reset();
+	if (WidgetTree)
+	{
+		TArray<UWidget*> AllWidgets;
+		WidgetTree->GetAllWidgets(AllWidgets);
+		for (UWidget* Candidate : AllWidgets)
+		{
+			if (UMyBondageLifeRuleRowWidget* ExistingRow = Cast<UMyBondageLifeRuleRowWidget>(Candidate))
+			{
+				Rows.Add(ExistingRow);
+			}
+		}
+	}
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("Rule: container=%s designed rows=%d"),
+		RuleList ? *RuleList->GetName() : TEXT("none"), Rows.Num());
 
 	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
@@ -170,9 +239,20 @@ void UMyBondageLifeRulePanelWidget::PopulateRules(const FString& ForAccount)
 		RowClass = UMyBondageLifeRuleRowWidget::StaticClass();
 	}
 
-	for (const FMyBondageLifeRuleItem& Item : FMyBondageLifeRuleCatalog::GetItems())
+	const TArray<FMyBondageLifeRuleItem>& Items = FMyBondageLifeRuleCatalog::GetItems();
+	int32 RowIndex = 0;
+
+	for (const FMyBondageLifeRuleItem& Item : Items)
 	{
-		UMyBondageLifeRuleRowWidget* Row = CreateWidget<UMyBondageLifeRuleRowWidget>(this, RowClass);
+		UMyBondageLifeRuleRowWidget* Row = Rows.IsValidIndex(RowIndex) ? Rows[RowIndex].Get() : nullptr;
+		++RowIndex;
+
+		bool bNewRow = false;
+		if (!Row)
+		{
+			Row = CreateWidget<UMyBondageLifeRuleRowWidget>(this, RowClass);
+			bNewRow = true;
+		}
 		if (!Row)
 		{
 			continue;
@@ -181,26 +261,34 @@ void UMyBondageLifeRulePanelWidget::PopulateRules(const FString& ForAccount)
 		Row->OnSwitchRequested.AddUniqueDynamic(this, &UMyBondageLifeRulePanelWidget::HandleRowSwitch);
 		Row->OnDetailRequested.AddUniqueDynamic(this, &UMyBondageLifeRulePanelWidget::HandleRowDetail);
 
-		if (UPanelWidget* List = RuleList)
+		if (bNewRow && RuleList)
 		{
-			if (UScrollBoxSlot* ScrollSlot = Cast<UScrollBoxSlot>(List->AddChild(Row)))
+			if (UScrollBoxSlot* ScrollSlot = Cast<UScrollBoxSlot>(RuleList->AddChild(Row)))
 			{
 				ScrollSlot->SetPadding(FMargin(2.0f));
 			}
-			else if (UVerticalBoxSlot* BoxSlot = Cast<UVerticalBoxSlot>(List->AddChild(Row)))
+			else if (UVerticalBoxSlot* BoxSlot = Cast<UVerticalBoxSlot>(RuleList->AddChild(Row)))
 			{
 				BoxSlot->SetPadding(FMargin(2.0f));
 			}
+			Rows.Add(Row);
 		}
 
 		const bool bEnabled = Account ? Account->IsRuleEnabled(Item.RuleId) : false;
 		const bool bCanEdit = Account ? Account->CanEditRules() : false;
 		Row->SetRule(Item.RuleId, Item.Name, Item.Desc, bEnabled, bCanEdit, !Item.DetailPanel.IsNull());
-
-		Rows.Add(Row);
 	}
 
-	UE_LOG(LogMyBondageLife, Log, TEXT("Rule: panel shows %d row(s)."), Rows.Num());
+	// 多出来的设计行隐藏。
+	for (int32 Index = Items.Num(); Index < Rows.Num(); ++Index)
+	{
+		if (Rows[Index])
+		{
+			Rows[Index]->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("Rule: panel shows %d row(s) for %d item(s)."), Rows.Num(), Items.Num());
 }
 
 void UMyBondageLifeRulePanelWidget::HandleRowSwitch(const FString& RuleId, bool bWantEnabled)
