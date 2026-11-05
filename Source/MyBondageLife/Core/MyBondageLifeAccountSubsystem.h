@@ -419,6 +419,10 @@ public:
 
 	bool GetRuleDetailStruct(const FString& RuleId, FMyBondageLifeRuleDetail& Out) const;
 
+	bool IsRuleEnabledViewed(const FString& RuleId) const { return ViewedEnabledRules.Contains(RuleId); }
+
+	bool GetRuleDetailStructViewed(const FString& RuleId, FMyBondageLifeRuleDetail& Out) const;
+
 	void SetRuleDetail(const FString& InAccount, const FString& RuleId, const FMyBondageLifeRuleDetail& Detail);
 
 	FString GetOwnUid() const;
@@ -426,7 +430,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Rules")
 	FMyBondageLifeRulesChanged OnRulesChanged;
 
-	TSet<FString> EnabledRules;
+	TSet<FString> EnabledRules;              // own (effects)
+	TSet<FString> ViewedEnabledRules;        // viewed account (panel)
+	TMap<FString, FString> ViewedRuleDetailJson;
 	TMap<FString, FString> RuleDetailJson;
 	bool bRulesCanEdit = false;
 	FString RulesMasterAccount;

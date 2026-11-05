@@ -90,7 +90,7 @@ void UMyBondageLifeRuleDetailPanelWidget::BuildForRule(const FString& InRuleId)
 	if (const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
 	{
-		Account->GetRuleDetailStruct(RuleId, Current);
+		Account->GetRuleDetailStructViewed(RuleId, Current);
 	}
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("RuleDetail: rule=%s ints=%d strings=%d bools=%d descs=%d cached=%d/%d/%d"),

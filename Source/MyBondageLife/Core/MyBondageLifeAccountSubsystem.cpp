@@ -2322,6 +2322,7 @@ void UMyBondageLifeAccountSubsystem::RefreshRules(const FString& InAccount)
 						const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&DetailString);
 						FJsonSerializer::Serialize(Detail->ToSharedRef(), Writer);
 						RuleDetailJson.Add(RuleId, DetailString);
+
 					}
 				}
 			}
@@ -2401,8 +2402,8 @@ void UMyBondageLifeAccountSubsystem::RefreshRulesFor(const FString& InAccount, T
 				// 拉不到就当作无主人/无权限，避免沿用上一个账号的状态。
 				bHasMasterAccount = false;
 				bRulesCanEdit = false;
-				EnabledRules.Reset();
-				RuleDetailJson.Reset();
+				ViewedEnabledRules.Reset();
+				ViewedRuleDetailJson.Reset();
 				OnRulesChanged.Broadcast();
 				if (OnDone) { OnDone(false); }
 				return;
@@ -2413,8 +2414,14 @@ void UMyBondageLifeAccountSubsystem::RefreshRulesFor(const FString& InAccount, T
 			bHasMasterAccount = bServerHasMaster;
 			Json->TryGetBoolField(TEXT("canEdit"), bRulesCanEdit);
 
-			EnabledRules.Reset();
-			RuleDetailJson.Reset();
+			ViewedEnabledRules.Reset();
+			ViewedRuleDetailJson.Reset();
+			const bool bSelfTarget = Target.Equals(TEXT("me"));
+			if (bSelfTarget)
+			{
+				EnabledRules.Reset();
+				RuleDetailJson.Reset();
+			}
 
 			const TArray<TSharedPtr<FJsonValue>>* Rules = nullptr;
 			if (Json->TryGetArrayField(TEXT("rules"), Rules) && Rules)
@@ -2437,7 +2444,8 @@ void UMyBondageLifeAccountSubsystem::RefreshRulesFor(const FString& InAccount, T
 					Item->TryGetBoolField(TEXT("enabled"), bEnabled);
 					if (bEnabled)
 					{
-						EnabledRules.Add(RuleId);
+						ViewedEnabledRules.Add(RuleId);
+						if (bSelfTarget) { EnabledRules.Add(RuleId); }
 					}
 
 					// 缓存 detail（细节面板回显用）
@@ -2447,7 +2455,8 @@ void UMyBondageLifeAccountSubsystem::RefreshRulesFor(const FString& InAccount, T
 						FString DetailString;
 						const TSharedRef<TJsonWriter<>> DetailWriter = TJsonWriterFactory<>::Create(&DetailString);
 						FJsonSerializer::Serialize(DetailObject->ToSharedRef(), DetailWriter);
-						RuleDetailJson.Add(RuleId, DetailString);
+						ViewedRuleDetailJson.Add(RuleId, DetailString);
+						if (bSelfTarget) { RuleDetailJson.Add(RuleId, DetailString); }
 					}
 				}
 			}
@@ -2592,4 +2601,57 @@ FString UMyBondageLifeAccountSubsystem::GetOwnUid() const
 		return Profile.Uid;
 	}
 	return FString();
+}
+
+bool UMyBondageLifeAccountSubsystem::GetRuleDetailStructViewed(const FString& RuleId, FMyBondageLifeRuleDetail& Out) const
+{
+	Out = FMyBondageLifeRuleDetail();
+
+	const FString* JsonText = ViewedRuleDetailJson.Find(RuleId);
+	if (!JsonText || JsonText->IsEmpty())
+	{
+		return false;
+	}
+
+	TSharedPtr<FJsonObject> Root;
+	const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(*JsonText);
+	if (!FJsonSerializer::Deserialize(Reader, Root) || !Root.IsValid())
+	{
+		return false;
+	}
+
+	double VersionValue = 1.0;
+	if (Root->TryGetNumberField(TEXT("v"), VersionValue))
+	{
+		Out.Version = static_cast<int32>(VersionValue);
+	}
+
+	const TArray<TSharedPtr<FJsonValue>>* IntArray = nullptr;
+	if (Root->TryGetArrayField(TEXT("ints"), IntArray) && IntArray)
+	{
+		for (const TSharedPtr<FJsonValue>& Value : *IntArray)
+		{
+			Out.Ints.Add(static_cast<int32>(Value->AsNumber()));
+		}
+	}
+
+	const TArray<TSharedPtr<FJsonValue>>* StringArray = nullptr;
+	if (Root->TryGetArrayField(TEXT("strings"), StringArray) && StringArray)
+	{
+		for (const TSharedPtr<FJsonValue>& Value : *StringArray)
+		{
+			Out.Strings.Add(Value->AsString());
+		}
+	}
+
+	const TArray<TSharedPtr<FJsonValue>>* BoolArray = nullptr;
+	if (Root->TryGetArrayField(TEXT("bools"), BoolArray) && BoolArray)
+	{
+		for (const TSharedPtr<FJsonValue>& Value : *BoolArray)
+		{
+			Out.Bools.Add(Value->AsBool());
+		}
+	}
+
+	return true;
 }
