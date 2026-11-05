@@ -100,6 +100,22 @@ void UMyBondageLifeRuleRowWidget::SetRule(const FString& InRuleId, const FString
 	bEnabled = bInEnabled;
 	bCanEdit = bInCanEdit;
 
+	if (WidgetTree)
+	{
+		if (!NameText) { NameText = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_Name"))); }
+		if (!DescText) { DescText = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_Desc"))); }
+		if (!SwitchButton) { SwitchButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_Switch"))); }
+		if (!DetailButton) { DetailButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_DetailButton"))); }
+		if (SwitchButton && !SwitchLabel) { SwitchLabel = Cast<UTextBlock>(SwitchButton->GetChildAt(0)); }
+	}
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("Rule: apply '%s' name=%s desc=%s switch=%s detail=%s"),
+		*RuleId,
+		NameText ? TEXT("ok") : TEXT("NULL"),
+		DescText ? TEXT("ok") : TEXT("NULL"),
+		SwitchButton ? TEXT("ok") : TEXT("NULL"),
+		DetailButton ? TEXT("ok") : TEXT("NULL"));
+
 	if (NameText)
 	{
 		NameText->SetText(FText::FromString(InName));
