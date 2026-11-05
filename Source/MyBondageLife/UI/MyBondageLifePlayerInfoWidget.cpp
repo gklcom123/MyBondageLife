@@ -513,6 +513,16 @@ void UMyBondageLifePlayerInfoWidget::RefreshContents()
 		NameValue->SetText(FText::FromString(FString::Printf(TEXT("\u59D3\u540D\uFF1A%s%s"), *CharacterName, *UidSuffix)));
 	}
 
+	// 无论看自己还是别人，都拉一次公开资料：UID 在资料里。
+	if (UMyBondageLifeAccountSubsystem* ProfileAccount = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		if (!TargetAccountName.IsEmpty())
+		{
+			ProfileAccount->RequestUserProfile(TargetAccountName);
+		}
+	}
+
 	// "角色：支配者"
 	if (ClassValue)
 	{
