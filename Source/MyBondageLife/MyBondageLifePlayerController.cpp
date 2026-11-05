@@ -728,7 +728,7 @@ void AMyBondageLifePlayerController::RefreshChatInputState()
 
 	const bool bBlocked = bChatTextInput || bAltMouseMode || bPlayerInfoOpen || bFriendPanelOpen
 		|| bFriendRequestPending || bWardrobeOpen || bSocialModalOpen || bMessageCenterOpen
-		|| bEmotePanelOpen;
+		|| bEmotePanelOpen || bRulePanelOpen;
 
 	SetGameplayInputBlocked(bBlocked);
 
@@ -742,7 +742,7 @@ void AMyBondageLifePlayerController::RefreshChatInputState()
 		// Alt and the panels free the mouse; typing keeps the cursor hidden.
 		bShowMouseCursor = bAltMouseMode || bPlayerInfoOpen || bFriendPanelOpen
 			|| bFriendRequestPending || bWardrobeOpen || bSocialModalOpen || bMessageCenterOpen
-			|| bEmotePanelOpen;
+			|| bEmotePanelOpen || bRulePanelOpen;
 	}
 	else
 	{
@@ -3203,7 +3203,20 @@ void AMyBondageLifePlayerController::OpenRulePanelNow(const FString& TargetAccou
 			return;
 		}
 
-		// 放在个人信息面板之上，否则点击会被下层面板吞掉。`r`n`t`tRulePanelWidget->AddToViewport(600);
+		RulePanelWidget->AddToViewport(600);
+
+		// 设计版的根控件可能是 HitTestInvisible，会把整块面板的点击吞掉。
+		if (RulePanelWidget->WidgetTree && RulePanelWidget->WidgetTree->RootWidget)
+		{
+			RulePanelWidget->WidgetTree->RootWidget->SetVisibility(ESlateVisibility::Visible);
+			UE_LOG(LogMyBondageLife, Log, TEXT("Rule: root widget %s forced visible"), *RulePanelWidget->WidgetTree->RootWidget->GetName());
+		}
+		RulePanelWidget->SetIsFocusable(true);
+
+		// 设计版根控件可能自适应大小：强制铺满视口，避免整块看不见。
+		RulePanelWidget->SetAnchorsInViewport(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
+		RulePanelWidget->SetAlignmentInViewport(FVector2D::ZeroVector);
+		RulePanelWidget->SetDesiredSizeInViewport(FVector2D(1920.0f, 1080.0f));
 		RulePanelWidget->OnSwitchRequested.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleRuleSwitchRequested);
 		RulePanelWidget->OnDetailRequested.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleRuleDetailRequested);
 		RulePanelWidget->OnClosed.AddUniqueDynamic(this, &AMyBondageLifePlayerController::CloseRulePanel);
@@ -3219,6 +3232,8 @@ void AMyBondageLifePlayerController::OpenRulePanelNow(const FString& TargetAccou
 	RuleTargetAccount = TargetAccount;
 	RulePanelWidget->SetVisibility(ESlateVisibility::Visible);
 	RulePanelWidget->PopulateRules(TargetAccount);
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("Rule: panel vis=%d inViewport=%d"), static_cast<int32>(RulePanelWidget->GetVisibility()), RulePanelWidget->IsInViewport() ? 1 : 0);
 
 	bRulePanelOpen = true;
 	SetShowMouseCursor(true);
