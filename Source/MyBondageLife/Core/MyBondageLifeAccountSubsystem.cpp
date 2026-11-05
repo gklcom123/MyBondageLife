@@ -2439,6 +2439,16 @@ void UMyBondageLifeAccountSubsystem::RefreshRulesFor(const FString& InAccount, T
 					{
 						EnabledRules.Add(RuleId);
 					}
+
+					// 缓存 detail（细节面板回显用）
+					const TSharedPtr<FJsonObject>* DetailObject = nullptr;
+					if (Item->TryGetObjectField(TEXT("detail"), DetailObject) && DetailObject && DetailObject->IsValid())
+					{
+						FString DetailString;
+						const TSharedRef<TJsonWriter<>> DetailWriter = TJsonWriterFactory<>::Create(&DetailString);
+						FJsonSerializer::Serialize(DetailObject->ToSharedRef(), DetailWriter);
+						RuleDetailJson.Add(RuleId, DetailString);
+					}
 				}
 			}
 
