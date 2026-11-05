@@ -157,13 +157,15 @@ void UMyBondageLifeEmoteListWidget::PopulateEmotes()
 			continue;
 		}
 
-		Row->SetEmote(Item.EmoteId, Item.Name, Item.Icon.LoadSynchronous());
 		Row->OnPicked.AddUniqueDynamic(this, &UMyBondageLifeEmoteListWidget::HandleRowPicked);
 
 		if (UScrollBoxSlot* RowSlot = Cast<UScrollBoxSlot>(EmoteContainer->AddChild(Row)))
 		{
 			RowSlot->SetPadding(FMargin(4.0f));
 		}
+		// 先加入容器（此时控件树才构建），再填文字/图标，否则 W_Name/W_BtnImg 还是空的。
+		Row->SetEmote(Item.EmoteId, Item.Name, Item.Icon.LoadSynchronous());
+
 		Rows.Add(Row);
 	}
 

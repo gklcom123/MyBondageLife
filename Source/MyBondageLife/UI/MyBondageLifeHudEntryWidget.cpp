@@ -33,11 +33,11 @@ namespace
 			return { TEXT("/Game/2DAssest/UI/UI_FriendIcon.UI_FriendIcon"), TEXT("\u597D\u53CB\u5217\u8868\uFF08V\uFF09") };
 		case EMyBondageLifeHudEntryAction::Wardrobe:
 			return { TEXT("/Game/2DAssest/UI/UI_Wardrobe.UI_Wardrobe"), TEXT("\u8863\u67DC\uFF08B\uFF09") };
+		case EMyBondageLifeHudEntryAction::Emote:
+			return { TEXT("/Game/2DAssest/UI/UI_Emote.UI_Emote"), TEXT("\u8868\u60C5\u52A8\u4F5C\uFF08Z\uFF09") };
 		default:
 			return { TEXT("/Game/2DAssest/UI/UI_HeadIcon.UI_HeadIcon"), TEXT("\u4E2A\u4EBA\u4FE1\u606F\uFF08C\uFF09") };
 
-		case EMyBondageLifeHudEntryAction::Emote:
-			return { TEXT("/Game/2DAssest/UI/UI_Emote.UI_Emote"), TEXT("\u8868\u60C5\u52A8\u4F5C\uFF08Z\uFF09") };
 		}
 	}
 }
