@@ -3335,7 +3335,11 @@ void AMyBondageLifePlayerController::OpenRulePanelNow(const FString& TargetAccou
 		// 设计版根控件可能自适应大小：强制铺满视口，避免整块看不见。
 		RulePanelWidget->SetAnchorsInViewport(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
 		RulePanelWidget->SetAlignmentInViewport(FVector2D::ZeroVector);
-		RulePanelWidget->SetDesiredSizeInViewport(FVector2D(1920.0f, 1080.0f));
+		int32 ViewWidth = 1920;
+		int32 ViewHeight = 1080;
+		GetViewportSize(ViewWidth, ViewHeight);
+		RulePanelWidget->SetDesiredSizeInViewport(FVector2D(ViewWidth, ViewHeight));
+		RulePanelWidget->SetPositionInViewport(FVector2D::ZeroVector, false);
 		RulePanelWidget->OnSwitchRequested.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleRuleSwitchRequested);
 		RulePanelWidget->OnDetailRequested.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleRuleDetailRequested);
 		RulePanelWidget->OnClosed.AddUniqueDynamic(this, &AMyBondageLifePlayerController::CloseRulePanel);
@@ -3409,6 +3413,7 @@ void AMyBondageLifePlayerController::HandleRulesCacheChanged()
 
 void AMyBondageLifePlayerController::HandleRuleDetailRequested(const FString& RuleId)
 {
+	UE_LOG(LogMyBondageLife, Log, TEXT("RuleDetail: request '%s' target='%s'"), *RuleId, *RuleTargetAccount);
 	if (!RuleDetailWidget)
 	{
 		UClass* PanelClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_RuleDetail.WBP_RuleDetail_C"));
@@ -3424,10 +3429,23 @@ void AMyBondageLifePlayerController::HandleRuleDetailRequested(const FString& Ru
 		RuleDetailWidget = CreateWidget<UMyBondageLifeRuleDetailPanelWidget>(this, PanelClass);
 		if (!RuleDetailWidget)
 		{
+			UE_LOG(LogMyBondageLife, Warning, TEXT("RuleDetail: CreateWidget failed (class=%s)"), PanelClass ? *PanelClass->GetName() : TEXT("none"));
 			return;
 		}
 
 		RuleDetailWidget->AddToViewport(700);
+
+		// 铺满视口，避免设计版自适应把面板缩成 0。
+	{
+		int32 DetailWidth = 1920;
+		int32 DetailHeight = 1080;
+		GetViewportSize(DetailWidth, DetailHeight);
+		RuleDetailWidget->SetAnchorsInViewport(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
+		RuleDetailWidget->SetDesiredSizeInViewport(FVector2D(DetailWidth, DetailHeight));
+		RuleDetailWidget->SetPositionInViewport(FVector2D::ZeroVector, false);
+	}
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("RuleDetail: created %s"), *PanelClass->GetName());
 		RuleDetailWidget->OnSaved.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleRuleDetailSaved);
 		RuleDetailWidget->OnClosed.AddUniqueDynamic(this, &AMyBondageLifePlayerController::CloseRuleDetailPanel);
 	}
