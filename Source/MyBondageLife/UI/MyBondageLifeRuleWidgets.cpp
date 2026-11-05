@@ -311,9 +311,8 @@ void UMyBondageLifeRulePanelWidget::PopulateRules(const FString& ForAccount)
 		}
 
 		const bool bEnabled = Account ? Account->IsRuleEnabled(Item.RuleId) : false;
-		// 能否修改交给服务端判定：这里始终允许点击，非主人会被 403 拒绝并提示，
-		// 避免 canEdit 字段异常时把主人的按钮也置灰。
-		const bool bCanEdit = Account != nullptr;
+		// 只有「被查看者的主人」能改：完全以服务端 canEdit 为准。
+		const bool bCanEdit = Account && Account->CanEditRules();
 		UE_LOG(LogMyBondageLife, Log, TEXT("Rule: row '%s' enabled=%d canEdit=%d"), *Item.RuleId, bEnabled ? 1 : 0, bCanEdit ? 1 : 0);
 		Row->SetRule(Item.RuleId, Item.Name, Item.Desc, bEnabled, bCanEdit, !Item.DetailPanel.IsNull());
 	}
