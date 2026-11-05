@@ -88,6 +88,12 @@ TSharedRef<SWidget> UMyBondageLifeFriendListWidget::RebuildWidget()
 			BuildLayout();
 		}
 		BuildDialogs();
+
+		// 设计版布局里可能自带 W_Close，这里统一接上。
+		if (UButton* DesignedClose = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_Close"))))
+		{
+			DesignedClose->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeFriendListWidget::HandleCloseButtonClicked);
+		}
 	}
 
 	return Super::RebuildWidget();

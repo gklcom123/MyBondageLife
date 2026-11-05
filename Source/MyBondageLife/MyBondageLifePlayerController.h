@@ -560,6 +560,7 @@ public:
 	UFUNCTION()
 	void HandleHudButtonClicked(EMyBondageLifeHudEntryAction Action);
 
+	UFUNCTION()
 	void CloseEmotePanel();
 
 public:
