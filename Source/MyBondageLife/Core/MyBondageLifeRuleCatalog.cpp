@@ -80,6 +80,9 @@ namespace
 			FScriptArrayHelper Helper(*It, static_cast<uint8*>(It->ContainerPtrToValuePtr<void>(const_cast<uint8*>(RowData))));
 			const FProperty* Inner = It->Inner;
 
+			UE_LOG(LogMyBondageLife, Log, TEXT("Rule: read array %s inner=%s count=%d"),
+				*It->GetName(), Inner ? *Inner->GetClass()->GetName() : TEXT("none"), Helper.Num());
+
 			for (int32 Index = 0; Index < Helper.Num(); ++Index)
 			{
 				const uint8* ElementPtr = Helper.GetRawPtr(Index);
