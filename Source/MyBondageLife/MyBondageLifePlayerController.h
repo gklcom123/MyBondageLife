@@ -548,6 +548,17 @@ public:
 	/** 处理 / 开头的聊天指令。 */
 	void ExecuteChatCommand(const FString& CommandLine);
 
+	UFUNCTION()
+	void HandleEmoteKeyPressed();
+
+	UFUNCTION()
+	void HandleEmotePicked(FName EmoteId);
+
+	void ToggleEmoteList();
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UMyBondageLifeEmoteListWidget> EmoteListWidget;
+
 	/** 右键点椅子：坐下 / 起身。 */
 	UFUNCTION()
 	void HandleInteractPressed();

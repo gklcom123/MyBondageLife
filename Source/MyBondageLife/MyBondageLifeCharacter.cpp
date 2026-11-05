@@ -377,6 +377,23 @@ void AMyBondageLifeCharacter::Tick(float DeltaSeconds)
 		}
 	}
 
+	// 移动时停止表情动作。
+	if (CurrentEmote)
+	{
+		if (GetVelocity().SizeSquared2D() > 100.0f || GetPendingMovementInputVector().SizeSquared() > 0.01f)
+		{
+			StopEmote();
+		}
+	
+		if (UAnimInstance* EmoteAnim = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+		{
+			if (EmoteAnim->Montage_IsPlaying(CurrentEmote) == false)
+			{
+				CurrentEmote = nullptr;
+			}
+		}
+	}
+
 	// 坐着时按移动键（WASD）立即起身。
 	if (bSitting && GetWorld())
 	{
@@ -1569,4 +1586,43 @@ void AMyBondageLifeCharacter::SetRestraintColors(const TArray<FString>& Colors)
 void AMyBondageLifeCharacter::OnRep_RestraintColors()
 {
 	SetRestraintColors(RestraintColorArray);
+}
+void AMyBondageLifeCharacter::PlayEmote(UAnimMontage* Montage)
+{
+	if (!Montage)
+	{
+		return;
+	}
+
+	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	if (!AnimInstance)
+	{
+		return;
+	}
+
+	// 同一时间只播放一个表情：先停掉当前。
+	if (CurrentEmote && AnimInstance->Montage_IsPlaying(CurrentEmote))
+	{
+		AnimInstance->Montage_Stop(0.15f, CurrentEmote);
+	}
+
+	AnimInstance->Montage_Play(Montage, 1.0f, EMontagePlayReturnType::MontageLength, 0.0f, false);
+	CurrentEmote = Montage;
+}
+
+void AMyBondageLifeCharacter::StopEmote()
+{
+	if (!CurrentEmote)
+	{
+		return;
+	}
+
+	if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+	{
+		if (AnimInstance->Montage_IsPlaying(CurrentEmote))
+		{
+			AnimInstance->Montage_Stop(0.2f, CurrentEmote);
+		}
+	}
+	CurrentEmote = nullptr;
 }

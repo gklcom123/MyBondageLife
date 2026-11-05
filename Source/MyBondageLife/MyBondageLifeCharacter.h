@@ -157,6 +157,19 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerSetSitting(bool bSit, FVector SeatLocation, FRotator SeatRotation, float SeatOffset = 0.0f, AActor* SeatActor = nullptr);
 
+	// ---------------------------------------------------------------- emote
+	UFUNCTION(BlueprintCallable, Category="Emote")
+	void PlayEmote(class UAnimMontage* Montage);
+
+	UFUNCTION(BlueprintCallable, Category="Emote")
+	void StopEmote();
+
+	UFUNCTION(BlueprintPure, Category="Emote")
+	bool IsEmotePlaying() const { return CurrentEmote != nullptr; }
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UAnimMontage> CurrentEmote;
+
 	UFUNCTION(BlueprintPure, Category="Sitting")
 	bool IsSitting() const { return bSitting; }
 
@@ -203,7 +216,6 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Sitting")
 	AActor* GetOccupiedSeat() const { return OccupiedSeat; }
-
 	/** 设置某槽位某通道的颜色（空字符串=清除）。 */
 	UFUNCTION(BlueprintCallable, Category="Outfit")
 	void SetOutfitColorChannel(int32 Slot, int32 Channel, const FString& HexColor);

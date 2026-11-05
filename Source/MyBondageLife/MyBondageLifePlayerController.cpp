@@ -13,6 +13,9 @@
 #include "GameFramework/PlayerState.h"
 #include "InputMappingContext.h"
 #include "MyBondageLife.h"
+#include "Animation/AnimMontage.h"
+#include "UI/MyBondageLifeEmoteWidgets.h"
+#include "Core/MyBondageLifeEmoteCatalog.h"
 #include "UI/MyBondageLifeSitHintWidget.h"
 #include "MyBondageLifeCharacter.h"
 #include "Network/MyBondageLifeSessionSubsystem.h"
@@ -1533,6 +1536,10 @@ void AMyBondageLifePlayerController::SetupInputComponent()
 	InputComponent->BindKey(EKeys::G, IE_Pressed, this,
 		&AMyBondageLifePlayerController::HandleSitKeyPressed);
 
+	// Z：表情动作面板
+	InputComponent->BindKey(EKeys::Z, IE_Pressed, this,
+		&AMyBondageLifePlayerController::HandleEmoteKeyPressed);
+
 	// 坐着时按任意移动键起身（只起身，不会触发坐下）
 	InputComponent->BindKey(EKeys::W, IE_Pressed, this, &AMyBondageLifePlayerController::HandleStandUpOnMove);
 	InputComponent->BindKey(EKeys::A, IE_Pressed, this, &AMyBondageLifePlayerController::HandleStandUpOnMove);
@@ -2478,7 +2485,8 @@ void AMyBondageLifePlayerController::ShowHudEntries()
 		{ EMyBondageLifeHudEntryAction::Message,    TEXT("W_MessageHost"),       FVector2D(20.0f, -360.0f) },
 		{ EMyBondageLifeHudEntryAction::PlayerInfo, TEXT("W_InfoEntryHost"),     FVector2D(-260.0f, -70.0f) },
 		{ EMyBondageLifeHudEntryAction::FriendList, TEXT("W_FriendsEntryHost"),  FVector2D(-90.0f, -70.0f) },
-		{ EMyBondageLifeHudEntryAction::Wardrobe,   TEXT("W_WardrobeEntryHost"), FVector2D(80.0f, -70.0f) }
+		{ EMyBondageLifeHudEntryAction::Wardrobe,   TEXT("W_WardrobeEntryHost"), FVector2D(80.0f, -70.0f) },
+		{ EMyBondageLifeHudEntryAction::Emote,      TEXT("W_EmoteEntryHost"),   FVector2D(240.0f, -70.0f) }
 	};
 
 	for (const FEntrySetup& Setup : Setups)
@@ -2950,4 +2958,103 @@ void AMyBondageLifePlayerController::PushRestraintColors()
 			ServerSetRestraintColors(Colors);
 		}
 	}
+}
+
+void AMyBondageLifePlayerController::HandleEmoteKeyPressed()
+{
+	ToggleEmoteList();
+}
+
+void AMyBondageLifePlayerController::ToggleEmoteList()
+{
+	if (!EmoteListWidget)
+	{
+		UClass* ListClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_EmoteList.WBP_EmoteList_C"));
+		if (!ListClass)
+		{
+			ListClass = UMyBondageLifeEmoteListWidget::StaticClass();
+		}
+
+		EmoteListWidget = CreateWidget<UMyBondageLifeEmoteListWidget>(this, ListClass);
+		if (!EmoteListWidget)
+		{
+			return;
+		}
+
+		EmoteListWidget->AddToViewport(150);
+		EmoteListWidget->OnEmotePicked.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleEmotePicked);
+	}
+
+	const bool bVisible = EmoteListWidget->IsInViewport()
+		&& EmoteListWidget->GetVisibility() != ESlateVisibility::Collapsed;
+
+	if (bVisible)
+	{
+		EmoteListWidget->SetVisibility(ESlateVisibility::Collapsed);
+		SetShowMouseCursor(false);
+		return;
+	}
+
+	EmoteListWidget->PopulateEmotes();
+	EmoteListWidget->SetVisibility(ESlateVisibility::Visible);
+	SetShowMouseCursor(true);
+}
+
+void AMyBondageLifePlayerController::HandleEmotePicked(FName EmoteId)
+{
+	const FMyBondageLifeEmoteItem* Item = FMyBondageLifeEmoteCatalog::Find(EmoteId);
+	AMyBondageLifeCharacter* EmoteCharacter = Cast<AMyBondageLifeCharacter>(GetPawn());
+	if (!Item || !EmoteCharacter)
+	{
+		return;
+	}
+
+	auto Deny = [this](const FString& Reason)
+	{
+		ShowSystemChatMessage(Reason);
+		if (EmoteListWidget)
+		{
+			EmoteListWidget->SetVisibility(ESlateVisibility::Collapsed);
+		}
+		SetShowMouseCursor(false);
+	};
+
+	// 状态：1=站立，2=椅子，4=地面，8=宠物（后两者预留）
+	const int32 StateBit = EmoteCharacter->IsSitting() ? 2 : 1;
+	if (!FMyBondageLifeEmoteCatalog::MatchesState(*Item, StateBit))
+	{
+		Deny(TEXT("当前状态无法使用该表情"));
+		return;
+	}
+
+	// 拘束限制：两个都要满足
+	if (EmoteCharacter->GetArmActive() && !Item->bArmBound)
+	{
+		Deny(TEXT("由于拘束无法发送该表情"));
+		return;
+	}
+	if (EmoteCharacter->GetLegActive() && !Item->bLegBound)
+	{
+		Deny(TEXT("由于拘束无法发送该表情"));
+		return;
+	}
+
+	UAnimMontage* Montage = Item->Montage.LoadSynchronous();
+	if (!Montage)
+	{
+		Deny(TEXT("该表情没有配置动画"));
+		return;
+	}
+
+	EmoteCharacter->PlayEmote(Montage);
+
+	// 聊天广播：所有人可见
+	const FString CharacterName = EmoteCharacter->GetCharacterName().ToString();
+	ServerSendChatMessage(FString::Printf(TEXT("%s\u4F7F\u7528\u4E86%s"), *CharacterName, *Item->Name));
+
+	if (EmoteListWidget)
+	{
+		EmoteListWidget->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	SetShowMouseCursor(false);
 }
