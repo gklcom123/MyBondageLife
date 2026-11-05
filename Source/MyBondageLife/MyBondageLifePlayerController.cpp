@@ -3411,7 +3411,11 @@ void AMyBondageLifePlayerController::HandleRuleDetailRequested(const FString& Ru
 {
 	if (!RuleDetailWidget)
 	{
-		UClass* PanelClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_RuleDetailPanel.WBP_RuleDetailPanel_C"));
+		UClass* PanelClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_RuleDetail.WBP_RuleDetail_C"));
+		if (!PanelClass)
+		{
+			PanelClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_RuleDetailPanel.WBP_RuleDetailPanel_C"));
+		}
 		if (!PanelClass)
 		{
 			PanelClass = UMyBondageLifeRuleDetailPanelWidget::StaticClass();
