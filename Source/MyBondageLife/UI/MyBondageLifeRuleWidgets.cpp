@@ -153,7 +153,13 @@ void UMyBondageLifeRuleRowWidget::SetRule(const FString& InRuleId, const FString
 	if (DetailButton)
 	{
 		// 只有「主人 + 规则已启用 + 该规则有细节参数」才可点开。
-		DetailButton->SetIsEnabled(bHasDetailPanel && bCanEdit && bEnabled);
+		const bool bDetailEnabled = bHasDetailPanel && bCanEdit && bEnabled;
+		DetailButton->SetIsEnabled(bDetailEnabled);
+		DetailButton->SetClickMethod(EButtonClickMethod::MouseDown);
+		DetailButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeRuleRowWidget::HandleDetailClicked);
+
+		UE_LOG(LogMyBondageLife, Log, TEXT("Rule: detail button '%s' enabled=%d (has=%d canEdit=%d on=%d)"),
+			*RuleId, bDetailEnabled ? 1 : 0, bHasDetailPanel ? 1 : 0, bCanEdit ? 1 : 0, bEnabled ? 1 : 0);
 	}
 }
 
@@ -170,6 +176,7 @@ void UMyBondageLifeRuleRowWidget::HandleSwitchClicked()
 
 void UMyBondageLifeRuleRowWidget::HandleDetailClicked()
 {
+	UE_LOG(LogMyBondageLife, Log, TEXT("Rule: detail clicked '%s'"), *RuleId);
 	OnDetailRequested.Broadcast(RuleId);
 }
 
