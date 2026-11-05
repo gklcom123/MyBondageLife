@@ -12,6 +12,15 @@
 #include "Core/MyBondageLifeAccountSubsystem.h"
 #include "Core/MyBondageLifeRuleCatalog.h"
 #include "MyBondageLife.h"
+namespace
+{
+	/** True only inside a real game/PIE world (never in the widget-blueprint preview world). */
+	bool IsGameWorldForWidget(const UUserWidget* Widget)
+	{
+		const UWorld* World = Widget ? Widget->GetWorld() : nullptr;
+		return World && (World->WorldType == EWorldType::Game || World->WorldType == EWorldType::PIE);
+	}
+}
 
 // ---------------------------------------------------------------------------
 // Row
@@ -26,7 +35,7 @@ TSharedRef<SWidget> UMyBondageLifeRuleRowWidget::RebuildWidget()
 
 	const TSharedRef<SWidget> Result = Super::RebuildWidget();
 
-	if (!IsDesignTime() && WidgetTree && !bLayoutBuilt)
+	if (IsGameWorldForWidget(this) && WidgetTree && !bLayoutBuilt)
 	{
 		bLayoutBuilt = true;
 
@@ -120,7 +129,7 @@ TSharedRef<SWidget> UMyBondageLifeRulePanelWidget::RebuildWidget()
 
 	const TSharedRef<SWidget> Result = Super::RebuildWidget();
 
-	if (!IsDesignTime() && WidgetTree && !bLayoutBuilt)
+	if (IsGameWorldForWidget(this) && WidgetTree && !bLayoutBuilt)
 	{
 		bLayoutBuilt = true;
 
