@@ -162,6 +162,12 @@ bool UMyBondageLifeMainHudWidget::HostWidget(FName HostName, UUserWidget* Widget
 		BorderHost->SetHorizontalAlignment(HAlign_Fill);
 		BorderHost->SetVerticalAlignment(VAlign_Fill);
 
+		// 默认白色画刷会画成一个白块（例如表情入口的宿主），这里清成透明。
+		if (BorderHost->GetBrushColor().Equals(FLinearColor::White))
+		{
+			BorderHost->SetBrushColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.0f));
+		}
+
 		InnerCanvas = Cast<UCanvasPanel>(BorderHost->GetContent());
 		if (!InnerCanvas)
 		{

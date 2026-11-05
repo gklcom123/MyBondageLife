@@ -107,6 +107,7 @@ void UMyBondageLifeHudEntryWidget::BuildTree()
 	IconOverlay->AddChildToOverlay(Button);
 
 	UImage* Icon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("W_Icon"));
+	Icon->SetVisibility(ESlateVisibility::HitTestInvisible);
 	IconOverlay->AddChildToOverlay(Icon);
 
 	// Small dot (14px) pinned to the icon's top-right corner.
@@ -119,7 +120,6 @@ void UMyBondageLifeHudEntryWidget::BuildTree()
 		DotSlot->SetVerticalAlignment(VAlign_Top);
 		DotSlot->SetPadding(FMargin(0.0f, -2.0f, -2.0f, 0.0f));
 	}
-
 	UImage* Dot = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("W_RedDot"));
 	Dot->SetVisibility(ESlateVisibility::Collapsed);
 	DotSize->AddChild(Dot);
