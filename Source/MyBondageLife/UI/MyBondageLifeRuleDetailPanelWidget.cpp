@@ -82,6 +82,7 @@ void UMyBondageLifeRuleDetailPanelWidget::BuildForRule(const FString& InRuleId)
 	const FMyBondageLifeRuleItem* Item = FMyBondageLifeRuleCatalog::Find(RuleId);
 	if (!Item)
 	{
+		UE_LOG(LogMyBondageLife, Warning, TEXT("RuleDetail: rule [%s] not in DT_Rule."), *RuleId);
 		return;
 	}
 
@@ -92,58 +93,69 @@ void UMyBondageLifeRuleDetailPanelWidget::BuildForRule(const FString& InRuleId)
 		Account->GetRuleDetailStruct(RuleId, Current);
 	}
 
-	// 描述顺序：ints -> strings -> bools
+	UE_LOG(LogMyBondageLife, Log, TEXT("RuleDetail: rule=%s ints=%d strings=%d bools=%d descs=%d cached=%d/%d/%d"),
+		*RuleId, Item->DetailIntCount, Item->DetailStringCount, Item->DetailBoolCount,
+		Item->DetailDescs.Num(), Current.Ints.Num(), Current.Strings.Num(), Current.Bools.Num());
+
+	TArray<FString> Descs = Item->DetailDescs;
 	int32 DescIndex = 0;
-	auto DescAt = [Item, &DescIndex]() -> FString
+	auto NextDesc = [&Descs, &DescIndex]() -> FString
 	{
-		const FString Value = Item->DetailDescs.IsValidIndex(DescIndex)
-			? Item->DetailDescs[DescIndex] : FString();
+		const FString Value = Descs.IsValidIndex(DescIndex) ? Descs[DescIndex] : FString();
 		++DescIndex;
 		return Value;
 	};
 
-	for (int32 Index = 0; Index < Item->DetailIntCount; ++Index)
+	auto AddRow = [this](const FString& DescText, UWidget* Input)
 	{
-		UVerticalBox* Row = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-		Row->AddChildToVerticalBox(MakeLabel(WidgetTree, DescAt()));
+		UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 
-		UEditableTextBox* Box = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
-		Box->SetText(FText::FromString(Current.Ints.IsValidIndex(Index)
-			? FString::FromInt(Current.Ints[Index]) : FString()));
-		Row->AddChildToVerticalBox(Box);
+		UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		Label->SetText(FText::FromString(DescText));
+		Label->SetColorAndOpacity(FSlateColor(FLinearColor(0.10f, 0.10f, 0.12f)));
+		Label->SetMinDesiredWidth(300.0f);
+		if (UHorizontalBoxSlot* LabelSlot = Row->AddChildToHorizontalBox(Label))
+		{
+			LabelSlot->SetPadding(FMargin(0.0f, 6.0f));
+			LabelSlot->SetVerticalAlignment(VAlign_Center);
+		}
+
+		if (UHorizontalBoxSlot* InputSlot = Row->AddChildToHorizontalBox(Input))
+		{
+			InputSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+			InputSlot->SetPadding(FMargin(8.0f, 6.0f));
+			InputSlot->SetVerticalAlignment(VAlign_Center);
+		}
 
 		FieldsHost->AddChild(Row);
+	};
+
+	for (int32 Index = 0; Index < Item->DetailIntCount; ++Index)
+	{
+		UEditableTextBox* Box = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
+		Box->SetText(FText::FromString(Current.Ints.IsValidIndex(Index) && Current.Ints[Index] != 0
+			? FString::FromInt(Current.Ints[Index]) : FString()));
+		AddRow(NextDesc(), Box);
 		IntBoxes.Add(Box);
 	}
 
 	for (int32 Index = 0; Index < Item->DetailStringCount; ++Index)
 	{
-		UVerticalBox* Row = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-		Row->AddChildToVerticalBox(MakeLabel(WidgetTree, DescAt()));
-
 		UEditableTextBox* Box = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
 		Box->SetText(FText::FromString(Current.Strings.IsValidIndex(Index) ? Current.Strings[Index] : FString()));
-		Row->AddChildToVerticalBox(Box);
-
-		FieldsHost->AddChild(Row);
+		AddRow(NextDesc(), Box);
 		StringBoxes.Add(Box);
 	}
 
 	for (int32 Index = 0; Index < Item->DetailBoolCount; ++Index)
 	{
-		UVerticalBox* Row = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-		Row->AddChildToVerticalBox(MakeLabel(WidgetTree, DescAt()));
-
 		UCheckBox* Box = WidgetTree->ConstructWidget<UCheckBox>(UCheckBox::StaticClass());
 		Box->SetIsChecked(Current.Bools.IsValidIndex(Index) ? Current.Bools[Index] : false);
-		Row->AddChildToVerticalBox(Box);
-
-		FieldsHost->AddChild(Row);
+		AddRow(NextDesc(), Box);
 		BoolBoxes.Add(Box);
 	}
 
-	UE_LOG(LogMyBondageLife, Log, TEXT("RuleDetail: built %d int / %d string / %d bool for '%s'"),
-		IntBoxes.Num(), StringBoxes.Num(), BoolBoxes.Num(), *RuleId);
+	UE_LOG(LogMyBondageLife, Log, TEXT("RuleDetail: built %d row(s) for %s"), IntBoxes.Num() + StringBoxes.Num() + BoolBoxes.Num(), *RuleId);
 }
 
 void UMyBondageLifeRuleDetailPanelWidget::HandleConfirmClicked()
