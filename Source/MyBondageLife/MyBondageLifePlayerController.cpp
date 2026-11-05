@@ -510,7 +510,8 @@ void AMyBondageLifePlayerController::HandleChatMessageSubmitted(const FString& M
 			if (AMyBondageLifeCharacter* OOCCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
 			{
 				const FString Notice = FString::Printf(TEXT("%s\u8BD5\u56FE\u8FDB\u884Cooc\u804A\u5929\u88AB\u7981\u6B62"), *OOCCharacter->GetCharacterName().ToString());
-				OOCCharacter->ServerAnnounceSystemMessage(Notice);
+				UE_LOG(LogMyBondageLife, Log, TEXT("OOC: blocking chat, announcing '%s'"), *Notice);
+		OOCCharacter->ServerAnnounceSystemMessage(Notice);
 			}
 			return;
 		}
