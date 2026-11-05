@@ -509,9 +509,9 @@ void AMyBondageLifePlayerController::HandleChatMessageSubmitted(const FString& M
 		{
 			if (AMyBondageLifeCharacter* OOCCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
 			{
-				const FString Notice = FString::Printf(TEXT("%s\u8BD5\u56FE\u8FDB\u884Cooc\u804A\u5929\u88AB\u7981\u6B62"), *OOCCharacter->GetCharacterName().ToString());
-				UE_LOG(LogMyBondageLife, Log, TEXT("OOC: blocking chat, announcing '%s'"), *Notice);
-		OOCCharacter->ServerAnnounceSystemMessage(Notice);
+				// 复用表情广播接口：服务端统一向所有人推 chat.system，不经过聊天通道。
+				RuleAccount->BroadcastEmote(TEXT("CantOOC"), TEXT("\u8BD5\u56FE\u8FDB\u884Cooc\u804A\u5929\uFF08\u5DF2\u88AB\u7981\u6B62\uFF09"));
+				UE_LOG(LogMyBondageLife, Log, TEXT("OOC: blocked chat, broadcast via emote API (%s)"), *OOCCharacter->GetCharacterName().ToString());
 			}
 			return;
 		}
