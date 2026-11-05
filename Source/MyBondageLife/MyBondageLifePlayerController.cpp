@@ -2993,13 +2993,15 @@ void AMyBondageLifePlayerController::ToggleEmoteList()
 	if (bVisible)
 	{
 		EmoteListWidget->SetVisibility(ESlateVisibility::Collapsed);
-		SetShowMouseCursor(false);
+		bEmotePanelOpen = false;
+		RefreshChatInputState();
 		return;
 	}
 
 	EmoteListWidget->PopulateEmotes();
 	EmoteListWidget->SetVisibility(ESlateVisibility::Visible);
-	SetShowMouseCursor(true);
+		bEmotePanelOpen = true;
+		RefreshChatInputState();
 }
 
 void AMyBondageLifePlayerController::HandleEmotePicked(FName EmoteId)
@@ -3050,13 +3052,18 @@ void AMyBondageLifePlayerController::HandleEmotePicked(FName EmoteId)
 
 	EmoteCharacter->PlayEmote(Montage);
 
-	// 聊天广播：所有人可见
-	const FString CharacterName = EmoteCharacter->GetCharacterName().ToString();
-	ServerSendChatMessage(FString::Printf(TEXT("%s\u4F7F\u7528\u4E86%s"), *CharacterName, *Item->Name));
+	// 服务端系统广播，不受口球影响
+	if (UMyBondageLifeAccountSubsystem* EmoteAccount = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		EmoteAccount->BroadcastEmote(EmoteId.ToString(), Item->Name);
+	}
 
 	if (EmoteListWidget)
 	{
 		EmoteListWidget->SetVisibility(ESlateVisibility::Collapsed);
 	}
 	SetShowMouseCursor(false);
+	bEmotePanelOpen = false;
+	RefreshChatInputState();
 }

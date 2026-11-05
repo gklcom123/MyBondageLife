@@ -419,6 +419,8 @@ void AMyBondageLifeCharacter::Tick(float DeltaSeconds)
 			ApplyBodyPartHiding();
 		}
 	}
+	ApplyBlindEffect(DeltaSeconds);
+
 	if (bCantMove)
 	{
 		if (UCharacterMovementComponent* Movement = GetCharacterMovement())
