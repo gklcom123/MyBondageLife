@@ -436,6 +436,27 @@ void UMyBondageLifePlayerInfoWidget::ShowCharacterInfo(const AMyBondageLifeChara
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("PlayerInfo: viewing '%s' (character='%s')"),
 		*TargetAccountName, Character ? *Character->GetName() : TEXT("none"));
+	const UMyBondageLifeAccountSubsystem* InfoAccount = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	const bool bSelfPanel = !InfoAccount || TargetAccountName.IsEmpty()
+		|| TargetAccountName.Equals(InfoAccount->GetAccountName(), ESearchCase::IgnoreCase);
+
+	// 看别人时不能改难度，直接把两个难度按钮隐藏。
+	if (DifficultyNormalButton)
+	{
+		DifficultyNormalButton->SetVisibility(bSelfPanel ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	}
+	if (DifficultyExtremeButton)
+	{
+		DifficultyExtremeButton->SetVisibility(bSelfPanel ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	}
+
+	// 规则按钮先置灰，等被查看者的规则数据回来再由 OnRulesChanged 决定是否点亮。
+	if (RuleInfoButton)
+	{
+		RuleInfoButton->SetIsEnabled(false);
+		RuleInfoButton->SetBackgroundColor(FLinearColor(0.45f, 0.45f, 0.45f));
+	}
 
 	// 拉取被查看者的规则状态：决定【奴隶规则】按钮能否点击
 	if (UMyBondageLifeAccountSubsystem* RuleAccount = GetGameInstance()

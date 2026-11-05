@@ -3241,6 +3241,7 @@ void AMyBondageLifePlayerController::CloseRulePanel()
 
 void AMyBondageLifePlayerController::HandleRuleSwitchRequested(const FString& RuleId, bool bWantEnabled)
 {
+	UE_LOG(LogMyBondageLife, Log, TEXT("Rule: switch request rule='%s' -> %d target='%s'"), *RuleId, bWantEnabled ? 1 : 0, *RuleTargetAccount);
 	if (UMyBondageLifeAccountSubsystem* RuleAccount = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
 	{

@@ -59,6 +59,22 @@ TSharedRef<SWidget> UMyBondageLifeRuleRowWidget::RebuildWidget()
 	{
 		bLayoutBuilt = true;
 
+	}
+
+	return Result;
+}
+
+void UMyBondageLifeRuleRowWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	if (!WidgetTree || bLayoutBuilt)
+	{
+		return;
+	}
+	bLayoutBuilt = true;
+
+	{
 		NameText = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_Name")));
 		DescText = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_Desc")));
 		SwitchButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_Switch")));
@@ -67,6 +83,7 @@ TSharedRef<SWidget> UMyBondageLifeRuleRowWidget::RebuildWidget()
 		if (SwitchButton)
 		{
 			SwitchLabel = Cast<UTextBlock>(SwitchButton->GetChildAt(0));
+			SwitchButton->SetClickMethod(EButtonClickMethod::MouseDown);
 			SwitchButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeRuleRowWidget::HandleSwitchClicked);
 		}
 		if (DetailButton)
@@ -74,8 +91,6 @@ TSharedRef<SWidget> UMyBondageLifeRuleRowWidget::RebuildWidget()
 			DetailButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeRuleRowWidget::HandleDetailClicked);
 		}
 	}
-
-	return Result;
 }
 
 void UMyBondageLifeRuleRowWidget::SetRule(const FString& InRuleId, const FString& InName, const FString& InDesc,
@@ -124,6 +139,8 @@ void UMyBondageLifeRuleRowWidget::SetRule(const FString& InRuleId, const FString
 
 void UMyBondageLifeRuleRowWidget::HandleSwitchClicked()
 {
+	UE_LOG(LogMyBondageLife, Log, TEXT("Rule: switch clicked '%s' canEdit=%d enabled=%d"), *RuleId, bCanEdit ? 1 : 0, bEnabled ? 1 : 0);
+
 	if (!bCanEdit)
 	{
 		return;
@@ -149,7 +166,7 @@ TSharedRef<SWidget> UMyBondageLifeRulePanelWidget::RebuildWidget()
 
 	const TSharedRef<SWidget> Result = Super::RebuildWidget();
 
-	if (IsGameWorldForWidget(this) && WidgetTree && !bLayoutBuilt)
+	if (false)
 	{
 		bLayoutBuilt = true;
 
@@ -276,6 +293,7 @@ void UMyBondageLifeRulePanelWidget::PopulateRules(const FString& ForAccount)
 
 		const bool bEnabled = Account ? Account->IsRuleEnabled(Item.RuleId) : false;
 		const bool bCanEdit = Account ? Account->CanEditRules() : false;
+		UE_LOG(LogMyBondageLife, Log, TEXT("Rule: row '%s' enabled=%d canEdit=%d"), *Item.RuleId, bEnabled ? 1 : 0, bCanEdit ? 1 : 0);
 		Row->SetRule(Item.RuleId, Item.Name, Item.Desc, bEnabled, bCanEdit, !Item.DetailPanel.IsNull());
 	}
 
@@ -304,4 +322,27 @@ void UMyBondageLifeRulePanelWidget::HandleRowDetail(const FString& RuleId)
 void UMyBondageLifeRulePanelWidget::HandleCloseClicked()
 {
 	OnClosed.Broadcast();
+}
+
+void UMyBondageLifeRulePanelWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	if (!WidgetTree || bLayoutBuilt)
+	{
+		return;
+	}
+	bLayoutBuilt = true;
+
+	RuleList = ResolveContainer(WidgetTree->FindWidget(TEXT("W_RuleList")));
+	if (!RuleList)
+	{
+		RuleList = ResolveContainer(WidgetTree->FindWidget(TEXT("WBP_RuleList")));
+	}
+
+	CloseButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_Close")));
+	if (CloseButton)
+	{
+		CloseButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeRulePanelWidget::HandleCloseClicked);
+	}
 }

@@ -23,6 +23,7 @@ class MYBONDAGELIFE_API UMyBondageLifeRuleRowWidget : public UUserWidget
 public:
 
 	virtual TSharedRef<SWidget> RebuildWidget() override;
+	virtual void NativeConstruct() override;
 
 	UFUNCTION(BlueprintCallable, Category = "Rule")
 	void SetRule(const FString& InRuleId, const FString& InName, const FString& InDesc,
@@ -65,6 +66,7 @@ class MYBONDAGELIFE_API UMyBondageLifeRulePanelWidget : public UUserWidget
 public:
 
 	virtual TSharedRef<SWidget> RebuildWidget() override;
+	virtual void NativeConstruct() override;
 
 	UFUNCTION(BlueprintCallable, Category = "Rule")
 	void PopulateRules(const FString& ForAccount);
