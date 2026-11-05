@@ -1628,3 +1628,20 @@ void AMyBondageLifeCharacter::StopEmote()
 	}
 	CurrentEmote = nullptr;
 }
+void AMyBondageLifeCharacter::ServerPlayEmote_Implementation(const FString& MontagePath)
+{
+	MulticastPlayEmote(MontagePath);
+}
+
+void AMyBondageLifeCharacter::MulticastPlayEmote_Implementation(const FString& MontagePath)
+{
+	if (MontagePath.IsEmpty())
+	{
+		return;
+	}
+
+	if (UAnimMontage* Montage = LoadObject<UAnimMontage>(nullptr, *MontagePath))
+	{
+		PlayEmote(Montage);
+	}
+}

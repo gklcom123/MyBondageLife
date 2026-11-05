@@ -164,6 +164,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Emote")
 	void StopEmote();
 
+	UFUNCTION(Server, Reliable)
+	void ServerPlayEmote(const FString& MontagePath);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastPlayEmote(const FString& MontagePath);
+
 	UFUNCTION(BlueprintPure, Category="Emote")
 	bool IsEmotePlaying() const { return CurrentEmote != nullptr; }
 

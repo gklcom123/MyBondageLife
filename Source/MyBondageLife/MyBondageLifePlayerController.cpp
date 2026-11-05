@@ -3027,6 +3027,15 @@ void AMyBondageLifePlayerController::HandleEmotePicked(FName EmoteId)
 
 	EmoteCharacter->PlayEmote(Montage);
 
+	// 让其他玩家也看到这个表情
+	if (!HasAuthority())
+	{
+		EmoteCharacter->ServerPlayEmote(Item->Montage.ToSoftObjectPath().ToString());
+	}else
+	{
+		EmoteCharacter->MulticastPlayEmote(Item->Montage.ToSoftObjectPath().ToString());
+	}
+
 	// 服务端系统广播，不受口球影响
 	if (UMyBondageLifeAccountSubsystem* EmoteAccount = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
