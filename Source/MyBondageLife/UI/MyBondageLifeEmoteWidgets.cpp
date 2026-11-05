@@ -6,6 +6,7 @@
 #include "Components/Button.h"
 #include "Components/Image.h"
 #include "Components/ScrollBox.h"
+#include "Components/PanelWidget.h"
 #include "Components/ScrollBoxSlot.h"
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
@@ -101,11 +102,31 @@ TSharedRef<SWidget> UMyBondageLifeEmoteListWidget::RebuildWidget()
 	{
 		bLayoutBuilt = true;
 
-		EmoteScroll = Cast<UScrollBox>(WidgetTree->FindWidget(TEXT("W_EmoteScrollBox")));
-		if (!EmoteScroll)
+		// 设计版可能用 HorizontalBox / VerticalBox 当容器，同名控件直接用。
+		EmoteContainer = Cast<UPanelWidget>(WidgetTree->FindWidget(TEXT("W_EmoteScrollBox")));
+
+		if (!EmoteContainer)
 		{
-			EmoteScroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass(), TEXT("W_EmoteScrollBox"));
-			WidgetTree->RootWidget = EmoteScroll;
+			TArray<UWidget*> AllWidgets;
+			WidgetTree->GetAllWidgets(AllWidgets);
+			for (UWidget* Candidate : AllWidgets)
+			{
+				if (UPanelWidget* Panel = Cast<UPanelWidget>(Candidate))
+				{
+					if (Cast<UScrollBox>(Panel))
+					{
+						EmoteContainer = Panel;
+						break;
+					}
+				}
+			}
+		}
+
+		if (!EmoteContainer)
+		{
+			UScrollBox* NewScroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass(), TEXT("W_EmoteScrollBox"));
+			WidgetTree->RootWidget = NewScroll;
+			EmoteContainer = NewScroll;
 		}
 	}
 
@@ -114,12 +135,12 @@ TSharedRef<SWidget> UMyBondageLifeEmoteListWidget::RebuildWidget()
 
 void UMyBondageLifeEmoteListWidget::PopulateEmotes()
 {
-	if (!EmoteScroll)
+	if (!EmoteContainer)
 	{
 		return;
 	}
 
-	EmoteScroll->ClearChildren();
+	EmoteContainer->ClearChildren();
 	Rows.Reset();
 
 	UClass* RowClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_Emote.WBP_Emote_C"));
@@ -139,7 +160,7 @@ void UMyBondageLifeEmoteListWidget::PopulateEmotes()
 		Row->SetEmote(Item.EmoteId, Item.Name, Item.Icon.LoadSynchronous());
 		Row->OnPicked.AddUniqueDynamic(this, &UMyBondageLifeEmoteListWidget::HandleRowPicked);
 
-		if (UScrollBoxSlot* RowSlot = Cast<UScrollBoxSlot>(EmoteScroll->AddChild(Row)))
+		if (UScrollBoxSlot* RowSlot = Cast<UScrollBoxSlot>(EmoteContainer->AddChild(Row)))
 		{
 			RowSlot->SetPadding(FMargin(4.0f));
 		}

@@ -65,7 +65,7 @@ protected:
 	UFUNCTION()
 	void HandleRowPicked(FName EmoteId);
 
-	UPROPERTY(Transient) TObjectPtr<UScrollBox> EmoteScroll;
+	UPROPERTY(Transient) TObjectPtr<class UPanelWidget> EmoteContainer;
 	UPROPERTY(Transient) TArray<TObjectPtr<UMyBondageLifeEmoteRowWidget>> Rows;
 	bool bLayoutBuilt = false;
 };
