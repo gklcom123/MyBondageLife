@@ -378,6 +378,11 @@ public:
 	bool CanEditRules() const { return bRulesCanEdit; }
 
 	UFUNCTION(BlueprintPure, Category = "Rules")
+	bool HasMasterAccount() const { return bHasMasterAccount; }
+
+	bool bHasMasterAccount = false;
+
+	UFUNCTION(BlueprintPure, Category = "Rules")
 	FString GetRuleDetail(const FString& RuleId) const;
 
 	UPROPERTY(BlueprintAssignable, Category = "Rules")

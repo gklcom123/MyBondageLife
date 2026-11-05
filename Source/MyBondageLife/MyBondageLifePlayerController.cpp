@@ -2510,6 +2510,13 @@ void AMyBondageLifePlayerController::ShowHudEntries()
 
 		UE_LOG(LogMyBondageLife, Log, TEXT("Hud: bound %d designed button(s)."), HudEntries.Num());
 	}
+	// HUD 建立后同步一次规则（决定 W_RuleInfoButton 是否置灰）
+	if (UMyBondageLifeAccountSubsystem* HudRuleAccount = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		HudRuleAccount->RefreshRules();
+	}
+
 	// Restraint status icons (gag / arms / legs / cannot move) live in the HUD too.
 	if (!RestraintStatusWidget)
 	{
@@ -3144,7 +3151,7 @@ void AMyBondageLifePlayerController::ToggleRulePanel()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
 
 	// 没有主人时不允许打开（按钮也已置灰，这里再兜一层）。
-	if (!RuleAccount || !RuleAccount->HasMaster())
+	if (!RuleAccount || !RuleAccount->HasMasterAccount())
 	{
 		ShowSystemChatMessage(TEXT("\u4F60\u8FD8\u6CA1\u6709\u4E3B\u4EBA\uFF0C\u65E0\u6CD5\u67E5\u770B\u5974\u96B6\u89C4\u5219"));
 		return;

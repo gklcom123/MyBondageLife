@@ -1324,7 +1324,7 @@ void UMyBondageLifePlayerInfoWidget::UpdateRuleInfoButton()
 
 	const UMyBondageLifeAccountSubsystem* RuleAccount = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
-	const bool bHasMaster = RuleAccount && RuleAccount->HasMaster();
+	const bool bHasMaster = RuleAccount && RuleAccount->HasMasterAccount();
 
 	// 没有主人（临时契约也算）时置灰，任何人不能点。
 	RuleInfoButton->SetIsEnabled(bHasMaster);

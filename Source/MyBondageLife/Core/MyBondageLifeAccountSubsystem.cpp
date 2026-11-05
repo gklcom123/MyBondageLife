@@ -2256,7 +2256,9 @@ void UMyBondageLifeAccountSubsystem::RefreshRules(const FString& InAccount)
 				return;
 			}
 
-			Json->TryGetBoolField(TEXT("hasMaster"), bHasMaster);
+			bool bServerHasMaster = false;
+			Json->TryGetBoolField(TEXT("hasMaster"), bServerHasMaster);
+			bHasMasterAccount = bServerHasMaster;
 			Json->TryGetBoolField(TEXT("canEdit"), bRulesCanEdit);
 
 			EnabledRules.Reset();
