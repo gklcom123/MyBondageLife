@@ -2965,6 +2965,7 @@ void AMyBondageLifePlayerController::ToggleEmoteList()
 
 		EmoteListWidget->AddToViewport(150);
 		EmoteListWidget->OnEmotePicked.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleEmotePicked);
+		EmoteListWidget->OnCloseRequested.AddUniqueDynamic(this, &AMyBondageLifePlayerController::CloseEmotePanel);
 	}
 
 	if (bEmotePanelOpen)

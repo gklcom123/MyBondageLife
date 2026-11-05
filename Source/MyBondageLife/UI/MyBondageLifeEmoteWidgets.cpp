@@ -103,6 +103,12 @@ TSharedRef<SWidget> UMyBondageLifeEmoteListWidget::RebuildWidget()
 		bLayoutBuilt = true;
 
 		// 设计版可能用 HorizontalBox / VerticalBox 当容器，同名控件直接用。
+		// 设计器里的关闭按钮
+		if (UButton* CloseButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_Close"))))
+		{
+			CloseButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeEmoteListWidget::HandleCloseClicked);
+		}
+
 		EmoteContainer = Cast<UPanelWidget>(WidgetTree->FindWidget(TEXT("W_EmoteScrollBox")));
 
 		if (!EmoteContainer)
@@ -175,4 +181,9 @@ void UMyBondageLifeEmoteListWidget::PopulateEmotes()
 void UMyBondageLifeEmoteListWidget::HandleRowPicked(FName EmoteId)
 {
 	OnEmotePicked.Broadcast(EmoteId);
+}
+
+void UMyBondageLifeEmoteListWidget::HandleCloseClicked()
+{
+	OnCloseRequested.Broadcast();
 }

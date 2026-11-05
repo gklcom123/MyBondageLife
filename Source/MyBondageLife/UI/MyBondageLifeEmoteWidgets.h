@@ -13,6 +13,7 @@ class UTextBlock;
 class UWidgetTree;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeEmotePicked, FName, EmoteId);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeEmoteCloseRequested);
 
 /** One row of the emote list (WBP_Emote). */
 UCLASS()
@@ -60,10 +61,16 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Emote")
 	FMyBondageLifeEmotePicked OnEmotePicked;
 
+	UPROPERTY(BlueprintAssignable, Category = "Emote")
+	FMyBondageLifeEmoteCloseRequested OnCloseRequested;
+
 protected:
 
 	UFUNCTION()
 	void HandleRowPicked(FName EmoteId);
+
+	UFUNCTION()
+	void HandleCloseClicked();
 
 	UPROPERTY(Transient) TObjectPtr<class UPanelWidget> EmoteContainer;
 	UPROPERTY(Transient) TArray<TObjectPtr<UMyBondageLifeEmoteRowWidget>> Rows;

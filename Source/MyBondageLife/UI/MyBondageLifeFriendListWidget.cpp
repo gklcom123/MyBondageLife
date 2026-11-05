@@ -172,7 +172,14 @@ void UMyBondageLifeFriendListWidget::BuildLayout()
 	UCanvasPanel* PanelCanvas = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("FriendPanelCanvas"));
 	PanelBorder->AddChild(PanelCanvas);
 
-	USizeBox* CloseSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("FriendCloseSize"));
+	// 设计器里如果放了 W_Close 就用它，否则再生成默认关闭按钮。
+	UButton* DesignedClose = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_Close")));
+	if (DesignedClose)
+	{
+		DesignedClose->OnClicked.AddDynamic(this, &UMyBondageLifeFriendListWidget::HandleCloseButtonClicked);
+	}
+	else
+	{	USizeBox* CloseSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("FriendCloseSize"));
 	CloseSize->SetWidthOverride(FriendCloseButtonSize);
 	CloseSize->SetHeightOverride(FriendCloseButtonSize);
 	if (UCanvasPanelSlot* CloseSlot = PanelCanvas->AddChildToCanvas(CloseSize))
@@ -196,6 +203,7 @@ void UMyBondageLifeFriendListWidget::BuildLayout()
 		CloseLabel->SetFont(CloseFont);
 	}
 	CloseButton->AddChild(CloseLabel);
+	}
 
 	// Title
 	UTextBlock* Title = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("FriendPanelTitle"));
