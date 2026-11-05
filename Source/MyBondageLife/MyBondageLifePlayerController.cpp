@@ -712,11 +712,24 @@ void AMyBondageLifePlayerController::ClientReceiveChatMessage_Implementation(con
 					if (const UMyBondageLifeAccountSubsystem* ChatAccount = GetGameInstance()
 						? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
 					{
-						const FString OwnUid = ChatAccount->GetOwnUid();
-				// 自己说的话自己当然知道原句；白名单里的人也能看到。
+				const FString OwnUid = ChatAccount->GetOwnUid();
 				const bool bSenderIsSelf = !SenderAccount.IsEmpty()
 					&& SenderAccount.Equals(ChatAccount->GetAccountName(), ESearchCase::IgnoreCase);
-				if (bSenderIsSelf || (!OwnUid.IsEmpty() && UidList.Contains(OwnUid)))
+
+				// 只有白名单命中才显示原文（发送者也不例外，除非把自己填进白名单）。
+				TArray<FString> AllowedUids;
+				UidList.ParseIntoArray(AllowedUids, TEXT(","), true);
+				const bool bWhitelisted = !OwnUid.IsEmpty() && AllowedUids.ContainsByPredicate(
+					[&OwnUid](const FString& Entry)
+					{
+						const FString Trimmed = Entry.TrimStartAndEnd();
+						return !Trimmed.IsEmpty() && Trimmed != TEXT("0") && Trimmed == OwnUid;
+					});
+
+				UE_LOG(LogMyBondageLife, Log, TEXT("Whitelist_Hear: receive uids=[%s] own=%s sender=%s isSelf=%d hit=%d"),
+					*UidList, *OwnUid, *SenderAccount, bSenderIsSelf ? 1 : 0, bWhitelisted ? 1 : 0);
+
+				if (bWhitelisted)
 						{
 							DisplayMessage = FString::Printf(TEXT("%s\uFF08%s\uFF09"), *Garbled, *Original);
 						}

@@ -153,6 +153,12 @@ void FMyBondageLifeRuleCatalog::Refresh()
 		Items.Add(Item);
 	}
 
+	// 一次性打印结构体字段名，便于确认 Detail_* 的真实名字与类型。
+	for (TFieldIterator<FProperty> It(RowStruct); It; ++It)
+	{
+		UE_LOG(LogMyBondageLife, Log, TEXT("Rule: DT field %s : %s"), *It->GetName(), *It->GetClass()->GetName());
+	}
+
 	UE_LOG(LogMyBondageLife, Log, TEXT("Rule: loaded %d row(s)."), Items.Num());
 }
 
