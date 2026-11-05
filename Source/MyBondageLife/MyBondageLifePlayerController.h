@@ -556,6 +556,10 @@ public:
 
 	void ToggleEmoteList();
 
+public:
+	UFUNCTION(BlueprintCallable, Category="UI")
+	void ToggleEmoteListPublic() { ToggleEmoteList(); }
+
 	UPROPERTY(Transient)
 	TObjectPtr<class UMyBondageLifeEmoteListWidget> EmoteListWidget;
 
@@ -594,7 +598,7 @@ public:
 	void ShowHudEntries();
 
 	UPROPERTY(Transient)
-	TArray<TObjectPtr<class UMyBondageLifeHudEntryWidget>> HudEntries;
+	TArray<TObjectPtr<class UMyBondageLifeHudButtonWidget>> HudEntries;
 
 	UPROPERTY(Transient)
 	TObjectPtr<class UMyBondageLifeRestraintStatusWidget> RestraintStatusWidget;

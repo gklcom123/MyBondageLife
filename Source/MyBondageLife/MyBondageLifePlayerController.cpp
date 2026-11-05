@@ -24,6 +24,7 @@
 #include "UI/MyBondageLifeMessageWidgets.h"
 #include "UI/MyBondageLifeMainHudWidget.h"
 #include "UI/MyBondageLifeHudEntryWidget.h"
+#include "UI/MyBondageLifeHudButtonWidget.h"
 #include "UI/MyBondageLifeRestraintStatusWidget.h"
 #include "UI/MyBondageLifeFriendListWidget.h"
 #include "UI/MyBondageLifeGameMenuWidget.h"
@@ -2469,8 +2470,8 @@ void AMyBondageLifePlayerController::ShowHudEntries()
 		return;
 	}
 
-	UClass* EntryClass = UMyBondageLifeHudEntryWidget::StaticClass();
-	if (UClass* Designed = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_HudEntry.WBP_HudEntry_C")))
+	UClass* EntryClass = UMyBondageLifeHudButtonWidget::StaticClass();
+	if (UClass* Designed = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_HudButton.WBP_HudButton_C")))
 	{
 		EntryClass = Designed;
 	}
@@ -2493,13 +2494,13 @@ void AMyBondageLifePlayerController::ShowHudEntries()
 
 	for (const FEntrySetup& Setup : Setups)
 	{
-		UMyBondageLifeHudEntryWidget* Entry = CreateWidget<UMyBondageLifeHudEntryWidget>(this, EntryClass);
+		UMyBondageLifeHudButtonWidget* Entry = CreateWidget<UMyBondageLifeHudButtonWidget>(this, EntryClass);
 		if (!Entry)
 		{
 			continue;
 		}
 
-		Entry->SetEntryKind(Setup.Action);
+		Entry->SetEntryAction(Setup.Action);
 		HudEntries.Add(Entry);
 
 		if (HostInMainHud(Setup.Host, Entry))
