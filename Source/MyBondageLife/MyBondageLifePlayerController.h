@@ -563,6 +563,23 @@ public:
 	UFUNCTION()
 	void CloseEmotePanel();
 
+	UFUNCTION(BlueprintCallable, Category="UI")
+	void ToggleRulePanel();
+
+	UFUNCTION()
+	void CloseRulePanel();
+
+	UFUNCTION()
+	void HandleRuleSwitchRequested(const FString& RuleId, bool bWantEnabled);
+
+	UFUNCTION()
+	void HandleRuleDetailRequested(const FString& RuleId);
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UMyBondageLifeRulePanelWidget> RulePanelWidget;
+
+	bool bRulePanelOpen = false;
+
 public:
 	UFUNCTION(BlueprintCallable, Category="UI")
 	void ToggleEmoteListPublic() { ToggleEmoteList(); }

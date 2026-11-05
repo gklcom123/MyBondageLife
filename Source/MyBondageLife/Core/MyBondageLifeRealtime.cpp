@@ -159,6 +159,18 @@ void UMyBondageLifeAccountSubsystem::HandleRealtimeMessage(const FString& InMess
 		return;
 	}
 
+	// 奴隶规则变化：重新拉取一次（主人也可能是别的客户端改的）
+	if (Type == TEXT("rules.changed"))
+	{
+		FString ChangedAccount;
+		Json->TryGetStringField(TEXT("account"), ChangedAccount);
+		if (ChangedAccount.IsEmpty() || ChangedAccount.Equals(AccountName, ESearchCase::IgnoreCase))
+		{
+			RefreshRules();
+		}
+		return;
+	}
+
 	if (Type == TEXT("error"))
 	{
 		FString Code;

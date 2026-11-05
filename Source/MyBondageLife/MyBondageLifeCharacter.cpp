@@ -1645,3 +1645,19 @@ void AMyBondageLifeCharacter::MulticastPlayEmote_Implementation(const FString& M
 		PlayEmote(Montage);
 	}
 }
+void AMyBondageLifeCharacter::ServerAnnounceSystemMessage_Implementation(const FString& Text)
+{
+	MulticastSystemMessage(Text);
+}
+
+void AMyBondageLifeCharacter::MulticastSystemMessage_Implementation(const FString& Text)
+{
+	if (AMyBondageLifePlayerController* ChatController = Cast<AMyBondageLifePlayerController>(GetController()))
+	{
+		ChatController->ShowSystemChatMessage(Text);
+	}
+	else if (AMyBondageLifePlayerController* LocalController = Cast<AMyBondageLifePlayerController>(GetWorld()->GetFirstPlayerController()))
+	{
+		LocalController->ShowSystemChatMessage(Text);
+	}
+}

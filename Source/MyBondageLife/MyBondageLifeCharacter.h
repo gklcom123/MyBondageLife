@@ -170,6 +170,12 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastPlayEmote(const FString& MontagePath);
 
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastSystemMessage(const FString& Text);
+
+	UFUNCTION(Server, Reliable)
+	void ServerAnnounceSystemMessage(const FString& Text);
+
 	UFUNCTION(BlueprintPure, Category="Emote")
 	bool IsEmotePlaying() const { return CurrentEmote != nullptr; }
 

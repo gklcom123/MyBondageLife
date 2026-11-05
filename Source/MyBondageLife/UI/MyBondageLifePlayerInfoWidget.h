@@ -144,6 +144,14 @@ protected:
 	void HandleCloseButtonClicked();
 
 	UFUNCTION()
+	void HandleRuleInfoClicked();
+
+	UFUNCTION()
+	void HandleRulesChanged();
+
+	void UpdateRuleInfoButton();
+
+	UFUNCTION()
 	void HandleAddFriendClicked();
 
 	/** True when the panel shows somebody else, i.e. the add-friend button applies. */
@@ -237,6 +245,9 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UButton> CloseButton;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UButton> RuleInfoButton;
 
 	//~ Proximity hint: "按[F]与[" + <name> + "]进行交互"
 	UPROPERTY(Transient)

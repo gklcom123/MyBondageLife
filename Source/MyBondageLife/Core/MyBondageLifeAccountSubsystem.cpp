@@ -2241,3 +2241,118 @@ void UMyBondageLifeAccountSubsystem::BroadcastEmote(const FString& EmoteId, cons
 			}
 		});
 }
+void UMyBondageLifeAccountSubsystem::RefreshRules(const FString& InAccount)
+{
+	const bool bOwn = InAccount.IsEmpty() || InAccount.Equals(AccountName, ESearchCase::IgnoreCase);
+	const FString Target = bOwn ? FString(TEXT("me")) : InAccount;
+	const FString Path = FString::Printf(TEXT("/users/%s/rules"), *Target);
+
+	SendFriendApiRequest(TEXT("GET"), Path, nullptr,
+		[this](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			if (!bOk || !Json.IsValid())
+			{
+				UE_LOG(LogMyBondageLife, Warning, TEXT("Rules: fetch failed (%d)."), StatusCode);
+				return;
+			}
+
+			Json->TryGetBoolField(TEXT("hasMaster"), bHasMaster);
+			Json->TryGetBoolField(TEXT("canEdit"), bRulesCanEdit);
+
+			EnabledRules.Reset();
+			RuleDetailJson.Reset();
+
+			const TArray<TSharedPtr<FJsonValue>>* Rules = nullptr;
+			if (Json->TryGetArrayField(TEXT("rules"), Rules) && Rules)
+			{
+				for (const TSharedPtr<FJsonValue>& Value : *Rules)
+				{
+					const TSharedPtr<FJsonObject> Item = Value.IsValid() ? Value->AsObject() : nullptr;
+					if (!Item.IsValid())
+					{
+						continue;
+					}
+
+					FString RuleId;
+					if (!Item->TryGetStringField(TEXT("ruleId"), RuleId) || RuleId.IsEmpty())
+					{
+						continue;
+					}
+
+					bool bEnabled = false;
+					Item->TryGetBoolField(TEXT("enabled"), bEnabled);
+					if (bEnabled)
+					{
+						EnabledRules.Add(RuleId);
+					}
+
+					const TSharedPtr<FJsonObject>* Detail = nullptr;
+					if (Item->TryGetObjectField(TEXT("detail"), Detail) && Detail && Detail->IsValid())
+					{
+						FString DetailString;
+						const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&DetailString);
+						FJsonSerializer::Serialize(Detail->ToSharedRef(), Writer);
+						RuleDetailJson.Add(RuleId, DetailString);
+					}
+				}
+			}
+
+			UE_LOG(LogMyBondageLife, Log, TEXT("Rules: hasMaster=%d canEdit=%d enabled=%d"),
+				bHasMaster ? 1 : 0, bRulesCanEdit ? 1 : 0, EnabledRules.Num());
+
+			OnRulesChanged.Broadcast();
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::SetRule(const FString& InAccount, const FString& RuleId, bool bEnabled, const FString& DetailJson)
+{
+	if (RuleId.IsEmpty())
+	{
+		return;
+	}
+
+	const bool bOwn = InAccount.IsEmpty() || InAccount.Equals(AccountName, ESearchCase::IgnoreCase);
+	const FString Target = bOwn ? FString(TEXT("me")) : InAccount;
+
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetBoolField(TEXT("enabled"), bEnabled);
+	if (!DetailJson.IsEmpty())
+	{
+		TSharedPtr<FJsonObject> Detail;
+		const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(DetailJson);
+		if (FJsonSerializer::Deserialize(Reader, Detail) && Detail.IsValid())
+		{
+			Body->SetObjectField(TEXT("detail"), Detail);
+		}
+	}
+
+	// 本地立即生效，等服务端回包后以事件刷新为准
+	if (bEnabled)
+	{
+		EnabledRules.Add(RuleId);
+	}
+	else
+	{
+		EnabledRules.Remove(RuleId);
+	}
+
+	const FString Path = FString::Printf(TEXT("/users/%s/rules/%s"), *Target, *RuleId);
+	SendFriendApiRequest(TEXT("PUT"), Path, Body,
+		[this, RuleId](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			if (!bOk)
+			{
+				UE_LOG(LogMyBondageLife, Warning, TEXT("Rules: save '%s' failed (%d)."), *RuleId, StatusCode);
+			}
+			OnRulesChanged.Broadcast();
+		});
+}
+
+FString UMyBondageLifeAccountSubsystem::GetRuleDetail(const FString& RuleId) const
+{
+	if (const FString* Found = RuleDetailJson.Find(RuleId))
+	{
+		return *Found;
+	}
+	return FString();
+}

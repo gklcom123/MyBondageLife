@@ -14,6 +14,7 @@
 #include "GameFramework/PlayerState.h"
 #include "InputMappingContext.h"
 #include "MyBondageLife.h"
+#include "UI/MyBondageLifeRuleWidgets.h"
 #include "Blueprint/WidgetTree.h"
 #include "Animation/AnimMontage.h"
 #include "UI/MyBondageLifeEmoteWidgets.h"
@@ -496,6 +497,23 @@ void AMyBondageLifePlayerController::HandleChatMessageSubmitted(const FString& M
 	{
 		ExecuteChatCommand(Trimmed);
 		return;
+	}
+
+	// CantOOC：含 * / : 的发言直接拦下，并广播系统提示。
+	if (UMyBondageLifeAccountSubsystem* RuleAccount = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		if (RuleAccount->IsRuleEnabled(TEXT("CantOOC"))
+			&& (Trimmed.Contains(TEXT("*")) || Trimmed.Contains(TEXT(":"))
+				|| Trimmed.Contains(TEXT("\uFF0A")) || Trimmed.Contains(TEXT("\uFF1A"))))
+		{
+			if (AMyBondageLifeCharacter* OOCCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+			{
+				const FString Notice = FString::Printf(TEXT("%s\u8BD5\u56FE\u8FDB\u884Cooc\u804A\u5929\u88AB\u7981\u6B62"), *OOCCharacter->GetCharacterName().ToString());
+				OOCCharacter->ServerAnnounceSystemMessage(Notice);
+			}
+			return;
+		}
 	}
 
 	ServerSendChatMessage(Message);
@@ -2728,6 +2746,16 @@ void AMyBondageLifePlayerController::HandleInteractPressed()
 
 void AMyBondageLifePlayerController::HandleSitKeyPressed()
 {
+	// CantSit：规则开启时按 G 直接无效。
+	if (const UMyBondageLifeAccountSubsystem* SitAccount = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		if (SitAccount->IsRuleEnabled(TEXT("CantSit")))
+		{
+			return;
+		}
+	}
+
 	TryToggleSitting();
 }
 
@@ -2792,6 +2820,20 @@ void AMyBondageLifePlayerController::TryToggleSitting()
 
 void AMyBondageLifePlayerController::UpdateSeatProximity()
 {
+	// CantSit：规则开启时不显示坐下提示，也不允许坐下。
+	if (const UMyBondageLifeAccountSubsystem* SitRuleAccount = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		if (SitRuleAccount->IsRuleEnabled(TEXT("CantSit")))
+		{
+			if (SeatHintWidget)
+			{
+				SeatHintWidget->SetVisibility(ESlateVisibility::Collapsed);
+			}
+			return;
+		}
+	}
+
 	AMyBondageLifeCharacter* SittingPawn = Cast<AMyBondageLifeCharacter>(GetPawn());
 	if (!SittingPawn)
 	{
@@ -3094,4 +3136,88 @@ void AMyBondageLifePlayerController::CloseEmotePanel()
 	ResetIgnoreLookInput();
 	SetInputMode(FInputModeGameOnly());
 	RefreshChatInputState();
+}
+
+void AMyBondageLifePlayerController::ToggleRulePanel()
+{
+	UMyBondageLifeAccountSubsystem* RuleAccount = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+
+	// 没有主人时不允许打开（按钮也已置灰，这里再兜一层）。
+	if (!RuleAccount || !RuleAccount->HasMaster())
+	{
+		ShowSystemChatMessage(TEXT("\u4F60\u8FD8\u6CA1\u6709\u4E3B\u4EBA\uFF0C\u65E0\u6CD5\u67E5\u770B\u5974\u96B6\u89C4\u5219"));
+		return;
+	}
+
+	if (bRulePanelOpen && RulePanelWidget)
+	{
+		CloseRulePanel();
+		return;
+	}
+
+	if (!RulePanelWidget)
+	{
+		UClass* PanelClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_RulePanel.WBP_RulePanel_C"));
+		if (!PanelClass)
+		{
+			PanelClass = UMyBondageLifeRulePanelWidget::StaticClass();
+		}
+
+		RulePanelWidget = CreateWidget<UMyBondageLifeRulePanelWidget>(this, PanelClass);
+		if (!RulePanelWidget)
+		{
+			return;
+		}
+
+		RulePanelWidget->AddToViewport(200);
+		RulePanelWidget->OnSwitchRequested.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleRuleSwitchRequested);
+		RulePanelWidget->OnDetailRequested.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleRuleDetailRequested);
+		RulePanelWidget->OnClosed.AddUniqueDynamic(this, &AMyBondageLifePlayerController::CloseRulePanel);
+	}
+
+	RulePanelWidget->SetVisibility(ESlateVisibility::Visible);
+	RulePanelWidget->PopulateRules(FString());
+	RuleAccount->RefreshRules();
+
+	bRulePanelOpen = true;
+	SetShowMouseCursor(true);
+	FInputModeGameAndUI InputMode;
+	InputMode.SetWidgetToFocus(RulePanelWidget->TakeWidget());
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(InputMode);
+}
+
+void AMyBondageLifePlayerController::CloseRulePanel()
+{
+	if (RulePanelWidget)
+	{
+		RulePanelWidget->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	bRulePanelOpen = false;
+	SetShowMouseCursor(false);
+	SetInputMode(FInputModeGameOnly());
+	RefreshChatInputState();
+}
+
+void AMyBondageLifePlayerController::HandleRuleSwitchRequested(const FString& RuleId, bool bWantEnabled)
+{
+	if (UMyBondageLifeAccountSubsystem* RuleAccount = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		RuleAccount->SetRule(FString(), RuleId, bWantEnabled, RuleAccount->GetRuleDetail(RuleId));
+		RuleAccount->RefreshRules();
+	}
+
+	if (RulePanelWidget)
+	{
+		RulePanelWidget->PopulateRules(FString());
+	}
+}
+
+void AMyBondageLifePlayerController::HandleRuleDetailRequested(const FString& RuleId)
+{
+	// 第二期：按 DT_Rule.DetailPanel 打开对应面板。
+	UE_LOG(LogMyBondageLife, Log, TEXT("Rule: detail requested for '%s' (phase 2)."), *RuleId);
 }

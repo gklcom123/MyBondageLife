@@ -45,6 +45,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeNotificationAdded, con
 
 /** Raised when the account service accepted the credentials. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeAuthSucceeded);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeRulesChanged);
 
 /** Raised when login/registration failed; carries a player-facing message. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeAuthFailed, const FText&, ErrorMessage);
@@ -362,6 +363,30 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Emote")
 	void BroadcastEmote(const FString& EmoteId, const FString& EmoteName);
+
+	// ---------------------------------------------------------------- slave rules
+	UFUNCTION(BlueprintCallable, Category = "Rules")
+	void RefreshRules(const FString& InAccount = FString());
+
+	UFUNCTION(BlueprintCallable, Category = "Rules")
+	void SetRule(const FString& InAccount, const FString& RuleId, bool bEnabled, const FString& DetailJson);
+
+	UFUNCTION(BlueprintPure, Category = "Rules")
+	bool IsRuleEnabled(const FString& RuleId) const { return EnabledRules.Contains(RuleId); }
+
+	UFUNCTION(BlueprintPure, Category = "Rules")
+	bool CanEditRules() const { return bRulesCanEdit; }
+
+	UFUNCTION(BlueprintPure, Category = "Rules")
+	FString GetRuleDetail(const FString& RuleId) const;
+
+	UPROPERTY(BlueprintAssignable, Category = "Rules")
+	FMyBondageLifeRulesChanged OnRulesChanged;
+
+	TSet<FString> EnabledRules;
+	TMap<FString, FString> RuleDetailJson;
+	bool bRulesCanEdit = false;
+	FString RulesMasterAccount;
 
 	UFUNCTION(BlueprintPure, Category = "Difficulty")
 	FString GetDifficulty() const { return Difficulty; }

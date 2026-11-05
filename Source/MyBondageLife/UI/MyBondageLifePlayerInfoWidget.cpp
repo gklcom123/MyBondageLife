@@ -963,6 +963,17 @@ bool UMyBondageLifePlayerInfoWidget::TryAdoptBlueprintLayout()
 	ContractLabel = AdoptFind<UTextBlock>(WidgetTree, TEXT("W_Contract_Label"));
 	WardrobeButton = AdoptFindNamedButton(WidgetTree, TEXT("W_WardrobeButton"));
 	CloseButton = AdoptFindNamedButton(WidgetTree, TEXT("W_Close"));
+	RuleInfoButton = AdoptFindNamedButton(WidgetTree, TEXT("W_RuleInfoButton"));
+	if (RuleInfoButton)
+	{
+		RuleInfoButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifePlayerInfoWidget::HandleRuleInfoClicked);
+	}
+	if (UMyBondageLifeAccountSubsystem* RuleAccount = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		RuleAccount->OnRulesChanged.AddUniqueDynamic(this, &UMyBondageLifePlayerInfoWidget::HandleRulesChanged);
+	}
+	UpdateRuleInfoButton();
 
 	if (PanelBorder)
 	{
@@ -1290,4 +1301,34 @@ void UMyBondageLifePlayerInfoWidget::CloseDifficultyConfirm()
 		ConfirmDialog = nullptr;
 	}
 	PendingDifficulty.Reset();
+}
+void UMyBondageLifePlayerInfoWidget::HandleRuleInfoClicked()
+{
+	if (AMyBondageLifePlayerController* RuleController = Cast<AMyBondageLifePlayerController>(GetOwningPlayer()))
+	{
+		RuleController->ToggleRulePanel();
+	}
+}
+
+void UMyBondageLifePlayerInfoWidget::HandleRulesChanged()
+{
+	UpdateRuleInfoButton();
+}
+
+void UMyBondageLifePlayerInfoWidget::UpdateRuleInfoButton()
+{
+	if (!RuleInfoButton)
+	{
+		return;
+	}
+
+	const UMyBondageLifeAccountSubsystem* RuleAccount = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	const bool bHasMaster = RuleAccount && RuleAccount->HasMaster();
+
+	// 没有主人（临时契约也算）时置灰，任何人不能点。
+	RuleInfoButton->SetIsEnabled(bHasMaster);
+	RuleInfoButton->SetBackgroundColor(bHasMaster
+		? FLinearColor(1.0f, 1.0f, 1.0f)
+		: FLinearColor(0.45f, 0.45f, 0.45f));
 }
