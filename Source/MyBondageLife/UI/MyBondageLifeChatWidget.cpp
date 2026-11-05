@@ -164,6 +164,15 @@ void UMyBondageLifeChatWidget::AddChatMessage(const FString& SenderName, const F
 
 void UMyBondageLifeChatWidget::AddSystemMessage(const FString& Message)
 {
+	// 去重：服务端/本地的 chat.system 可能重复到达，同句 1 秒内只显示一次。
+	const double Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
+	if (Message == LastSystemMessageText && (Now - LastSystemMessageTime) < 1.0)
+	{
+		return;
+	}
+	LastSystemMessageText = Message;
+	LastSystemMessageTime = Now;
+
 	// Join/leave notices stand out in amber and carry no sender prefix.
 	AppendLogLine(Message, FLinearColor(0.96f, 0.80f, 0.42f));
 }
