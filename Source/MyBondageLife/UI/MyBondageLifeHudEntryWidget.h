@@ -16,12 +16,13 @@ enum class EMyBondageLifeHudEntryAction : uint8
 	Message,
 	PlayerInfo,
 	FriendList,
-	Wardrobe
+	Wardrobe,
+	Emote
 };
 
 /**
  *  One HUD entry: icon + caption on a single row-less template, shared by the message
- *  center, player info, friend list and wardrobe buttons.
+ *  center, player info, friend list, wardrobe and emote buttons.
  *
  *  The widget always reports exactly the size of its content (icon + caption), so the
  *  main HUD can pin it to the bottom-left corner of its host box.
