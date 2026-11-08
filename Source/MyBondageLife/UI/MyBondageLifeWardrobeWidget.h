@@ -298,6 +298,8 @@ protected:
 	UFUNCTION()
 	void HandleOutfitSlotClicked(int32 SlotIndex);
 
+	void LogAllTexts();
+
 	UFUNCTION()
 	void HandleOutfitItemChosen(int32 SlotIndex);
 

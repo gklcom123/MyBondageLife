@@ -480,6 +480,8 @@ void UMyBondageLifeWardrobeWidget::NativeConstruct()
 
 void UMyBondageLifeWardrobeWidget::SelectTab(int32 TabIndex)
 {
+	LogAllTexts();
+
 	// Somebody else's wardrobe has no body page.
 	if (bFriendMode && TabIndex == 0)
 	{
@@ -2454,6 +2456,28 @@ void UMyBondageLifeWardrobeWidget::RefreshOutfitSlots()
 	}
 }
 
+void UMyBondageLifeWardrobeWidget::LogAllTexts()
+{
+	if (!WidgetTree)
+	{
+		return;
+	}
+
+	TArray<UWidget*> AllWidgets;
+	WidgetTree->GetAllWidgets(AllWidgets);
+	for (UWidget* Candidate : AllWidgets)
+	{
+		if (UTextBlock* Label = Cast<UTextBlock>(Candidate))
+		{
+			const FString Text = Label->GetText().ToString();
+			if (!Text.IsEmpty())
+			{
+				UE_LOG(LogMyBondageLife, Log, TEXT("Wardrobe: text %s = %s"),
+					*Label->GetName(), *Text.Left(60));
+			}
+		}
+	}
+}
 void UMyBondageLifeWardrobeWidget::HandleOutfitSlotClicked(int32 SlotIndex)
 {
 	if (IsLocalHandsRestrained())
