@@ -50,6 +50,7 @@ void UMyBondageLifeFriendRowWidget::BuildLayout()
 	NameText = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_Name")));
 	StatusText = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_Status")));
 	RoleText = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_Role")));
+	RomanceText = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_Romance")));
 	ClassText = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_Class")));
 	AvatarImage = Cast<UImage>(WidgetTree->FindWidget(TEXT("W_Avatar")));
 	SelectButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_Select")));

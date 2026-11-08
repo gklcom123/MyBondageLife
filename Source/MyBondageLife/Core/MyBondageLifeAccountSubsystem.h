@@ -13,7 +13,9 @@ enum class EMyBondageLifeNotificationType : uint8
 {
 	FriendRequest UMETA(DisplayName = "好友请求"),
 	ContractTrial UMETA(DisplayName = "签订临时契约"),
-	ContractFormal UMETA(DisplayName = "签订契约")
+	ContractFormal UMETA(DisplayName = "签订契约"),
+	RomanceRequest UMETA(DisplayName = "恋人申请"),
+	MarriageRequest UMETA(DisplayName = "结婚申请")
 };
 
 /** One pending notification (friend request or contract request). */
@@ -46,6 +48,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeNotificationAdded, con
 /** Raised when the account service accepted the credentials. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeAuthSucceeded);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeRulesChanged);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeRomanceChanged);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FMyBondageLifeRomanceFailed, const FString&, Code, const FString&, Message);
 
 /** Raised when login/registration failed; carries a player-facing message. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeAuthFailed, const FText&, ErrorMessage);
@@ -92,6 +96,35 @@ struct FMyBondageLifeContractInfo
 	FDateTime TrialEndsAt;
 };
 
+/** One romance (lover or married) of an account. */
+USTRUCT(BlueprintType)
+struct FMyBondageLifeRomanceEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Romance")
+	FString Account;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Romance")
+	FString CharacterName;
+
+	/** lover / married */
+	UPROPERTY(BlueprintReadOnly, Category = "Romance")
+	FString Stage;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Romance")
+	FDateTime LoverSince;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Romance")
+	FDateTime MarriedAt;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Romance")
+	bool bCanMarry = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Romance")
+	FDateTime MarryAvailableAt;
+};
+
 /** One entry of the friend list, as returned by GET /friends. */
 USTRUCT(BlueprintType)
 struct FMyBondageLifeFriendEntry
@@ -126,6 +159,16 @@ struct FMyBondageLifeFriendEntry
 
 	UPROPERTY(BlueprintReadOnly, Category = "Friends")
 	FString ContractId;
+
+	/** lover / married / empty */
+	UPROPERTY(BlueprintReadOnly, Category = "Friends")
+	FString RomanceStage;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Friends")
+	FDateTime RomanceSince;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Friends")
+	FDateTime RomanceMarriedAt;
 };
 
 /** A pending incoming friend request, as reported by the service. */
@@ -426,6 +469,29 @@ public:
 	void SetRuleDetail(const FString& InAccount, const FString& RuleId, const FMyBondageLifeRuleDetail& Detail);
 
 	FString GetOwnUid() const;
+
+	// ---------------------------------------------------------------- romance
+	UFUNCTION(BlueprintCallable, Category = "Romance")
+	void RequestRomance(const FString& TargetAccount);
+
+	UFUNCTION(BlueprintCallable, Category = "Romance")
+	void RequestMarriage(const FString& TargetAccount);
+
+	UFUNCTION(BlueprintCallable, Category = "Romance")
+	void RefreshRomances(const FString& InAccount = FString());
+
+	void RespondToRomanceRequest(const FString& RequestId, bool bAccept);
+
+	UFUNCTION(BlueprintPure, Category = "Romance")
+	TArray<FMyBondageLifeRomanceEntry> GetOwnRomances() const { return OwnRomances; }
+
+	UPROPERTY(BlueprintAssignable, Category = "Romance")
+	FMyBondageLifeRomanceChanged OnRomancesChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Romance")
+	FMyBondageLifeRomanceFailed OnRomanceActionFailed;
+
+	TArray<FMyBondageLifeRomanceEntry> OwnRomances;
 
 	UPROPERTY(BlueprintAssignable, Category = "Rules")
 	FMyBondageLifeRulesChanged OnRulesChanged;
@@ -837,6 +903,8 @@ public:
 	// ---------------------------------------------------------------- notifications
 	UFUNCTION(BlueprintCallable, Category = "Notification")
 	void RefreshNotifications();
+
+	void RefreshRomanceNotifications();
 
 	UFUNCTION(BlueprintCallable, Category = "Notification")
 	void ResolveNotification(const FString& Id, bool bAccept);

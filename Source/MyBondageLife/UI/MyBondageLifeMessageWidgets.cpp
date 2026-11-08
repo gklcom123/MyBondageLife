@@ -484,6 +484,12 @@ void UMyBondageLifeMessageCenterWidget::RefreshList()
 		case EMyBondageLifeNotificationType::ContractTrial:
 			RowText = FString::Printf(TEXT("\u6536\u5230\u6765\u81EA\u3010%s\u3011\u7684\u7B7E\u8BA2\u4E34\u65F6\u5951\u7EA6\u8BF7\u6C42\uFF0C\u662F\u5426\u540C\u610F"), *Item.CharacterName);
 			break;
+		case EMyBondageLifeNotificationType::RomanceRequest:
+			RowText = FString::Printf(TEXT("\u6536\u5230\u6765\u81EA\u3010%s\u3011\u7684\u604B\u4EBA\u7533\u8BF7\uFF0C\u662F\u5426\u540C\u610F"), *Item.CharacterName);
+			break;
+		case EMyBondageLifeNotificationType::MarriageRequest:
+			RowText = FString::Printf(TEXT("\u6536\u5230\u6765\u81EA\u3010%s\u3011\u7684\u7ED3\u5A5A\u7533\u8BF7\uFF0C\u662F\u5426\u540C\u610F"), *Item.CharacterName);
+			break;
 		default:
 			RowText = FString::Printf(TEXT("\u6536\u5230\u6765\u81EA\u3010%s\u3011\u7684\u7B7E\u8BA2\u5951\u7EA6\u8BF7\u6C42\uFF0C\u662F\u5426\u540C\u610F"), *Item.CharacterName);
 			break;

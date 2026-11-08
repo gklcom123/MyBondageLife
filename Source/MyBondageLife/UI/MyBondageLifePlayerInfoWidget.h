@@ -259,6 +259,12 @@ protected:
 	/** 交互提示整体上移一次（避免每次刷新都叠加位移）。 */
 	bool bHintRaised = false;
 
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UTextBlock>> RomanceTexts;
+
+	void RefreshRomanceRows();
+	void RefreshLoveButton();
+
 	/** Character the hint currently names, so the text is only touched on change. */
 	UPROPERTY(Transient)
 	TWeakObjectPtr<const AMyBondageLifeCharacter> HintTarget;

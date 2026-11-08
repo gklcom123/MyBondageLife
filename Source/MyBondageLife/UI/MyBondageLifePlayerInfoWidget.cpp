@@ -513,6 +513,9 @@ void UMyBondageLifePlayerInfoWidget::RefreshContents()
 		NameValue->SetText(FText::FromString(FString::Printf(TEXT("\u59D3\u540D\uFF1A%s%s"), *CharacterName, *UidSuffix)));
 	}
 
+	RefreshRomanceRows();
+	RefreshLoveButton();
+
 	// 无论看自己还是别人，都拉一次公开资料：UID 在资料里。
 	if (UMyBondageLifeAccountSubsystem* ProfileAccount = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
@@ -620,6 +623,37 @@ bool UMyBondageLifePlayerInfoWidget::IsDisplayedCharacterFriend() const
 
 void UMyBondageLifePlayerInfoWidget::HandleAddFriendClicked()
 {
+	if (const UMyBondageLifeAccountSubsystem* RomanceAccount = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		if (!TargetAccountName.IsEmpty() && RomanceAccount->IsFriend(TargetAccountName))
+		{
+			bool bHasRomance = false;
+			bool bCanMarry = false;
+			for (const FMyBondageLifeRomanceEntry& Entry : RomanceAccount->GetOwnRomances())
+			{
+				if (Entry.Account.Equals(TargetAccountName, ESearchCase::IgnoreCase))
+				{
+					bHasRomance = true;
+					bCanMarry = Entry.bCanMarry;
+					break;
+				}
+			}
+
+			if (bHasRomance)
+			{
+				if (bCanMarry)
+				{
+					const_cast<UMyBondageLifeAccountSubsystem*>(RomanceAccount)->RequestMarriage(TargetAccountName);
+				}
+			}
+			else
+			{
+				const_cast<UMyBondageLifeAccountSubsystem*>(RomanceAccount)->RequestRomance(TargetAccountName);
+			}
+			return;
+		}
+	}
 	const AMyBondageLifeCharacter* Character = DisplayedCharacter.Get();
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("Friends: add-friend clicked (character=%s, other=%d, friend=%d)"),
@@ -1423,4 +1457,92 @@ void UMyBondageLifePlayerInfoWidget::UpdateRuleInfoButton()
 	RuleInfoButton->SetBackgroundColor(bHasMaster
 		? FLinearColor(1.0f, 1.0f, 1.0f)
 		: FLinearColor(0.45f, 0.45f, 0.45f));
+}
+
+void UMyBondageLifePlayerInfoWidget::RefreshRomanceRows()
+{
+	if (RomanceTexts.Num() == 0 && WidgetTree)
+	{
+		for (int32 Index = 0; Index < 5; ++Index)
+		{
+			const FString WidgetName = FString::Printf(TEXT("W_Romance_%d"), Index);
+			RomanceTexts.Add(Cast<UTextBlock>(WidgetTree->FindWidget(*WidgetName)));
+		}
+	}
+
+	const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	const TArray<FMyBondageLifeRomanceEntry> Romances = Account ? Account->GetOwnRomances() : TArray<FMyBondageLifeRomanceEntry>();
+
+	for (int32 Index = 0; Index < RomanceTexts.Num(); ++Index)
+	{
+		if (!RomanceTexts[Index])
+		{
+			continue;
+		}
+
+		if (Romances.IsValidIndex(Index))
+		{
+			RomanceTexts[Index]->SetText(FText::FromString(
+				FString::Printf(TEXT("\u604B\u4EBA\uFF1A%s"), *Romances[Index].CharacterName)));
+			const bool bMarried = Romances[Index].Stage.Equals(TEXT("married"), ESearchCase::IgnoreCase);
+			RomanceTexts[Index]->SetColorAndOpacity(FSlateColor(bMarried
+				? FLinearColor(0.85f, 0.15f, 0.15f)
+				: FLinearColor(0.95f, 0.35f, 0.65f)));
+		}
+		else
+		{
+			RomanceTexts[Index]->SetText(FText::FromString(TEXT("\u604B\u4EBA\uFF1A\u6682\u65E0")));
+			RomanceTexts[Index]->SetColorAndOpacity(FSlateColor(FLinearColor(0.6f, 0.6f, 0.62f)));
+		}
+	}
+}
+
+void UMyBondageLifePlayerInfoWidget::RefreshLoveButton()
+{
+	if (!AddFriendButton || !AddFriendLabel)
+	{
+		return;
+	}
+
+	const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	if (!Account || TargetAccountName.IsEmpty() || !Account->IsFriend(TargetAccountName))
+	{
+		AddFriendLabel->SetText(FText::FromString(TEXT("\u6DFB\u52A0\u597D\u53CB")));
+		AddFriendButton->SetIsEnabled(true);
+		return;
+	}
+
+	bool bHasRomance = false;
+	bool bMarried = false;
+	bool bCanMarry = false;
+	for (const FMyBondageLifeRomanceEntry& Entry : Account->GetOwnRomances())
+	{
+		if (!Entry.Account.Equals(TargetAccountName, ESearchCase::IgnoreCase))
+		{
+			continue;
+		}
+
+		bHasRomance = true;
+		bMarried = Entry.Stage.Equals(TEXT("married"), ESearchCase::IgnoreCase);
+		bCanMarry = Entry.bCanMarry;
+		break;
+	}
+
+	if (bMarried)
+	{
+		AddFriendLabel->SetText(FText::FromString(TEXT("\u5DF2\u7ED3\u5A5A")));
+		AddFriendButton->SetIsEnabled(false);
+	}
+	else if (bHasRomance)
+	{
+		AddFriendLabel->SetText(FText::FromString(TEXT("\u7ED3\u5A5A")));
+		AddFriendButton->SetIsEnabled(bCanMarry);
+	}
+	else
+	{
+		AddFriendLabel->SetText(FText::FromString(TEXT("\u7533\u8BF7\u4E3A\u604B\u4EBA")));
+		AddFriendButton->SetIsEnabled(true);
+	}
 }

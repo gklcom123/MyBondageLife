@@ -58,6 +58,9 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Friends", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UTextBlock> RoleText;
 
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> RomanceText;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Friends", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UImage> AvatarImage;
 

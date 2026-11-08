@@ -652,6 +652,15 @@ void UMyBondageLifeAccountSubsystem::RefreshFriendsFromServer()
 
 								Item->TryGetBoolField(TEXT("online"), Entry.bOnline);
 
+				// Optional romance block: stage + timestamps.
+				const TSharedPtr<FJsonObject>* RomanceObject = nullptr;
+				if (Item->TryGetObjectField(TEXT("romance"), RomanceObject) && RomanceObject && RomanceObject->IsValid())
+				{
+					(*RomanceObject)->TryGetStringField(TEXT("stage"), Entry.RomanceStage);
+					Entry.RomanceSince = ParseIsoField(*RomanceObject, TEXT("loverSince"));
+					Entry.RomanceMarriedAt = ParseIsoField(*RomanceObject, TEXT("marriedAt"));
+				}
+
 				// Optional contract block: role is relative to the signed-in player.
 				const TSharedPtr<FJsonObject>* ContractObject = nullptr;
 				if (Item->TryGetObjectField(TEXT("contract"), ContractObject) && ContractObject && ContractObject->IsValid())
@@ -1699,6 +1708,70 @@ void UMyBondageLifeAccountSubsystem::RefreshNotifications()
 			}
 
 			Self->MergeNotifications(Fetched, false);
+
+			Self->RefreshRomanceNotifications();
+		});
+}
+
+
+void UMyBondageLifeAccountSubsystem::RefreshRomanceNotifications()
+{
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	SendFriendApiRequest(TEXT("GET"), TEXT("/romance/requests?direction=incoming&status=pending"), nullptr,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self || !bOk || !Json.IsValid())
+			{
+				return;
+			}
+
+			const TArray<TSharedPtr<FJsonValue>>* Requests = nullptr;
+			if (!Json->TryGetArrayField(TEXT("requests"), Requests) || !Requests)
+			{
+				return;
+			}
+
+			TArray<FMyBondageLifeNotification> Fetched;
+			for (const TSharedPtr<FJsonValue>& Value : *Requests)
+			{
+				const TSharedPtr<FJsonObject> Item = Value.IsValid() ? Value->AsObject() : nullptr;
+				if (!Item.IsValid())
+				{
+					continue;
+				}
+
+				FMyBondageLifeNotification Entry;
+				Item->TryGetStringField(TEXT("requestId"), Entry.Id);
+				if (Entry.Id.IsEmpty())
+				{
+					continue;
+				}
+
+				const TSharedPtr<FJsonObject>* FromObject = nullptr;
+				if (Item->TryGetObjectField(TEXT("from"), FromObject) && FromObject && FromObject->IsValid())
+				{
+					(*FromObject)->TryGetStringField(TEXT("account"), Entry.Account);
+					(*FromObject)->TryGetStringField(TEXT("characterName"), Entry.CharacterName);
+				}
+
+				if (Entry.CharacterName.IsEmpty())
+				{
+					Entry.CharacterName = Entry.Account.IsEmpty() ? FString(TEXT("---")) : Entry.Account;
+				}
+
+				FString Kind;
+				Item->TryGetStringField(TEXT("kind"), Kind);
+				const bool bMarriage = Kind.Equals(TEXT("marriage"), ESearchCase::IgnoreCase);
+
+				Entry.Id = TEXT("r:") + Entry.Id;
+				Entry.Type = bMarriage
+					? EMyBondageLifeNotificationType::MarriageRequest
+					: EMyBondageLifeNotificationType::RomanceRequest;
+				Fetched.Add(Entry);
+			}
+
+			Self->MergeNotifications(Fetched, false);
 		});
 }
 
@@ -1707,6 +1780,17 @@ void UMyBondageLifeAccountSubsystem::ResolveNotification(const FString& Id, bool
 	FString RawId = Id;
 	FString TargetCharacterName;
 	bool bFriendKind = false;
+
+	if (Id.StartsWith(TEXT("r:")))
+	{
+		RawId = Id.RightChop(2);
+		RespondToRomanceRequest(RawId, bAccept);
+		PendingNotifications.RemoveAll([&Id](const FMyBondageLifeNotification& Item)
+		{
+			return Item.Id == Id;
+		});
+		OnNotificationsChanged.Broadcast();
+	}
 
 	if (Id.StartsWith(TEXT("f:")))
 	{
@@ -1743,6 +1827,7 @@ void UMyBondageLifeAccountSubsystem::ResolveNotification(const FString& Id, bool
 	OnNotificationsChanged.Broadcast();
 
 	RefreshNotifications();
+	RefreshRomances();
 	RefreshFriendsFromServer();
 	RefreshContractState();
 }
@@ -2654,4 +2739,170 @@ bool UMyBondageLifeAccountSubsystem::GetRuleDetailStructViewed(const FString& Ru
 	}
 
 	return true;
+}
+
+// ---------------------------------------------------------------------------
+// Romance
+// ---------------------------------------------------------------------------
+
+namespace
+{
+	FString RomanceErrorCode(const TSharedPtr<FJsonObject>& Json)
+	{
+		if (!Json.IsValid())
+		{
+			return FString();
+		}
+
+		const TSharedPtr<FJsonObject>* Error = nullptr;
+		if (Json->TryGetObjectField(TEXT("error"), Error) && Error && Error->IsValid())
+		{
+			FString Code;
+			(*Error)->TryGetStringField(TEXT("code"), Code);
+			return Code;
+		}
+		return FString();
+	}
+}
+
+void UMyBondageLifeAccountSubsystem::RequestRomance(const FString& TargetAccount)
+{
+	if (TargetAccount.IsEmpty())
+	{
+		return;
+	}
+
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("targetAccount"), TargetAccount);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	SendFriendApiRequest(TEXT("POST"), TEXT("/romance/request"), Body,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self)
+			{
+				return;
+			}
+
+			if (!bOk)
+			{
+				Self->OnRomanceActionFailed.Broadcast(RomanceErrorCode(Json), FString());
+				return;
+			}
+
+			UE_LOG(LogMyBondageLife, Log, TEXT("Romance: lover request sent."));
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::RequestMarriage(const FString& TargetAccount)
+{
+	if (TargetAccount.IsEmpty())
+	{
+		return;
+	}
+
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("targetAccount"), TargetAccount);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	SendFriendApiRequest(TEXT("POST"), TEXT("/romance/marry"), Body,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self)
+			{
+				return;
+			}
+
+			if (!bOk)
+			{
+				Self->OnRomanceActionFailed.Broadcast(RomanceErrorCode(Json), FString());
+				return;
+			}
+
+			UE_LOG(LogMyBondageLife, Log, TEXT("Romance: marriage request sent."));
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::RespondToRomanceRequest(const FString& RequestId, bool bAccept)
+{
+	if (RequestId.IsEmpty())
+	{
+		return;
+	}
+
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetBoolField(TEXT("accept"), bAccept);
+
+	const FString Path = FString::Printf(TEXT("/romance/requests/%s/respond"), *RequestId);
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	SendFriendApiRequest(TEXT("POST"), Path, Body,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self)
+			{
+				return;
+			}
+
+			if (!bOk)
+			{
+				Self->OnRomanceActionFailed.Broadcast(RomanceErrorCode(Json), FString());
+				return;
+			}
+
+			Self->RefreshRomances();
+			Self->RefreshFriendsFromServer();
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::RefreshRomances(const FString& InAccount)
+{
+	const bool bOwn = InAccount.IsEmpty() || InAccount.Equals(AccountName, ESearchCase::IgnoreCase);
+	const FString Target = bOwn ? FString(TEXT("me")) : InAccount;
+	const FString Path = FString::Printf(TEXT("/users/%s/romances"), *Target);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	SendFriendApiRequest(TEXT("GET"), Path, nullptr,
+		[WeakThis, bOwn](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self || !bOk || !Json.IsValid())
+			{
+				return;
+			}
+
+			const TArray<TSharedPtr<FJsonValue>>* RomanceArray = nullptr;
+			if (!Json->TryGetArrayField(TEXT("romances"), RomanceArray) || !RomanceArray)
+			{
+				return;
+			}
+
+			TArray<FMyBondageLifeRomanceEntry> Parsed;
+			for (const TSharedPtr<FJsonValue>& Value : *RomanceArray)
+			{
+				const TSharedPtr<FJsonObject> Item = Value.IsValid() ? Value->AsObject() : nullptr;
+				if (!Item.IsValid())
+				{
+					continue;
+				}
+
+				FMyBondageLifeRomanceEntry Entry;
+				Item->TryGetStringField(TEXT("account"), Entry.Account);
+				Item->TryGetStringField(TEXT("characterName"), Entry.CharacterName);
+				Item->TryGetStringField(TEXT("stage"), Entry.Stage);
+				Entry.LoverSince = ParseIsoField(Item, TEXT("loverSince"));
+				Entry.MarriedAt = ParseIsoField(Item, TEXT("marriedAt"));
+				Item->TryGetBoolField(TEXT("canMarry"), Entry.bCanMarry);
+				Entry.MarryAvailableAt = ParseIsoField(Item, TEXT("marryAvailableAt"));
+				Parsed.Add(Entry);
+			}
+
+			if (bOwn)
+			{
+				Self->OwnRomances = Parsed;
+			}
+			Self->OnRomancesChanged.Broadcast();
+		});
 }
