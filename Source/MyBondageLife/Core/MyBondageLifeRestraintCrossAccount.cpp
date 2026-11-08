@@ -201,7 +201,7 @@ void UMyBondageLifeAccountSubsystem::UnequipRestraintFor(const FString& InAccoun
 
 void UMyBondageLifeAccountSubsystem::LockRestraintFor(const FString& InAccountName, int32 Slot, int32 LockType, int32 DurationSeconds, const FString& Password)
 {
-	if (Slot < 0 || Slot >= FMyBondageLifeRestraintCatalog::SlotCount || LockType < 1 || LockType > 5)
+	if (Slot < 0 || Slot >= FMyBondageLifeRestraintCatalog::SlotCount || LockType < 1 || LockType > 6)
 	{
 		return;
 	}

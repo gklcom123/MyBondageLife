@@ -1503,7 +1503,7 @@ FMyBondageLifeRestraintLock UMyBondageLifeAccountSubsystem::GetRestraintLock(int
 
 void UMyBondageLifeAccountSubsystem::LockRestraint(int32 Slot, int32 LockType, int32 DurationSeconds, const FString& Password)
 {
-	if (Slot < 0 || Slot >= FMyBondageLifeRestraintCatalog::SlotCount || LockType < 1 || LockType > 5)
+	if (Slot < 0 || Slot >= FMyBondageLifeRestraintCatalog::SlotCount || LockType < 1 || LockType > 6)
 	{
 		return;
 	}
