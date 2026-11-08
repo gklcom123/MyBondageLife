@@ -46,7 +46,7 @@ public:
 
 	/** 性欲值进度：Value01 为 0..1，Percent 为显示百分比，bPlayAnim 时播放 SexProgressBarAnmi。 */
 	UFUNCTION(BlueprintCallable, Category = "HUD")
-	void SetSexProgress(float Value01, int32 Percent, bool bPlayAnim);
+	void SetSexProgress(float Value01, float Percent, bool bPlayAnim);
 
 protected:
 

@@ -1021,24 +1021,34 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 
 	const float Target = static_cast<float>(GetBlindLevel());
 	BlindVisualLevel = FMath::FInterpTo(BlindVisualLevel, Target, InDeltaTime, 5.0f);
+	LibidoVisualLevel = FMath::FInterpTo(LibidoVisualLevel, static_cast<float>(LibidoScreenLevel), InDeltaTime, 4.0f);
 
 	FPostProcessSettings& PP = Camera->PostProcessSettings;
-	const bool bActive = BlindVisualLevel > 0.01f;
+	const bool bActive = BlindVisualLevel > 0.01f || LibidoVisualLevel > 0.01f;
+	const bool bLibido = LibidoVisualLevel > 0.01f;
 
 	// 视野收缩（暗角）+ 环境变暗 + 景深模糊，强度随等级线性增长。
 	PP.bOverride_VignetteIntensity = bActive;
-	PP.VignetteIntensity = 2.4f * BlindVisualLevel;
+	PP.VignetteIntensity = 2.4f * BlindVisualLevel + 1.6f * LibidoVisualLevel;
+
+	// 性欲：粉色暗角（与蒙眼共存，蒙眼时取两者叠加）。
+	PP.bOverride_VignetteColor = bLibido;
+	PP.VignetteColor = FLinearColor(1.0f, 0.35f, 0.6f);
 
 	PP.bOverride_AutoExposureBias = bActive;
 	PP.AutoExposureBias = -0.55f * BlindVisualLevel;
 
 	PP.bOverride_DepthOfFieldFstop = bActive;
-	PP.DepthOfFieldFstop = FMath::Max(0.7f, 2.4f - 0.6f * BlindVisualLevel);
+	PP.DepthOfFieldFstop = FMath::Max(0.6f, 2.4f - 0.6f * BlindVisualLevel - 0.35f * LibidoVisualLevel);
 
 	PP.bOverride_DepthOfFieldFocalDistance = bActive;
 	PP.DepthOfFieldFocalDistance = 320.0f;
 	PP.bOverride_DepthOfFieldSensorWidth = bActive;
 	PP.DepthOfFieldSensorWidth = 24.0f;
+
+	// 高等级性欲：轻微粉色染色的画面。
+	PP.bOverride_SceneColorTint = bLibido;
+	PP.SceneColorTint = FLinearColor(1.0f, 0.86f, 0.9f);
 }
 void AMyBondageLifeCharacter::ApplyBodyPartHiding()
 {
@@ -1660,4 +1670,8 @@ void AMyBondageLifeCharacter::MulticastSystemMessage_Implementation(const FStrin
 	{
 		LocalController->ShowSystemChatMessage(Text);
 	}
+}
+void AMyBondageLifeCharacter::SetLibidoScreenLevel(int32 InLevel)
+{
+	LibidoScreenLevel = FMath::Clamp(InLevel, 0, 2);
 }

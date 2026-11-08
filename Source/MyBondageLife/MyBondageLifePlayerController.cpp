@@ -3,6 +3,9 @@
 
 #include "MyBondageLifePlayerController.h"
 
+#include "Components/AudioComponent.h"
+#include "Kismet/GameplayStatics.h"
+
 #include "Core/MyBondageLifeAccountSubsystem.h"
 #include "Core/MyBondageLifeOutfitCatalog.h"
 #include "Core/MyBondageLifeRestraintCatalog.h"
@@ -3610,7 +3613,7 @@ void AMyBondageLifePlayerController::TickSexLibido()
 		// 没有带 Libido 的拘束：不增长，也不播动画。
 		if (MainHudWidget)
 		{
-			MainHudWidget->SetSexProgress(SexValue / 100.0f, FMath::RoundToInt(SexValue), false);
+			MainHudWidget->SetSexProgress(SexValue / 100.0f, SexValue, false);
 		}
 		return;
 	}
@@ -3628,6 +3631,57 @@ void AMyBondageLifePlayerController::TickSexLibido()
 
 	if (MainHudWidget)
 	{
-		MainHudWidget->SetSexProgress(SexValue / 100.0f, FMath::RoundToInt(SexValue), true);
+		MainHudWidget->SetSexProgress(SexValue / 100.0f, SexValue, true);
 	}
+
+	UpdateLibidoEffects(SexValue);
+
+	{
+	}
+}
+void AMyBondageLifePlayerController::UpdateLibidoEffects(float Value)
+{
+	const int32 Level = (Value >= 70.0f) ? 2 : ((Value >= 40.0f) ? 1 : 0);
+	if (Level == LibidoEffectLevel)
+	{
+		return;
+	}
+	LibidoEffectLevel = Level;
+
+	// 画面：交给角色的后处理合并（与蒙眼共存）。
+	if (AMyBondageLifeCharacter* LibidoCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		LibidoCharacter->SetLibidoScreenLevel(Level);
+	}
+
+	// 音效：40% 心跳，70% 喘息；低于阈值即停。
+	auto EnsureAudio = [this](TObjectPtr<UAudioComponent>& Comp, const TCHAR* Path, bool bPlay)
+	{
+		if (bPlay)
+		{
+			if (!Comp)
+			{
+				Comp = NewObject<UAudioComponent>(this);
+				Comp->bAutoDestroy = false;
+				Comp->bIsUISound = true;
+				Comp->bAllowSpatialization = false;
+				Comp->RegisterComponent();
+			}
+			if (!Comp->Sound)
+			{
+				Comp->SetSound(LoadObject<USoundBase>(nullptr, Path));
+			}
+			if (Comp->Sound && !Comp->IsPlaying())
+			{
+				Comp->Play();
+			}
+		}
+		else if (Comp && Comp->IsPlaying())
+		{
+			Comp->Stop();
+		}
+	};
+
+	EnsureAudio(HeartbeatAudio, TEXT("/Game/Characters/Sound/Sex/Sound_Heartbeat_Cue.Sound_Heartbeat_Cue"), Level >= 1);
+	EnsureAudio(GaspingAudio, TEXT("/Game/Characters/Sound/Sex/Sound_Gasping_Cue.Sound_Gasping_Cue"), Level >= 2);
 }

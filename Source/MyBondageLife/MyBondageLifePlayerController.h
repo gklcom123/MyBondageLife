@@ -717,6 +717,17 @@ public:
 
 	void TickSexLibido();
 
+	/** 40%/70% 阈值的屏幕与音效表现（本地）。 */
+	void UpdateLibidoEffects(float Value);
+
+	int32 LibidoEffectLevel = -1;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UAudioComponent> HeartbeatAudio;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UAudioComponent> GaspingAudio;
+
 	float ComputeLibidoSum() const;
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Sex")

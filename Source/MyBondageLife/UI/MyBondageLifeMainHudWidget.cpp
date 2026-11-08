@@ -211,7 +211,7 @@ bool UMyBondageLifeMainHudWidget::HostWidget(FName HostName, UUserWidget* Widget
 	return true;
 }
 
-void UMyBondageLifeMainHudWidget::SetSexProgress(float Value01, int32 Percent, bool bPlayAnim)
+void UMyBondageLifeMainHudWidget::SetSexProgress(float Value01, float Percent, bool bPlayAnim)
 {
 	if (!SexProgressBar && WidgetTree)
 	{
@@ -244,7 +244,7 @@ void UMyBondageLifeMainHudWidget::SetSexProgress(float Value01, int32 Percent, b
 	if (SexProgressLabel)
 	{
 		// 只改内容，格式沿用设计：(0~100)% 
-		SexProgressLabel->SetText(FText::FromString(FString::Printf(TEXT("%d%%"), FMath::Clamp(Percent, 0, 100))));
+		SexProgressLabel->SetText(FText::FromString(FString::Printf(TEXT("%.1f%%"), FMath::Clamp(Percent, 0.0f, 100.0f))));
 	}
 
 	// 蓝图里自定义的 SexProgressChange：由 WBP_MainHUD 负责播放动画。

@@ -499,6 +499,18 @@ protected:
 	/** 眼罩：按 BlindLevel 平滑收紧视野（仅本人可见）。 */
 	void ApplyBlindEffect(float InDeltaTime);
 
+	/** 性欲值屏幕效果等级：0 < 40%，1 >= 40%，2 >= 70%（本地玩家）。 */
+public:
+	void SetLibidoScreenLevel(int32 InLevel);
+
+	/** 0 = 无，1 = 40%+，2 = 70%+（仅本地玩家）。 */
+	int32 GetLibidoScreenLevel() const { return LibidoScreenLevel; }
+
+protected:
+
+	int32 LibidoScreenLevel = 0;
+	float LibidoVisualLevel = 0.0f;
+
 	/** 拘束的 HideBodyPart：把对应材质插槽换成透明材质（任一件生效即可）。 */
 	void ApplyBodyPartHiding();
 
