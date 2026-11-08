@@ -194,15 +194,24 @@ void UMyBondageLifeRestraintSlotsWidget::BuildLayout()
 	}
 
 	// Hint line under the grid.
-	USizeBox* HintSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("W_Hint"));
-	HintSize->SetWidthOverride(1000.0f);
-	if (UCanvasPanelSlot* HintSlot = RootCanvas->AddChildToCanvas(HintSize))
+	// 设计里有 W_Hint 就用设计的（位置由蓝图决定）；没有才在代码里生成，
+	// 并固定放在网格最后一行下方，避免与槽位文字重叠。
+	USizeBox* HintSize = Cast<USizeBox>(WidgetTree->FindWidget(TEXT("W_Hint")));
+	const bool bDesignedHint = HintSize != nullptr;
+	if (!HintSize)
 	{
-		HintSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
-		HintSlot->SetAlignment(FVector2D(0.0f, 0.0f));
-		HintSlot->SetPosition(FVector2D(CellOriginX, HintY));
-		HintSlot->SetAutoSize(true);
+		HintSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("W_Hint"));
+		HintSize->SetWidthOverride(1000.0f);
+		if (UCanvasPanelSlot* HintSlot = RootCanvas->AddChildToCanvas(HintSize))
+		{
+			HintSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
+			HintSlot->SetAlignment(FVector2D(0.0f, 0.0f));
+			// 3 行 × CellStepY + 32px 间距，落在最后一行槽位下方。
+			HintSlot->SetPosition(FVector2D(CellOriginX, CellOriginY + 3.0f * CellStepY + 32.0f));
+			HintSlot->SetAutoSize(true);
+		}
 	}
+
 
 	UTextBlock* HintText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
 	HintText->SetText(FText::FromString(TEXT("\u624B\u81C2\u5931\u53BB\u81EA\u7531\u72B6\u6001\u4E0B\u65E0\u6CD5\u7ED9\u522B\u4EBA\u6DFB\u52A0\u62D8\u675F\uFF0C\u4E14\u53EA\u80FD\u7531\u652F\u914D\u8005\u7ED9\u5176\u4F59\u89D2\u8272\u914D\u7F6E\u62D8\u675F\uFF0C\u6216\u8005\u7531\u8F6C\u6362\u8005\u7ED9\u8F6C\u6362\u8005\u3001\u81E3\u670D\u8005\u3001\u5974\u96B6\u53D1\u8D77\u62D8\u675F")));
@@ -213,7 +222,7 @@ void UMyBondageLifeRestraintSlotsWidget::BuildLayout()
 		HintFont.Size = 16;
 		HintText->SetFont(HintFont);
 	}
-	HintSize->AddChild(HintText);
+	if (HintText && !bDesignedHint) { HintSize->AddChild(HintText); }
 
 	OnLayoutBuilt();
 	RefreshSlots();
