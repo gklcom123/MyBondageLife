@@ -1806,6 +1806,7 @@ void UMyBondageLifeAccountSubsystem::ResolveNotification(const FString& Id, bool
 			return Item.Id == Id;
 		});
 		OnNotificationsChanged.Broadcast();
+		return;
 	}
 
 	if (Id.StartsWith(TEXT("f:")))
@@ -2930,6 +2931,10 @@ void UMyBondageLifeAccountSubsystem::RefreshRomances(const FString& InAccount)
 			if (bOwn)
 			{
 				Self->OwnRomances = Parsed;
+			}
+			else
+			{
+				Self->ViewedRomances = Parsed;
 			}
 			Self->OnRomancesChanged.Broadcast();
 		});

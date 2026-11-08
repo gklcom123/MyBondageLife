@@ -485,6 +485,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Romance")
 	TArray<FMyBondageLifeRomanceEntry> GetOwnRomances() const { return OwnRomances; }
 
+	UFUNCTION(BlueprintPure, Category = "Romance")
+	TArray<FMyBondageLifeRomanceEntry> GetViewedRomances() const { return ViewedRomances; }
+
 	UPROPERTY(BlueprintAssignable, Category = "Romance")
 	FMyBondageLifeRomanceChanged OnRomancesChanged;
 
@@ -495,6 +498,8 @@ public:
 
 	/** requestId -> (characterName|kind) for chat feedback. */
 	TMap<FString, FString> RomanceRequestInfo;
+
+	TArray<FMyBondageLifeRomanceEntry> ViewedRomances;
 
 	UPROPERTY(BlueprintAssignable, Category = "Rules")
 	FMyBondageLifeRulesChanged OnRulesChanged;

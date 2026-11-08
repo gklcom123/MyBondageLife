@@ -516,7 +516,7 @@ void UMyBondageLifePlayerInfoWidget::RefreshContents()
 	if (UMyBondageLifeAccountSubsystem* RomanceRefresh = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
 	{
-		RomanceRefresh->RefreshRomances();
+		RomanceRefresh->RefreshRomances(TargetAccountName);
 	}
 
 	RefreshRomanceRows();
@@ -1489,7 +1489,10 @@ void UMyBondageLifePlayerInfoWidget::RefreshRomanceRows()
 
 	const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
-	const TArray<FMyBondageLifeRomanceEntry> Romances = Account ? Account->GetOwnRomances() : TArray<FMyBondageLifeRomanceEntry>();
+	const bool bViewingOther = IsDisplayingOtherPlayer();
+	const TArray<FMyBondageLifeRomanceEntry> Romances = Account
+		? (bViewingOther ? Account->GetViewedRomances() : Account->GetOwnRomances())
+		: TArray<FMyBondageLifeRomanceEntry>();
 
 	for (int32 Index = 0; Index < RomanceTexts.Num(); ++Index)
 	{
