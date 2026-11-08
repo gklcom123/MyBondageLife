@@ -586,6 +586,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Sex")
 	void EndClimax();
 
+	/** 通过服务器广播，让所有客户端都看到高潮动画。 */
+	UFUNCTION(Server, Reliable)
+	void ServerSetClimax(bool bActive);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastSetClimax(bool bActive);
+
+	void ApplyClimaxAnim(bool bActive);
+
 	bool bClimaxActive = false;
 	float ClimaxSavedArmLength = -1.0f;
 

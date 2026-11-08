@@ -1044,10 +1044,10 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 
 	// 模糊：性欲比蒙眼更明显地拉近焦平面并压低 F 值。
 	PP.bOverride_DepthOfFieldFstop = bActive;
-	PP.DepthOfFieldFstop = FMath::Max(0.55f, 2.4f - 0.5f * BlindVisualLevel - 0.75f * LibidoVisualLevel);
+	PP.DepthOfFieldFstop = FMath::Max(0.45f, 2.4f - 0.5f * BlindVisualLevel - 0.9f * LibidoVisualLevel);
 
 	PP.bOverride_DepthOfFieldFocalDistance = bActive;
-	PP.DepthOfFieldFocalDistance = FMath::Max(170.0f, 320.0f - 70.0f * LibidoVisualLevel);
+	PP.DepthOfFieldFocalDistance = FMath::Max(140.0f, 320.0f - 90.0f * LibidoVisualLevel);
 
 	PP.bOverride_DepthOfFieldSensorWidth = bActive;
 	PP.DepthOfFieldSensorWidth = 24.0f;
@@ -1691,14 +1691,8 @@ void AMyBondageLifeCharacter::BeginClimax()
 	}
 	bClimaxActive = true;
 
-	// 动画蓝图 OnSex = true
-	if (const UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
-	{
-		if (FBoolProperty* SexProperty = FindFProperty<FBoolProperty>(AnimInstance->GetClass(), TEXT("OnSex")))
-		{
-			SexProperty->SetPropertyValue_InContainer(const_cast<UAnimInstance*>(AnimInstance), true);
-		}
-	}
+	// 动画由服务器广播，所有客户端（含自己）都会设置 OnSex。
+	ServerSetClimax(true);
 
 	// 镜头临时拉近
 	if (USpringArmComponent* Boom = GetCameraBoom())
@@ -1726,13 +1720,7 @@ void AMyBondageLifeCharacter::EndClimax()
 	}
 	bClimaxActive = false;
 
-	if (const UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
-	{
-		if (FBoolProperty* SexProperty = FindFProperty<FBoolProperty>(AnimInstance->GetClass(), TEXT("OnSex")))
-		{
-			SexProperty->SetPropertyValue_InContainer(const_cast<UAnimInstance*>(AnimInstance), false);
-		}
-	}
+	ServerSetClimax(false);
 
 	if (USpringArmComponent* Boom = GetCameraBoom())
 	{
@@ -1742,4 +1730,26 @@ void AMyBondageLifeCharacter::EndClimax()
 			ClimaxSavedArmLength = -1.0f;
 		}
 	}
+}
+
+void AMyBondageLifeCharacter::ApplyClimaxAnim(bool bActive)
+{
+	if (const UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+	{
+		if (FBoolProperty* SexProperty = FindFProperty<FBoolProperty>(AnimInstance->GetClass(), TEXT("OnSex")))
+		{
+			SexProperty->SetPropertyValue_InContainer(const_cast<UAnimInstance*>(AnimInstance), bActive);
+		}
+	}
+}
+
+void AMyBondageLifeCharacter::ServerSetClimax_Implementation(bool bActive)
+{
+	// 服务器把状态广播给所有客户端（包括发起者），让所有人都播放高潮动画。
+	MulticastSetClimax(bActive);
+}
+
+void AMyBondageLifeCharacter::MulticastSetClimax_Implementation(bool bActive)
+{
+	ApplyClimaxAnim(bActive);
 }
