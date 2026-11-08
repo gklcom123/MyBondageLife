@@ -3613,6 +3613,12 @@ void AMyBondageLifePlayerController::TickSexLibido()
 		return;
 	}
 
+	// 高潮 5 秒内冻结性欲值，等表现结束再清零。
+	if (bClimaxLocked)
+	{
+		return;
+	}
+
 	const float Sum = ComputeLibidoSum();
 	if (Sum <= 0.0f)
 	{
@@ -3627,7 +3633,8 @@ void AMyBondageLifePlayerController::TickSexLibido()
 	SexValue += Sum;
 	if (SexValue >= 100.0f)
 	{
-		SexValue = 0.0f;
+		// 先停在满值（界面显示 100%），5 秒高潮结束后再清零。
+		SexValue = 100.0f;
 		OnOrgasmReached();
 		BeginClimaxSequence();
 
@@ -3758,6 +3765,14 @@ void AMyBondageLifePlayerController::BeginClimaxSequence()
 void AMyBondageLifePlayerController::EndClimaxSequence()
 {
 	bClimaxLocked = false;
+
+	// 5 秒高潮结束：性欲值此时才清零，并同步界面与阈值效果。
+	SexValue = 0.0f;
+	if (MainHudWidget)
+	{
+		MainHudWidget->SetSexProgress(0.0f, 0.0f, false);
+	}
+	UpdateLibidoEffects(0.0f);
 
 	if (AMyBondageLifeCharacter* ClimaxCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
 	{
