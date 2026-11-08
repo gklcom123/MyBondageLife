@@ -194,11 +194,13 @@ void UMyBondageLifeRestraintSlotsWidget::BuildLayout()
 	}
 
 	// Hint line under the grid.
-	// 设计里有 W_Hint 就用设计的（位置由蓝图决定）；没有才在代码里生成，
-	// 并固定放在网格最后一行下方，避免与槽位文字重叠。
-	USizeBox* HintSize = Cast<USizeBox>(WidgetTree->FindWidget(TEXT("W_Hint")));
-	const bool bDesignedHint = HintSize != nullptr;
-	if (!HintSize)
+	// 设计里若已存在名为 W_Hint 的控件（SizeBox 或 TextBlock 皆可），完全交给蓝图；
+	// 只有不存在时才在代码里创建，并放在最后一行槽位下方。
+	UWidget* ExistingHint = WidgetTree ? WidgetTree->FindWidget(TEXT("W_Hint")) : nullptr;
+	USizeBox* HintSize = Cast<USizeBox>(ExistingHint);
+	UTextBlock* HintText = Cast<UTextBlock>(ExistingHint);
+
+	if (!HintSize && !HintText)
 	{
 		HintSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("W_Hint"));
 		HintSize->SetWidthOverride(1000.0f);
@@ -210,19 +212,25 @@ void UMyBondageLifeRestraintSlotsWidget::BuildLayout()
 			HintSlot->SetPosition(FVector2D(CellOriginX, CellOriginY + 3.0f * CellStepY + 32.0f));
 			HintSlot->SetAutoSize(true);
 		}
-	}
 
-
-	UTextBlock* HintText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-	HintText->SetText(FText::FromString(TEXT("\u624B\u81C2\u5931\u53BB\u81EA\u7531\u72B6\u6001\u4E0B\u65E0\u6CD5\u7ED9\u522B\u4EBA\u6DFB\u52A0\u62D8\u675F\uFF0C\u4E14\u53EA\u80FD\u7531\u652F\u914D\u8005\u7ED9\u5176\u4F59\u89D2\u8272\u914D\u7F6E\u62D8\u675F\uFF0C\u6216\u8005\u7531\u8F6C\u6362\u8005\u7ED9\u8F6C\u6362\u8005\u3001\u81E3\u670D\u8005\u3001\u5974\u96B6\u53D1\u8D77\u62D8\u675F")));
-	HintText->SetAutoWrapText(true);
-	HintText->SetColorAndOpacity(FSlateColor(FLinearColor(0.4f, 0.4f, 0.42f)));
-	{
+		HintText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		HintText->SetText(FText::FromString(TEXT("\u624B\u81C2\u5931\u53BB\u81EA\u7531\u72B6\u6001\u4E0B\u65E0\u6CD5\u7ED9\u522B\u4EBA\u6DFB\u52A0\u62D8\u675F\uFF0C\u4E14\u53EA\u80FD\u7531\u652F\u914D\u8005\u7ED9\u5176\u4F59\u89D2\u8272\u914D\u7F6E\u62D8\u675F\uFF0C\u6216\u8005\u7531\u8F6C\u6362\u8005\u7ED9\u8F6C\u6362\u8005\u3001\u81E3\u670D\u8005\u3001\u5974\u96B6\u53D1\u8D77\u62D8\u675F")));
+		HintText->SetAutoWrapText(true);
+		HintText->SetColorAndOpacity(FSlateColor(FLinearColor(0.4f, 0.4f, 0.42f)));
 		FSlateFontInfo HintFont = HintText->GetFont();
 		HintFont.Size = 16;
 		HintText->SetFont(HintFont);
+		HintSize->AddChild(HintText);
 	}
-	if (HintText && !bDesignedHint) { HintSize->AddChild(HintText); }
+	else if (HintSize && HintSize->GetChildrenCount() == 0)
+	{
+		UTextBlock* Child = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		Child->SetText(FText::FromString(TEXT("\u624B\u81C2\u5931\u53BB\u81EA\u7531\u72B6\u6001\u4E0B\u65E0\u6CD5\u7ED9\u522B\u4EBA\u6DFB\u52A0\u62D8\u675F\uFF0C\u4E14\u53EA\u80FD\u7531\u652F\u914D\u8005\u7ED9\u5176\u4F59\u89D2\u8272\u914D\u7F6E\u62D8\u675F\uFF0C\u6216\u8005\u7531\u8F6C\u6362\u8005\u7ED9\u8F6C\u6362\u8005\u3001\u81E3\u670D\u8005\u3001\u5974\u96B6\u53D1\u8D77\u62D8\u675F")));
+		Child->SetAutoWrapText(true);
+		Child->SetColorAndOpacity(FSlateColor(FLinearColor(0.4f, 0.4f, 0.42f)));
+		HintSize->AddChild(Child);
+	}
+
 
 	OnLayoutBuilt();
 	RefreshSlots();
