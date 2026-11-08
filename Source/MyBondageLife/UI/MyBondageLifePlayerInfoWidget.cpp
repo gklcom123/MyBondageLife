@@ -513,6 +513,12 @@ void UMyBondageLifePlayerInfoWidget::RefreshContents()
 		NameValue->SetText(FText::FromString(FString::Printf(TEXT("\u59D3\u540D\uFF1A%s%s"), *CharacterName, *UidSuffix)));
 	}
 
+	if (UMyBondageLifeAccountSubsystem* RomanceRefresh = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		RomanceRefresh->RefreshRomances();
+	}
+
 	RefreshRomanceRows();
 	RefreshLoveButton();
 
@@ -636,7 +642,10 @@ void UMyBondageLifePlayerInfoWidget::HandleAddFriendClicked()
 				if (Entry.Account.Equals(TargetAccountName, ESearchCase::IgnoreCase))
 				{
 					bHasRomance = true;
-					bCanMarry = Entry.bCanMarry;
+					// 服务端 canMarry 可能滞后：本地再按 loverSince + 7 天兜底判定。
+		const bool bLocalReady = Entry.LoverSince.GetTicks() > 0
+			&& FDateTime::UtcNow() >= Entry.LoverSince + FTimespan::FromDays(7.0);
+		bCanMarry = Entry.bCanMarry || bLocalReady;
 					break;
 				}
 			}
@@ -1088,6 +1097,11 @@ bool UMyBondageLifePlayerInfoWidget::TryAdoptBlueprintLayout()
 	AddFriendLabel = AdoptFind<UTextBlock>(WidgetTree, TEXT("W_AddFriend_Label"));
 	ContractButton = AdoptFindNamedButton(WidgetTree, TEXT("W_Contract"));
 	ContractLabel = AdoptFind<UTextBlock>(WidgetTree, TEXT("W_Contract_Label"));
+	if (ContractLabel)
+	{
+		ContractLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.02f, 0.02f, 0.02f)));
+		ContractLabel->SetJustification(ETextJustify::Center);
+	}
 	WardrobeButton = AdoptFindNamedButton(WidgetTree, TEXT("W_WardrobeButton"));
 	CloseButton = AdoptFindNamedButton(WidgetTree, TEXT("W_Close"));
 	RuleInfoButton = AdoptFindNamedButton(WidgetTree, TEXT("W_RuleInfoButton"));
@@ -1529,7 +1543,10 @@ void UMyBondageLifePlayerInfoWidget::RefreshLoveButton()
 
 		bHasRomance = true;
 		bMarried = Entry.Stage.Equals(TEXT("married"), ESearchCase::IgnoreCase);
-		bCanMarry = Entry.bCanMarry;
+		// 服务端 canMarry 可能滞后：本地再按 loverSince + 7 天兜底判定。
+		const bool bLocalReady = Entry.LoverSince.GetTicks() > 0
+			&& FDateTime::UtcNow() >= Entry.LoverSince + FTimespan::FromDays(7.0);
+		bCanMarry = Entry.bCanMarry || bLocalReady;
 		break;
 	}
 

@@ -2872,8 +2872,8 @@ void UMyBondageLifeAccountSubsystem::RespondToRomanceRequest(const FString& Requ
 			FString Kind;
 				Info.Split(TEXT("|"), &Name, &Kind);
 			const FString Notice = Kind.Equals(TEXT("marriage"))
-					? FString::Printf(TEXT("\\u5DF2\\u540C\\u610F[%s]\\u7684\\u7ED3\\u5A5A\\u9080\\u8BF7"), *Name)
-					: FString::Printf(TEXT("\\u5DF2\\u540C\\u610F[%s]\\u7684\\u604B\\u4EBA\\u7533\\u8BF7"), *Name);
+				? FString::Printf(TEXT("已同意[%s]的结婚邀请"), *Name)
+				: FString::Printf(TEXT("已同意[%s]的恋人申请"), *Name);
 			Self->OnSystemChatMessage.Broadcast(Notice);
 			}
 
