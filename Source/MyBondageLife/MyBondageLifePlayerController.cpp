@@ -2553,6 +2553,12 @@ void AMyBondageLifePlayerController::HandleNotificationAdded(const FMyBondageLif
 	case EMyBondageLifeNotificationType::ContractTrial:
 		Kind = TEXT("\u7B7E\u8BA2\u4E34\u65F6\u5951\u7EA6");
 		break;
+	case EMyBondageLifeNotificationType::RomanceRequest:
+		Kind = TEXT("\u604B\u4EBA\u7533\u8BF7");
+		break;
+	case EMyBondageLifeNotificationType::MarriageRequest:
+		Kind = TEXT("\u7ED3\u5A5A\u7533\u8BF7");
+		break;
 	default:
 		Kind = TEXT("\u7B7E\u8BA2\u5951\u7EA6");
 		break;

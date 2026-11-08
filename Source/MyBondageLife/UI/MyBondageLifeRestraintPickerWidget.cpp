@@ -257,7 +257,21 @@ void UMyBondageLifeRestraintPickerWidget::RefreshContents()
 		FString Title = FMyBondageLifeRestraintCatalog::GetSlotName(PickerSlot);
 		if (Lock.LockType > 0 && PickerTitle)
 		{
-			Title += TEXT(" \uFF1A\u5DF2\u4E0A\u9501");
+			Title += TEXT(" ：已上锁");
+			if ((Lock.LockType == 2 || Lock.LockType == 5) && Lock.ExpiresAt.GetTicks() > 0)
+			{
+				const FTimespan Remaining = Lock.ExpiresAt - FDateTime::UtcNow();
+				if (Remaining.GetTicks() > 0)
+				{
+					Title += FString::Printf(TEXT("（剩余 %02d:%02d:%02d）"),
+						FMath::FloorToInt(Remaining.GetTotalHours()),
+						Remaining.GetMinutes(), Remaining.GetSeconds());
+				}
+				else
+				{
+					Title += TEXT("（已到期）");
+				}
+			}
 		}
 		else
 		{
