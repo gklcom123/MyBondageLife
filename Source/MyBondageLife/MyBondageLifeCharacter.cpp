@@ -1714,12 +1714,7 @@ void AMyBondageLifeCharacter::BeginClimax()
 		Boom->TargetArmLength = ClimaxLockedArmLength;
 	}
 
-	// 单次高潮音效
-	if (USoundBase* ClimaxSound = LoadObject<USoundBase>(nullptr,
-		TEXT("/Game/Characters/Sound/Sex/Sound_Climax_Cue.Sound_Climax_Cue")))
-	{
-		UGameplayStatics::PlaySound2D(this, ClimaxSound);
-	}
+	// 音效由 MulticastSetClimax 在所有客户端播放（见下）。
 }
 
 void AMyBondageLifeCharacter::EndClimax()
@@ -1763,4 +1758,14 @@ void AMyBondageLifeCharacter::ServerSetClimax_Implementation(bool bActive)
 void AMyBondageLifeCharacter::MulticastSetClimax_Implementation(bool bActive)
 {
 	ApplyClimaxAnim(bActive);
+
+	if (bActive)
+	{
+		// 3D 播放：房间内所有客户端都能听到。
+		if (USoundBase* ClimaxSound = LoadObject<USoundBase>(nullptr,
+			TEXT("/Game/Characters/Sound/Sex/Sound_Climax_Cue.Sound_Climax_Cue")))
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, ClimaxSound, GetActorLocation());
+		}
+	}
 }
