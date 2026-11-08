@@ -671,45 +671,6 @@ void UMyBondageLifeAccountSubsystem::RefreshFriendsFromServer()
 				}
 			}
 
-
-			// /friends 若没带合同信息（例如临时契约），用 /contracts/me 的结果补齐。
-			for (FMyBondageLifeFriendEntry& Friend : NewFriends)
-			{
-				if (Friend.ContractRole != EMyBondageLifeContractRole::None)
-				{
-					continue;
-				}
-
-				auto MatchContract = [&Friend](const FMyBondageLifeContractInfo& Info)
-				{
-					if (!Info.PeerAccount.Equals(Friend.AccountName, ESearchCase::IgnoreCase))
-					{
-						return false;
-					}
-
-					Friend.ContractRole = Info.Role;
-					Friend.ContractId = Info.ContractId;
-					Friend.ContractSince = Info.Since;
-					Friend.ContractTrialEndsAt = Info.TrialEndsAt;
-					Friend.ContractStatus = (Info.Role == EMyBondageLifeContractRole::TemporaryMaster
-						|| Info.Role == EMyBondageLifeContractRole::TemporarySlave)
-						? FString(TEXT("trial")) : FString(TEXT("formal"));
-					return true;
-				};
-
-				if (MatchContract(Self->ContractAsSlave))
-				{
-					continue;
-				}
-				for (const FMyBondageLifeContractInfo& MasterContract : Self->ContractsAsMaster)
-				{
-					if (MatchContract(MasterContract))
-					{
-						break;
-					}
-				}
-			}
-
 			Self->Friends = NewFriends;
 			Self->OnFriendsChanged.Broadcast();
 		});
