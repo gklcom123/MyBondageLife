@@ -247,8 +247,20 @@ void UMyBondageLifeMainHudWidget::SetSexProgress(float Value01, int32 Percent, b
 		SexProgressLabel->SetText(FText::FromString(FString::Printf(TEXT("%d%%"), FMath::Clamp(Percent, 0, 100))));
 	}
 
-	if (bPlayAnim && SexProgressAnimation)
+	// 蓝图里自定义的 SexProgressChange：由 WBP_MainHUD 负责播放动画。
+	if (bPlayAnim)
 	{
-		PlayAnimation(SexProgressAnimation, 0.0f, 1, EUMGSequencePlayMode::Forward, 1.0f, false);
+		if (UFunction* ChangeFunction = FindFunction(TEXT("SexProgressChange")))
+		{
+			ProcessEvent(ChangeFunction, nullptr);
+		}
+		else if (SexProgressAnimation)
+		{
+			PlayAnimation(SexProgressAnimation, 0.0f, 1, EUMGSequencePlayMode::Forward, 1.0f, false);
+		}
+		else
+		{
+			UE_LOG(LogMyBondageLife, Warning, TEXT("MainHUD: SexProgressChange not found on WBP_MainHUD"));
+		}
 	}
 }
