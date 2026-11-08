@@ -119,6 +119,40 @@ namespace
 		return 0;
 	}
 
+	/** Reads a float column (Libido may be float or int in the table). */
+	float ReadFloat(const UScriptStruct* RowStruct, const uint8* RowData, std::initializer_list<const TCHAR*> Prefixes)
+	{
+		for (TFieldIterator<FProperty> It(RowStruct); It; ++It)
+		{
+			if (!MatchesName(*It, Prefixes))
+			{
+				continue;
+			}
+
+			if (const FFloatProperty* FloatProperty = CastField<FFloatProperty>(*It))
+			{
+				return FloatProperty->GetPropertyValue_InContainer(RowData);
+			}
+
+			if (const FDoubleProperty* DoubleProperty = CastField<FDoubleProperty>(*It))
+			{
+				return static_cast<float>(DoubleProperty->GetPropertyValue_InContainer(RowData));
+			}
+
+			if (const FIntProperty* IntProperty = CastField<FIntProperty>(*It))
+			{
+				return static_cast<float>(IntProperty->GetPropertyValue_InContainer(RowData));
+			}
+
+			if (const FByteProperty* ByteProperty = CastField<FByteProperty>(*It))
+			{
+				return static_cast<float>(ByteProperty->GetPropertyValue_InContainer(RowData));
+			}
+		}
+		return 0.0f;
+	}
+
+
 	/** Reads the display name (text / string / name property). */
 	FString ReadName(const UScriptStruct* RowStruct, const uint8* RowData)
 	{
@@ -229,6 +263,9 @@ void FMyBondageLifeRestraintCatalog::Refresh()
 		Item.bInPetMode = ReadBool(RowStruct, RowData, { TEXT("InPetMode") });
 
 		// 口部道具的枚举类型（Enum_GagType）。旧表没有这一列时 bHasGagType 为 false。
+		Item.bCantVisiable = ReadBool(RowStruct, RowData, { TEXT("CantVisiable"), TEXT("CantVisible") });
+		Item.Libido = ReadFloat(RowStruct, RowData, { TEXT("Libido") });
+
 		Item.bHasGagType = HasProperty(RowStruct, { TEXT("GagType") });
 		Item.GagType = Item.bHasGagType ? ReadInt(RowStruct, RowData, { TEXT("GagType") }) : 0;
 
@@ -329,6 +366,10 @@ FString FMyBondageLifeRestraintCatalog::GetSlotName(int32 Slot)
 		TEXT("\u4E0B\u8EAB\u914D\u4EF62"),
 		TEXT("\u4E0B\u8EAB\u914D\u4EF63"),
 		TEXT("\u773C\u7F69"),
+		TEXT("\u9634\u8482"),
+		TEXT("\u9634\u9053"),
+		TEXT("\u809B\u95E8"),
+		TEXT("\u5176\u4ED6"),
 	};
 
 	return FMath::IsWithinInclusive(Slot, 0, SlotCount - 1) ? FString(Names[Slot]) : FString();

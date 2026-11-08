@@ -17,7 +17,7 @@ struct FMyBondageLifeRestraintItem
 	/** Display name shown in the wardrobe. */
 	FString Name;
 
-	/** Enum_RestraintSlot value as an integer (0..11). */
+	/** Enum_RestraintSlot value as an integer (0..16). */
 	int32 Slot = 0;
 
 	TSoftObjectPtr<USkeletalMesh> Mesh;
@@ -46,6 +46,12 @@ struct FMyBondageLifeRestraintItem
 
 	/** 该行是否真的带 GagType 列；旧数据可能没有这一列。 */
 	bool bHasGagType = false;
+
+	/** 性欲值增长速度，纯客户端字段（服务端不存）。 */
+	float Libido = 0.0f;
+
+	/** true = 不出现在拘束选择列表，但仍可被穿戴/脱下。 */
+	bool bCantVisiable = false;
 };
 
 /**
@@ -58,7 +64,7 @@ class MYBONDAGELIFE_API FMyBondageLifeRestraintCatalog
 {
 public:
 
-	static constexpr int32 SlotCount = 13;
+	static constexpr int32 SlotCount = 17;
 
 	static void Refresh();
 	static const TArray<FMyBondageLifeRestraintItem>& GetItems();
