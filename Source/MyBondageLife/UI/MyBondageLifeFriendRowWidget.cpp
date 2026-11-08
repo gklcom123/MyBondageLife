@@ -134,11 +134,13 @@ void UMyBondageLifeFriendRowWidget::SetSelected(bool bInSelected)
 		FLinearColor RoleColor(0.35f, 0.35f, 0.38f);
 		switch (Entry.ContractRole)
 		{
+		case EMyBondageLifeContractRole::TemporaryMaster:
 		case EMyBondageLifeContractRole::Master:
 			// 我是主人 → 对方是我的奴隶
 			RoleLabel = bTrial ? TEXT("\u4E34\u65F6\u5974\u96B6") : TEXT("\u5974\u96B6");
 			RoleColor = FLinearColor(0.45f, 0.2f, 0.6f);
 			break;
+		case EMyBondageLifeContractRole::TemporarySlave:
 		case EMyBondageLifeContractRole::Slave:
 			// 我是奴隶 → 对方是我的主人
 			RoleLabel = bTrial ? TEXT("\u4E34\u65F6\u4E3B\u4EBA") : TEXT("\u4E3B\u4EBA");
