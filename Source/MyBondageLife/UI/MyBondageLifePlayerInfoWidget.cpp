@@ -641,6 +641,16 @@ void UMyBondageLifePlayerInfoWidget::HandleAddFriendClicked()
 
 void UMyBondageLifePlayerInfoWidget::SetInteractionHintTarget(const AMyBondageLifeCharacter* Character)
 {
+	// 提示整体往上抬一点（只做一次，避免每次刷新叠加）。
+	if (!bHintRaised && InteractionHintRow)
+	{
+		bHintRaised = true;
+		if (UCanvasPanelSlot* HintCanvasSlot = Cast<UCanvasPanelSlot>(InteractionHintRow->Slot))
+		{
+			HintCanvasSlot->SetPosition(HintCanvasSlot->GetPosition() - FVector2D(0.0f, 60.0f));
+		}
+	}
+
 	if (!InteractionHintRow)
 	{
 		return;
