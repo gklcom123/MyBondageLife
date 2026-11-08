@@ -44,6 +44,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Hud Button")
 	void SetRedDotVisible(bool bVisible);
 
+	virtual void NativeConstruct() override;
+
+	UFUNCTION()
+	void RefreshRedDot();
+
 	/** Re-applies icon/caption from EntryAction. */
 	UFUNCTION(BlueprintCallable, Category = "Hud Button")
 	void RefreshAppearance();

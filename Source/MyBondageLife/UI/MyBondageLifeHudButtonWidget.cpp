@@ -13,6 +13,7 @@
 #include "Components/VerticalBoxSlot.h"
 #include "Engine/Texture2D.h"
 #include "MyBondageLife.h"
+#include "Core/MyBondageLifeAccountSubsystem.h"
 #include "MyBondageLifePlayerController.h"
 
 namespace
@@ -180,4 +181,60 @@ void UMyBondageLifeHudButtonWidget::SetRedDotVisible(bool bVisible)
 void UMyBondageLifeHudButtonWidget::HandleClicked()
 {
 	OnClicked.Broadcast(EntryAction);
+}
+
+void UMyBondageLifeHudButtonWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	if (EntryAction == EMyBondageLifeHudEntryAction::Message)
+	{
+		if (UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+			? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+		{
+			Account->OnNotificationsChanged.RemoveDynamic(this, &UMyBondageLifeHudButtonWidget::RefreshRedDot);
+			Account->OnNotificationsChanged.AddUniqueDynamic(this, &UMyBondageLifeHudButtonWidget::RefreshRedDot);
+		}
+	}
+
+	RefreshRedDot();
+}
+
+void UMyBondageLifeHudButtonWidget::RefreshRedDot()
+{
+	if (!RedDot)
+	{
+		RedDot = WidgetTree ? Cast<UImage>(WidgetTree->FindWidget(TEXT("W_RedDot"))) : nullptr;
+	}
+	if (!RedDot)
+	{
+		return;
+	}
+
+	// 只有「消息通知」入口显示红点，其余入口隐藏。
+	bool bShow = false;
+	if (EntryAction == EMyBondageLifeHudEntryAction::Message)
+	{
+		if (const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+			? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+		{
+			bShow = Account->GetPendingNotificationCount() > 0;
+		}
+	}
+
+	if (bShow)
+	{
+		if (!RedDot->GetBrush().GetResourceObject())
+		{
+			if (UTexture2D* DotTexture = LoadObject<UTexture2D>(nullptr, TEXT("/Game/2DAssest/UI/UI_Redpoint.UI_Redpoint")))
+			{
+				RedDot->SetBrushFromTexture(DotTexture, true);
+			}
+		}
+		RedDot->SetVisibility(ESlateVisibility::HitTestInvisible);
+	}
+	else
+	{
+		RedDot->SetVisibility(ESlateVisibility::Collapsed);
+	}
 }
