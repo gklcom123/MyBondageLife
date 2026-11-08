@@ -1764,14 +1764,27 @@ void UMyBondageLifeAccountSubsystem::RefreshRomanceNotifications()
 				Item->TryGetStringField(TEXT("kind"), Kind);
 				const bool bMarriage = Kind.Equals(TEXT("marriage"), ESearchCase::IgnoreCase);
 
-				Entry.Id = TEXT("r:") + Entry.Id;
+				Self->RomanceRequestInfo.Add(Entry.Id, Entry.CharacterName + TEXT("|") + (bMarriage ? TEXT("marriage") : TEXT("lover")));
+
+			Entry.Id = TEXT("r:") + Entry.Id;
 				Entry.Type = bMarriage
 					? EMyBondageLifeNotificationType::MarriageRequest
 					: EMyBondageLifeNotificationType::RomanceRequest;
 				Fetched.Add(Entry);
 			}
 
-			Self->MergeNotifications(Fetched, false);
+			Fetched.RemoveAll([Self](const FMyBondageLifeNotification& Item)
+			{
+			return Self->PendingNotifications.ContainsByPredicate([&Item](const FMyBondageLifeNotification& Existing)
+			{
+				return Existing.Id == Item.Id;
+			});
+		});
+
+		if (Fetched.Num() > 0)
+	{
+		Self->MergeNotifications(Fetched, false);
+	}
 		});
 }
 
@@ -2838,7 +2851,7 @@ void UMyBondageLifeAccountSubsystem::RespondToRomanceRequest(const FString& Requ
 	const FString Path = FString::Printf(TEXT("/romance/requests/%s/respond"), *RequestId);
 	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
 	SendFriendApiRequest(TEXT("POST"), Path, Body,
-		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		[WeakThis, RequestId](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
 		{
 			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
 			if (!Self)
@@ -2852,8 +2865,20 @@ void UMyBondageLifeAccountSubsystem::RespondToRomanceRequest(const FString& Requ
 				return;
 			}
 
-			Self->RefreshRomances();
-			Self->RefreshFriendsFromServer();
+			FString Info;
+			if (Self->RomanceRequestInfo.RemoveAndCopyValue(RequestId, Info))
+			{
+				FString Name = Info;
+			FString Kind;
+				Info.Split(TEXT("|"), &Name, &Kind);
+			const FString Notice = Kind.Equals(TEXT("marriage"))
+					? FString::Printf(TEXT("\\u5DF2\\u540C\\u610F[%s]\\u7684\\u7ED3\\u5A5A\\u9080\\u8BF7"), *Name)
+					: FString::Printf(TEXT("\\u5DF2\\u540C\\u610F[%s]\\u7684\\u604B\\u4EBA\\u7533\\u8BF7"), *Name);
+			Self->OnSystemChatMessage.Broadcast(Notice);
+			}
+
+		Self->RefreshRomances();
+		Self->RefreshFriendsFromServer();
 		});
 }
 

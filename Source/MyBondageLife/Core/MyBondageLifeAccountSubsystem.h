@@ -493,6 +493,9 @@ public:
 
 	TArray<FMyBondageLifeRomanceEntry> OwnRomances;
 
+	/** requestId -> (characterName|kind) for chat feedback. */
+	TMap<FString, FString> RomanceRequestInfo;
+
 	UPROPERTY(BlueprintAssignable, Category = "Rules")
 	FMyBondageLifeRulesChanged OnRulesChanged;
 

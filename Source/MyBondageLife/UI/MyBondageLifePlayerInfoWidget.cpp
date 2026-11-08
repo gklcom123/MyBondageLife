@@ -646,11 +646,13 @@ void UMyBondageLifePlayerInfoWidget::HandleAddFriendClicked()
 				if (bCanMarry)
 				{
 					const_cast<UMyBondageLifeAccountSubsystem*>(RomanceAccount)->RequestMarriage(TargetAccountName);
+				SetPanelOpen(false);
 				}
 			}
 			else
 			{
 				const_cast<UMyBondageLifeAccountSubsystem*>(RomanceAccount)->RequestRomance(TargetAccountName);
+				SetPanelOpen(false);
 			}
 			return;
 		}
@@ -1534,16 +1536,22 @@ void UMyBondageLifePlayerInfoWidget::RefreshLoveButton()
 	if (bMarried)
 	{
 		AddFriendLabel->SetText(FText::FromString(TEXT("\u5DF2\u7ED3\u5A5A")));
+		AddFriendLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.02f, 0.02f, 0.02f)));
+		AddFriendLabel->SetJustification(ETextJustify::Center);
 		AddFriendButton->SetIsEnabled(false);
 	}
 	else if (bHasRomance)
 	{
 		AddFriendLabel->SetText(FText::FromString(TEXT("\u7ED3\u5A5A")));
+		AddFriendLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.02f, 0.02f, 0.02f)));
+		AddFriendLabel->SetJustification(ETextJustify::Center);
 		AddFriendButton->SetIsEnabled(bCanMarry);
 	}
 	else
 	{
 		AddFriendLabel->SetText(FText::FromString(TEXT("\u7533\u8BF7\u4E3A\u604B\u4EBA")));
+		AddFriendLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.02f, 0.02f, 0.02f)));
+		AddFriendLabel->SetJustification(ETextJustify::Center);
 		AddFriendButton->SetIsEnabled(true);
 	}
 }
