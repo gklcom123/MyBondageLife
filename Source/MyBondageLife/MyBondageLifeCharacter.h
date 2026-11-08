@@ -597,6 +597,7 @@ public:
 
 	bool bClimaxActive = false;
 	float ClimaxSavedArmLength = -1.0f;
+	float ClimaxLockedArmLength = -1.0f;
 
 	UFUNCTION(BlueprintCallable, Category="Camera")
 	void ZoomOut();

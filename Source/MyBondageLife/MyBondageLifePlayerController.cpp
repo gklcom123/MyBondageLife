@@ -3758,7 +3758,7 @@ void AMyBondageLifePlayerController::BeginClimaxSequence()
 	if (UWorld* ClimaxWorld = GetWorld())
 	{
 		ClimaxWorld->GetTimerManager().SetTimer(ClimaxTimer, this,
-			&AMyBondageLifePlayerController::EndClimaxSequence, 5.0f, false);
+			&AMyBondageLifePlayerController::EndClimaxSequence, 10.0f, false);
 	}
 }
 

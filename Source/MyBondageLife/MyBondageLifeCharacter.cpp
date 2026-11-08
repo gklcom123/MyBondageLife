@@ -423,6 +423,15 @@ void AMyBondageLifeCharacter::Tick(float DeltaSeconds)
 	}
 	ApplyBlindEffect(DeltaSeconds);
 
+	// 高潮期间锁定镜头距离，避免被其它逻辑（坐姿/滚轮）改回去。
+	if (bClimaxActive && ClimaxLockedArmLength > 0.0f)
+	{
+		if (USpringArmComponent* LockedBoom = GetCameraBoom())
+		{
+			LockedBoom->TargetArmLength = ClimaxLockedArmLength;
+		}
+	}
+
 	if (bCantMove)
 	{
 		if (UCharacterMovementComponent* Movement = GetCharacterMovement())
@@ -1701,7 +1710,8 @@ void AMyBondageLifeCharacter::BeginClimax()
 		{
 			ClimaxSavedArmLength = Boom->TargetArmLength;
 		}
-		Boom->TargetArmLength = FMath::Max(60.0f, ClimaxSavedArmLength * 0.72f);
+		ClimaxLockedArmLength = FMath::Max(50.0f, ClimaxSavedArmLength * 0.5f);
+		Boom->TargetArmLength = ClimaxLockedArmLength;
 	}
 
 	// 单次高潮音效
@@ -1728,6 +1738,7 @@ void AMyBondageLifeCharacter::EndClimax()
 		{
 			Boom->TargetArmLength = ClimaxSavedArmLength;
 			ClimaxSavedArmLength = -1.0f;
+			ClimaxLockedArmLength = -1.0f;
 		}
 	}
 }
