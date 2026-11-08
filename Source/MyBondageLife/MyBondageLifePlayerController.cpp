@@ -2519,6 +2519,26 @@ void AMyBondageLifePlayerController::PollNotifications()
 
 void AMyBondageLifePlayerController::HandleNotificationAdded(const FMyBondageLifeNotification& Notification)
 {
+	// 主界面（WBP_MainHUD）里自定义的 CreateBoardCastText(Text)：屏幕上给自己一条提示。
+	if (MainHudWidget)
+	{
+		if (UFunction* BoardCastFunction = MainHudWidget->FindFunction(TEXT("CreateBoardCastText")))
+		{
+			struct FBoardCastParams
+			{
+				FText Text;
+			};
+
+			FBoardCastParams Params;
+			Params.Text = FText::FromString(TEXT("\u4F60\u6536\u5230\u4E86\u4E00\u6761\u65B0\u7684\u901A\u77E5"));
+			MainHudWidget->ProcessEvent(BoardCastFunction, &Params);
+		}
+		else
+	{
+		UE_LOG(LogMyBondageLife, Warning, TEXT("HUD: CreateBoardCastText not found on WBP_MainHUD"));
+	}
+	}
+
 	if (!ChatWidget)
 	{
 		return;
