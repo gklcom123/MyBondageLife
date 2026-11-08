@@ -1173,9 +1173,8 @@ void UMyBondageLifeWardrobeWidget::OpenRestraintPicker(int32 SlotIndex)
 		if (bSlotLocked)
 		{
 			static const TCHAR* LockNames[] = { TEXT(""), TEXT("\u4E3B\u4EBA\u9501"), TEXT("\u4E3B\u4EBA\u8BA1\u65F6\u9501"),
-				TEXT("\u666E\u901A\u6302\u9501"), TEXT("\u5BC6\u7801\u9501"), TEXT("\u8BA1\u65F6\u9501") };
-			const int32 LockIndex = FMath::Clamp(SlotLock.LockType, 0, 5);
-			Title += FString::Printf(TEXT(" \uFF1A\u5DF2\u4E0A\u9501\uFF08%s\uFF09"), LockNames[LockIndex]);
+				TEXT("\u666E\u901A\u6302\u9501"), TEXT("\u5BC6\u7801\u9501"), TEXT("\u8BA1\u65F6\u9501"), TEXT("\u604B\u4EBA\u9501") };
+			const int32 LockIndex = FMath::Clamp(SlotLock.LockType, 0, 6);
 		}
 		else
 		{
@@ -1392,6 +1391,7 @@ namespace
 		case 3: return TEXT("/Game/2DAssest/UI/NormalLock.NormalLock");
 		case 4: return TEXT("/Game/2DAssest/UI/PasswordLock.PasswordLock");
 		case 5: return TEXT("/Game/2DAssest/UI/TimePadLock.TimePadLock");
+		case 6: return TEXT("/Game/2DAssest/UI/LoversLock.LoversLock");
 		default: return nullptr;
 		}
 	}
@@ -1405,6 +1405,7 @@ namespace
 		case 3: return FText::FromString(TEXT("\u666E\u901A\u6302\u9501"));
 		case 4: return FText::FromString(TEXT("\u5BC6\u7801\u9501"));
 		case 5: return FText::FromString(TEXT("\u8BA1\u65F6\u9501"));
+		case 6: return FText::FromString(TEXT("\u604B\u4EBA\u9501"));
 		default: return FText::GetEmpty();
 		}
 	}
@@ -1574,7 +1575,7 @@ void UMyBondageLifeWardrobeWidget::OpenLockMenu()
 	if (LockMenuWidget)
 	{
 		LockMenuWidget->OpenForSlot(PickerSlot);
-		for (int32 LockType = 1; LockType <= 5; ++LockType)
+		for (int32 LockType = 1; LockType <= 6; ++LockType)
 		{
 			LockMenuWidget->SetLockAvailable(LockType, IsLockTypeAllowed(LockType));
 		}
@@ -1627,7 +1628,7 @@ void UMyBondageLifeWardrobeWidget::OpenLockMenu()
 		UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 		Column->AddChildToVerticalBox(Row);
 
-		for (int32 LockType = 1; LockType <= 5; ++LockType)
+		for (int32 LockType = 1; LockType <= 6; ++LockType)
 		{
 			// One column per lock: icon on top, caption underneath.
 			UVerticalBox* LockBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());

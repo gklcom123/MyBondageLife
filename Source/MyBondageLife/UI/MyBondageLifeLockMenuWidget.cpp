@@ -27,6 +27,7 @@ namespace
 		case 3: return TEXT("/Game/2DAssest/UI/NormalLock.NormalLock");
 		case 4: return TEXT("/Game/2DAssest/UI/PasswordLock.PasswordLock");
 		case 5: return TEXT("/Game/2DAssest/UI/TimePadLock.TimePadLock");
+		case 6: return TEXT("/Game/2DAssest/UI/LoversLock.LoversLock");
 		default: return nullptr;
 		}
 	}
@@ -40,6 +41,7 @@ namespace
 		case 3: return FText::FromString(TEXT("\u666E\u901A\u6302\u9501"));
 		case 4: return FText::FromString(TEXT("\u5BC6\u7801\u9501"));
 		case 5: return FText::FromString(TEXT("\u8BA1\u65F6\u9501"));
+		case 6: return FText::FromString(TEXT("\u604B\u4EBA\u9501"));
 		default: return FText::GetEmpty();
 		}
 	}
@@ -142,7 +144,7 @@ void UMyBondageLifeLockMenuWidget::BuildLayout()
 	}
 
 	// Last resort: take buttons in hierarchy order (the designer may not name them).
-	if (RowButtons.Num() < 5)
+	if (RowButtons.Num() < 6)
 	{
 		TArray<UButton*> AllButtons;
 		if (UPanelWidget* RootPanel = Cast<UPanelWidget>(WidgetTree->RootWidget))
@@ -166,7 +168,7 @@ void UMyBondageLifeLockMenuWidget::BuildLayout()
 			}
 		}
 
-		if (Filtered.Num() >= 5)
+		if (Filtered.Num() >= 6)
 		{
 			RowButtons = Filtered;
 		}
@@ -174,7 +176,7 @@ void UMyBondageLifeLockMenuWidget::BuildLayout()
 
 	bool bAnyDesigned = false;
 
-	for (int32 LockType = 1; LockType <= 5; ++LockType)
+	for (int32 LockType = 1; LockType <= 6; ++LockType)
 	{
 		// Several accepted spellings, plus an order-based fallback below.
 		UButton* Button = FindNamedButton(WidgetTree, FString::Printf(TEXT("W_Lock_%d"), LockType));
