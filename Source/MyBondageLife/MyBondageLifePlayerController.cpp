@@ -2503,6 +2503,9 @@ void AMyBondageLifePlayerController::ShowMessageHud()
 	{
 		World->GetTimerManager().SetTimer(NotificationPollTimer, this,
 			&AMyBondageLifePlayerController::PollNotifications, 5.0f, true);
+
+		World->GetTimerManager().SetTimer(SexLibidoTimer, this,
+		&AMyBondageLifePlayerController::TickSexLibido, 3.0f, true);
 	}
 }
 
@@ -3560,5 +3563,71 @@ void AMyBondageLifePlayerController::HandleRomanceFailed(const FString& Code, co
 			Params.Text = FText::FromString(Toast);
 			MainHudWidget->ProcessEvent(BoardCastFunction, &Params);
 		}
+	}
+}
+// ---------------------------------------------------------------------------
+// 性欲值 / 高潮（纯客户端计算）
+// ---------------------------------------------------------------------------
+
+float AMyBondageLifePlayerController::ComputeLibidoSum() const
+{
+	const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	if (!Account)
+	{
+		return 0.0f;
+	}
+
+	float Sum = 0.0f;
+	for (int32 SlotIndex = 0; SlotIndex < FMyBondageLifeRestraintCatalog::SlotCount; ++SlotIndex)
+	{
+		const FString ItemId = Account->GetEquippedRestraint(SlotIndex);
+		if (ItemId.IsEmpty())
+		{
+			continue;
+		}
+
+		if (const FMyBondageLifeRestraintItem* Item = FMyBondageLifeRestraintCatalog::Find(FName(*ItemId)))
+		{
+			Sum += Item->Libido;
+		}
+	}
+	return Sum;
+}
+
+void AMyBondageLifePlayerController::TickSexLibido()
+{
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	if (!Account)
+	{
+		return;
+	}
+
+	const float Sum = ComputeLibidoSum();
+	if (Sum <= 0.0f)
+	{
+		// 没有带 Libido 的拘束：不增长，也不播动画。
+		if (MainHudWidget)
+		{
+			MainHudWidget->SetSexProgress(SexValue / 100.0f, FMath::RoundToInt(SexValue), false);
+		}
+		return;
+	}
+
+	SexValue += Sum;
+	if (SexValue >= 100.0f)
+	{
+		SexValue = 0.0f;
+		OnOrgasmReached();
+
+		// 全房间可见的公开文本。
+		const FString Name = Account->GetCharacterName().IsEmpty() ? TEXT("有人") : Account->GetCharacterName();
+		Account->BroadcastSystemText(FString::Printf(TEXT("%s达到了高潮"), *Name), FString());
+	}
+
+	if (MainHudWidget)
+	{
+		MainHudWidget->SetSexProgress(SexValue / 100.0f, FMath::RoundToInt(SexValue), true);
 	}
 }

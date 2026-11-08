@@ -2,6 +2,11 @@
 
 #include "UI/MyBondageLifeMainHudWidget.h"
 
+#include "Animation/WidgetAnimation.h"
+#include "Blueprint/WidgetBlueprintGeneratedClass.h"
+#include "Components/ProgressBar.h"
+#include "Components/TextBlock.h"
+
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
 #include "Components/CanvasPanel.h"
@@ -204,4 +209,46 @@ bool UMyBondageLifeMainHudWidget::HostWidget(FName HostName, UUserWidget* Widget
 	Widget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	UE_LOG(LogMyBondageLife, Log, TEXT("MainHud: hosted %s into %s"), *Widget->GetName(), *HostName.ToString());
 	return true;
+}
+
+void UMyBondageLifeMainHudWidget::SetSexProgress(float Value01, int32 Percent, bool bPlayAnim)
+{
+	if (!SexProgressBar && WidgetTree)
+	{
+		SexProgressBar = Cast<UProgressBar>(WidgetTree->FindWidget(TEXT("W_SexProgressBar")));
+	}
+	if (!SexProgressLabel && WidgetTree)
+	{
+		SexProgressLabel = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_SexProgressLabel")));
+	}
+	if (!SexProgressAnimation)
+	{
+		if (const UWidgetBlueprintGeneratedClass* GeneratedClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass()))
+		{
+			for (UWidgetAnimation* Animation : GeneratedClass->Animations)
+			{
+				if (Animation && Animation->GetName().Equals(TEXT("SexProgressBarAnmi"), ESearchCase::IgnoreCase))
+				{
+					SexProgressAnimation = Animation;
+					break;
+				}
+			}
+		}
+	}
+
+	if (SexProgressBar)
+	{
+		SexProgressBar->SetPercent(FMath::Clamp(Value01, 0.0f, 1.0f));
+	}
+
+	if (SexProgressLabel)
+	{
+		// 只改内容，格式沿用设计：(0~100)% 
+		SexProgressLabel->SetText(FText::FromString(FString::Printf(TEXT("%d%%"), FMath::Clamp(Percent, 0, 100))));
+	}
+
+	if (bPlayAnim && SexProgressAnimation)
+	{
+		PlayAnimation(SexProgressAnimation, 0.0f, 1, EUMGSequencePlayMode::Forward, 1.0f, false);
+	}
 }

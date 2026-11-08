@@ -7,6 +7,9 @@
 #include "MyBondageLifeMainHudWidget.generated.h"
 
 class UPanelWidget;
+class UProgressBar;
+class UTextBlock;
+class UWidgetAnimation;
 
 /**
  *  Root HUD of the in-room screen: chat box, message entry, the C/V/B entries and the
@@ -41,6 +44,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "HUD")
 	bool HasHost(FName HostName) const;
 
+	/** 性欲值进度：Value01 为 0..1，Percent 为显示百分比，bPlayAnim 时播放 SexProgressBarAnmi。 */
+	UFUNCTION(BlueprintCallable, Category = "HUD")
+	void SetSexProgress(float Value01, int32 Percent, bool bPlayAnim);
+
 protected:
 
 	void BuildLayout();
@@ -51,5 +58,15 @@ protected:
 	bool bUseDesignedHostLayout = true;
 
 	TMap<FName, TObjectPtr<UPanelWidget>> Hosts;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UProgressBar> SexProgressBar;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> SexProgressLabel;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UWidgetAnimation> SexProgressAnimation;
 	bool bLayoutBuilt = false;
 };
+

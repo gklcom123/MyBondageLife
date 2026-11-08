@@ -709,4 +709,15 @@ public:
 	UPROPERTY(Transient)
 	TObjectPtr<class UMyBondageLifeMessageCenterWidget> MessageCenterWidget;
 
-	FTimerHandle NotificationPollTimer;};
+	FTimerHandle NotificationPollTimer;
+
+	/** 性欲值：每 3 秒按所有拘束 Libido 之和增长，满 100 触发高潮。 */
+	FTimerHandle SexLibidoTimer;
+	float SexValue = 0.0f;
+
+	void TickSexLibido();
+
+	float ComputeLibidoSum() const;
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Sex")
+	void OnOrgasmReached();};
