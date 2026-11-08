@@ -2672,6 +2672,7 @@ void AMyBondageLifePlayerController::ShowHudEntries()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
 	{
 		HudRuleAccount->RefreshRules();
+		HudRuleAccount->OnRomanceActionFailed.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleRomanceFailed);
 	}
 
 	// Restraint status icons (gag / arms / legs / cannot move) live in the HUD too.
@@ -3517,5 +3518,41 @@ void AMyBondageLifePlayerController::HandleEscapePressed()
 	if (bRulePanelOpen)
 	{
 		CloseRulePanel();
+	}
+}
+
+void AMyBondageLifePlayerController::HandleRomanceFailed(const FString& Code, const FString& Message)
+{
+	FString Toast;
+	if (Code == TEXT("SELF_LIMIT_REACHED"))
+	{
+		Toast = TEXT("自己已经有了5位恋人");
+	}
+	else if (Code == TEXT("TARGET_LIMIT_REACHED"))
+	{
+		Toast = TEXT("对方已经有了5位恋人");
+	}
+	else if (Code == TEXT("TOO_EARLY"))
+	{
+		Toast = TEXT("成为恋人满7天后才能结婚");
+	}
+	else
+	{
+		return;
+	}
+
+	if (MainHudWidget)
+	{
+		if (UFunction* BoardCastFunction = MainHudWidget->FindFunction(TEXT("CreateBoardCastText")))
+		{
+			struct FBoardCastParams
+			{
+				FText Text;
+			};
+
+			FBoardCastParams Params;
+			Params.Text = FText::FromString(Toast);
+			MainHudWidget->ProcessEvent(BoardCastFunction, &Params);
+		}
 	}
 }

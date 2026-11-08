@@ -153,6 +153,25 @@ void UMyBondageLifeFriendRowWidget::SetSelected(bool bInSelected)
 		}
 		RoleText->SetText(FText::FromString(RoleLabel));
 		RoleText->SetColorAndOpacity(FSlateColor(RoleColor));
+
+	if (RomanceText)
+	{
+		if (Entry.RomanceStage.Equals(TEXT("married"), ESearchCase::IgnoreCase))
+		{
+			RomanceText->SetText(FText::FromString(TEXT("\u5DF2\u5A5A")));
+			RomanceText->SetColorAndOpacity(FSlateColor(FLinearColor(0.85f, 0.15f, 0.15f)));
+		}
+		else if (Entry.RomanceStage.Equals(TEXT("lover"), ESearchCase::IgnoreCase))
+		{
+			RomanceText->SetText(FText::FromString(TEXT("\u604B\u4EBA")));
+			RomanceText->SetColorAndOpacity(FSlateColor(FLinearColor(0.95f, 0.35f, 0.65f)));
+		}
+		else
+		{
+			RomanceText->SetText(FText::FromString(TEXT("\u597D\u53CB")));
+			RomanceText->SetColorAndOpacity(FSlateColor(FLinearColor(0.2f, 0.7f, 0.25f)));
+		}
+	}
 	}
 }
 

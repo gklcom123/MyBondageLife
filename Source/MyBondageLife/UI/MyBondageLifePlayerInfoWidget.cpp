@@ -584,6 +584,7 @@ void UMyBondageLifePlayerInfoWidget::RefreshContents()
 			AddFriendLabel->SetColorAndOpacity(FSlateColor(bIsFriend
 				? FLinearColor(0.45f, 0.45f, 0.45f)
 				: FLinearColor(0.02f, 0.02f, 0.02f)));
+			RefreshLoveButton();
 		}
 	}
 }

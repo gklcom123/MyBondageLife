@@ -589,6 +589,9 @@ public:
 	UFUNCTION()
 	void HandleEscapePressed();
 
+	UFUNCTION()
+	void HandleRomanceFailed(const FString& Code, const FString& Message);
+
 	UPROPERTY(Transient)
 	TObjectPtr<class UMyBondageLifeRuleDetailPanelWidget> RuleDetailWidget;
 
