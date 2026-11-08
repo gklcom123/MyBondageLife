@@ -579,6 +579,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Camera")
 	void ZoomIn();
 
+	/** 高潮：动画蓝图 OnSex=true、镜头拉近、播放单次音效。 */
+	UFUNCTION(BlueprintCallable, Category = "Sex")
+	void BeginClimax();
+
+	UFUNCTION(BlueprintCallable, Category = "Sex")
+	void EndClimax();
+
+	bool bClimaxActive = false;
+	float ClimaxSavedArmLength = -1.0f;
+
 	UFUNCTION(BlueprintCallable, Category="Camera")
 	void ZoomOut();
 

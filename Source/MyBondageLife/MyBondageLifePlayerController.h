@@ -720,6 +720,15 @@ public:
 	/** 40%/70% 阈值的屏幕与音效表现（本地）。 */
 	void UpdateLibidoEffects(float Value);
 
+	/** 高潮 5 秒：锁定输入、隐藏 UI、角色表现，结束后恢复。 */
+	void BeginClimaxSequence();
+	void EndClimaxSequence();
+
+	bool bClimaxLocked = false;
+	FTimerHandle ClimaxTimer;
+	TObjectPtr<UUserWidget> ClimaxHiddenHud;
+	ESlateVisibility ClimaxSavedHudVisibility = ESlateVisibility::SelfHitTestInvisible;
+
 	/** 让循环音效持续播放（Cue 本身不循环时靠它重启）。 */
 	void TickLibidoAudio();
 

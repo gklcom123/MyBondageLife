@@ -3520,6 +3520,12 @@ void AMyBondageLifePlayerController::CloseRuleDetailPanel()
 
 void AMyBondageLifePlayerController::HandleEscapePressed()
 {
+	// 高潮期间忽略所有快捷键（含 ESC）。
+	if (bClimaxLocked)
+	{
+		return;
+	}
+
 	// 细节面板优先关闭，其次规则面板；两者都没开时不处理（交给其它 ESC 逻辑）。
 	if (bRuleDetailOpen)
 	{
@@ -3623,6 +3629,7 @@ void AMyBondageLifePlayerController::TickSexLibido()
 	{
 		SexValue = 0.0f;
 		OnOrgasmReached();
+		BeginClimaxSequence();
 
 		// 全房间可见的公开文本。
 		const FString Name = Account->GetCharacterName().IsEmpty() ? TEXT("有人") : Account->GetCharacterName();
@@ -3709,5 +3716,66 @@ void AMyBondageLifePlayerController::TickLibidoAudio()
 	if (LibidoEffectLevel >= 2)
 	{
 		KeepPlaying(GaspingAudio);
+	}
+}
+void AMyBondageLifePlayerController::BeginClimaxSequence()
+{
+	if (bClimaxLocked)
+	{
+		return;
+	}
+	bClimaxLocked = true;
+
+	if (AMyBondageLifeCharacter* ClimaxCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		ClimaxCharacter->BeginClimax();
+		ClimaxCharacter->DisableInput(this);
+	}
+
+	DisableInput(this);
+	SetIgnoreMoveInput(true);
+	SetIgnoreLookInput(true);
+
+	// 临时隐藏 HUD / 聊天。
+	ClimaxHiddenHud = MainHudWidget;
+	if (ClimaxHiddenHud)
+	{
+		ClimaxSavedHudVisibility = ClimaxHiddenHud->GetVisibility();
+		ClimaxHiddenHud->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	if (ChatWidget)
+	{
+		ChatWidget->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	if (UWorld* ClimaxWorld = GetWorld())
+	{
+		ClimaxWorld->GetTimerManager().SetTimer(ClimaxTimer, this,
+			&AMyBondageLifePlayerController::EndClimaxSequence, 5.0f, false);
+	}
+}
+
+void AMyBondageLifePlayerController::EndClimaxSequence()
+{
+	bClimaxLocked = false;
+
+	if (AMyBondageLifeCharacter* ClimaxCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		ClimaxCharacter->EndClimax();
+		ClimaxCharacter->EnableInput(this);
+	}
+
+	EnableInput(this);
+	SetIgnoreMoveInput(false);
+	SetIgnoreLookInput(false);
+
+	if (ClimaxHiddenHud)
+	{
+		ClimaxHiddenHud->SetVisibility(ClimaxSavedHudVisibility);
+		ClimaxHiddenHud = nullptr;
+	}
+	if (ChatWidget)
+	{
+		ChatWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	}
 }

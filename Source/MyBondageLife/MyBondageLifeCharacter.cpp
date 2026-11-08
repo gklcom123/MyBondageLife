@@ -22,6 +22,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Animation/AnimInstance.h"
 #include "GameFramework/Controller.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -1679,4 +1681,65 @@ void AMyBondageLifeCharacter::MulticastSystemMessage_Implementation(const FStrin
 void AMyBondageLifeCharacter::SetLibidoScreenLevel(int32 InLevel)
 {
 	LibidoScreenLevel = FMath::Clamp(InLevel, 0, 2);
+}
+
+void AMyBondageLifeCharacter::BeginClimax()
+{
+	if (bClimaxActive)
+	{
+		return;
+	}
+	bClimaxActive = true;
+
+	// 动画蓝图 OnSex = true
+	if (const UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+	{
+		if (FBoolProperty* SexProperty = FindFProperty<FBoolProperty>(AnimInstance->GetClass(), TEXT("OnSex")))
+		{
+			SexProperty->SetPropertyValue_InContainer(const_cast<UAnimInstance*>(AnimInstance), true);
+		}
+	}
+
+	// 镜头临时拉近
+	if (USpringArmComponent* Boom = GetCameraBoom())
+	{
+		if (ClimaxSavedArmLength < 0.0f)
+		{
+			ClimaxSavedArmLength = Boom->TargetArmLength;
+		}
+		Boom->TargetArmLength = FMath::Max(60.0f, ClimaxSavedArmLength * 0.72f);
+	}
+
+	// 单次高潮音效
+	if (USoundBase* ClimaxSound = LoadObject<USoundBase>(nullptr,
+		TEXT("/Game/Characters/Sound/Sex/Sound_Climax_Cue.Sound_Climax_Cue")))
+	{
+		UGameplayStatics::PlaySound2D(this, ClimaxSound);
+	}
+}
+
+void AMyBondageLifeCharacter::EndClimax()
+{
+	if (!bClimaxActive)
+	{
+		return;
+	}
+	bClimaxActive = false;
+
+	if (const UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+	{
+		if (FBoolProperty* SexProperty = FindFProperty<FBoolProperty>(AnimInstance->GetClass(), TEXT("OnSex")))
+		{
+			SexProperty->SetPropertyValue_InContainer(const_cast<UAnimInstance*>(AnimInstance), false);
+		}
+	}
+
+	if (USpringArmComponent* Boom = GetCameraBoom())
+	{
+		if (ClimaxSavedArmLength >= 0.0f)
+		{
+			Boom->TargetArmLength = ClimaxSavedArmLength;
+			ClimaxSavedArmLength = -1.0f;
+		}
+	}
 }
