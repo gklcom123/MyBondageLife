@@ -1033,6 +1033,9 @@ void UMyBondageLifeAccountSubsystem::RespondToContractRequest(const FString& Req
 	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
 	Body->SetBoolField(TEXT("accept"), bAccept);
 
+	UE_LOG(LogMyBondageLife, Log, TEXT("Contract: respond requestId=%s accept=%d (caller stack below)"), *RequestId, bAccept ? 1 : 0);
+	FDebug::DumpStackTraceToLog(ELogVerbosity::Log);
+
 	const FString Path = FString::Printf(TEXT("/contracts/requests/%s/respond"), *RequestId);
 	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
 

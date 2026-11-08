@@ -2099,7 +2099,7 @@ void AMyBondageLifePlayerController::HandleContractActionFinished(bool bSucceede
 		else if (Action == 2)
 		{
 			ChatWidget->AddSystemMessage(FString::Printf(
-				TEXT("\u5DF2\u540C\u610F[%s]\u7684\u5951\u7EA6\u8BF7\u6C42"), *PendingRequesterName));   // 已同意[x]的契约请求
+				TEXT("已同意[%s]的契约请求"), *(PendingRequesterName.IsEmpty() ? FString(TEXT("对方")) : PendingRequesterName)));   // 已同意[x]的契约请求
 		}
 		else if (Action == 4)
 		{
