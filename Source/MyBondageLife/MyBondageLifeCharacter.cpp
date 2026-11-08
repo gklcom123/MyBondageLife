@@ -1025,30 +1025,35 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 
 	FPostProcessSettings& PP = Camera->PostProcessSettings;
 	const bool bActive = BlindVisualLevel > 0.01f || LibidoVisualLevel > 0.01f;
+	const bool bBlind  = BlindVisualLevel > 0.01f;
 	const bool bLibido = LibidoVisualLevel > 0.01f;
 
-	// 视野收缩（暗角）+ 环境变暗 + 景深模糊，强度随等级线性增长。
+	// 蒙眼与性欲是两套效果，叠在同一台相机上：
+	//  · 暗角颜色：蒙眼优先保持黑色（不会因为性欲变粉而变亮），只有单纯性欲时才用粉色；
+	//  · 性欲的粉色主要通过 SceneColorTint + 额外暗角强度体现，两者可同时可见。
 	PP.bOverride_VignetteIntensity = bActive;
-	PP.VignetteIntensity = 2.4f * BlindVisualLevel + 1.6f * LibidoVisualLevel;
+	PP.VignetteIntensity = 2.4f * BlindVisualLevel + 2.2f * LibidoVisualLevel;
 
-	// 性欲：粉色暗角（与蒙眼共存，蒙眼时取两者叠加）。
-	PP.bOverride_VignetteColor = bLibido;
-	PP.VignetteColor = FLinearColor(1.0f, 0.35f, 0.6f);
+	PP.bOverride_VignetteColor = bActive;
+	PP.VignetteColor = bBlind ? FLinearColor(0.0f, 0.0f, 0.0f) : FLinearColor(1.0f, 0.3f, 0.55f);
 
 	PP.bOverride_AutoExposureBias = bActive;
 	PP.AutoExposureBias = -0.55f * BlindVisualLevel;
 
+	// 模糊：性欲比蒙眼更明显地拉近焦平面并压低 F 值。
 	PP.bOverride_DepthOfFieldFstop = bActive;
-	PP.DepthOfFieldFstop = FMath::Max(0.6f, 2.4f - 0.6f * BlindVisualLevel - 0.35f * LibidoVisualLevel);
+	PP.DepthOfFieldFstop = FMath::Max(0.2f, 2.4f - 0.5f * BlindVisualLevel - 1.1f * LibidoVisualLevel);
 
 	PP.bOverride_DepthOfFieldFocalDistance = bActive;
-	PP.DepthOfFieldFocalDistance = 320.0f;
+	PP.DepthOfFieldFocalDistance = FMath::Max(60.0f, 320.0f - 120.0f * LibidoVisualLevel);
+
 	PP.bOverride_DepthOfFieldSensorWidth = bActive;
 	PP.DepthOfFieldSensorWidth = 24.0f;
 
-	// 高等级性欲：轻微粉色染色的画面。
+	// 性欲的粉色染色：越强越明显（不影响蒙眼的黑色暗角）。
 	PP.bOverride_SceneColorTint = bLibido;
-	PP.SceneColorTint = FLinearColor(1.0f, 0.86f, 0.9f);
+	PP.SceneColorTint = FLinearColor::LerpUsingHSV(FLinearColor::White, FLinearColor(1.0f, 0.55f, 0.72f), FMath::Clamp(LibidoVisualLevel * 0.5f, 0.0f, 1.0f));
+
 }
 void AMyBondageLifeCharacter::ApplyBodyPartHiding()
 {

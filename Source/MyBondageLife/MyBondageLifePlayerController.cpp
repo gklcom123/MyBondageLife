@@ -3648,6 +3648,12 @@ void AMyBondageLifePlayerController::UpdateLibidoEffects(float Value)
 	}
 	LibidoEffectLevel = Level;
 
+	if (UWorld* AudioWorld = GetWorld())
+	{
+		AudioWorld->GetTimerManager().SetTimer(LibidoAudioTimer, this,
+			&AMyBondageLifePlayerController::TickLibidoAudio, 0.35f, true);
+	}
+
 	// 画面：交给角色的后处理合并（与蒙眼共存）。
 	if (AMyBondageLifeCharacter* LibidoCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
 	{
@@ -3684,4 +3690,24 @@ void AMyBondageLifePlayerController::UpdateLibidoEffects(float Value)
 
 	EnsureAudio(HeartbeatAudio, TEXT("/Game/Characters/Sound/Sex/Sound_Heartbeat_Cue.Sound_Heartbeat_Cue"), Level >= 1);
 	EnsureAudio(GaspingAudio, TEXT("/Game/Characters/Sound/Sex/Sound_Gasping_Cue.Sound_Gasping_Cue"), Level >= 2);
+}
+
+void AMyBondageLifePlayerController::TickLibidoAudio()
+{
+	auto KeepPlaying = [](TObjectPtr<UAudioComponent>& Comp)
+	{
+		if (Comp && Comp->Sound && !Comp->IsPlaying())
+		{
+			Comp->Play();
+		}
+	};
+
+	if (LibidoEffectLevel >= 1)
+	{
+		KeepPlaying(HeartbeatAudio);
+	}
+	if (LibidoEffectLevel >= 2)
+	{
+		KeepPlaying(GaspingAudio);
+	}
 }

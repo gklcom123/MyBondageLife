@@ -720,6 +720,11 @@ public:
 	/** 40%/70% 阈值的屏幕与音效表现（本地）。 */
 	void UpdateLibidoEffects(float Value);
 
+	/** 让循环音效持续播放（Cue 本身不循环时靠它重启）。 */
+	void TickLibidoAudio();
+
+	FTimerHandle LibidoAudioTimer;
+
 	int32 LibidoEffectLevel = -1;
 
 	UPROPERTY(Transient)
