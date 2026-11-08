@@ -1500,17 +1500,23 @@ void UMyBondageLifePlayerInfoWidget::RefreshRomanceRows()
 
 		if (Romances.IsValidIndex(Index))
 		{
-			RomanceTexts[Index]->SetText(FText::FromString(
-				FString::Printf(TEXT("\u604B\u4EBA\uFF1A%s"), *Romances[Index].CharacterName)));
 			const bool bMarried = Romances[Index].Stage.Equals(TEXT("married"), ESearchCase::IgnoreCase);
-			RomanceTexts[Index]->SetColorAndOpacity(FSlateColor(bMarried
-				? FLinearColor(0.85f, 0.15f, 0.15f)
-				: FLinearColor(0.95f, 0.35f, 0.65f)));
+			const FString Prefix = bMarried ? FString(TEXT("已婚：")) : FString(TEXT("恋人："));
+
+			int32 Days = 0;
+			if (Romances[Index].LoverSince.GetTicks() > 0)
+			{
+				Days = FMath::Max(0, (FDateTime::UtcNow() - Romances[Index].LoverSince).GetDays());
+			}
+
+			RomanceTexts[Index]->SetText(FText::FromString(FString::Printf(
+				TEXT("%s%s（已相恋%d天）"), *Prefix, *Romances[Index].CharacterName, Days)));
+			RomanceTexts[Index]->SetColorAndOpacity(FSlateColor(FLinearColor::White));
 		}
 		else
 		{
-			RomanceTexts[Index]->SetText(FText::FromString(TEXT("\u604B\u4EBA\uFF1A\u6682\u65E0")));
-			RomanceTexts[Index]->SetColorAndOpacity(FSlateColor(FLinearColor(0.6f, 0.6f, 0.62f)));
+			RomanceTexts[Index]->SetText(FText::FromString(TEXT("恋人：暂无")));
+			RomanceTexts[Index]->SetColorAndOpacity(FSlateColor(FLinearColor::White));
 		}
 	}
 }
