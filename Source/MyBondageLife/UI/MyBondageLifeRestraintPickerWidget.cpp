@@ -285,6 +285,11 @@ void UMyBondageLifeRestraintPickerWidget::RefreshContents()
 		int32 Index = 0;
 		for (const FMyBondageLifeRestraintItem* Item : FMyBondageLifeRestraintCatalog::GetItemsForSlot(PickerSlot))
 		{
+			// CantVisiable：不在选择列表里显示（仍可被穿戴/脱下）。
+			if (Item->bCantVisiable)
+			{
+				continue;
+			}
 			const int32 Col = Index % 4;
 			const int32 Row = Index / 4;
 			++Index;
