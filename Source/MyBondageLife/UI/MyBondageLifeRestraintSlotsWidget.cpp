@@ -285,8 +285,8 @@ void UMyBondageLifeRestraintSlotsWidget::RefreshSlots()
 				TEXT("/Game/2DAssest/UI/MasterTimeLock.MasterTimeLock"),
 				TEXT("/Game/2DAssest/UI/NormalLock.NormalLock"),
 				TEXT("/Game/2DAssest/UI/PasswordLock.PasswordLock"),
-				TEXT("/Game/2DAssest/UI/PasswordLock.PasswordLock"),
-				TEXT("/Game/2DAssest/UI/TimePadLock.TimePadLock"), TEXT("/Game/2DAssest/UI/LoversLock.LoversLock") };
+				TEXT("/Game/2DAssest/UI/TimePadLock.TimePadLock"),
+				TEXT("/Game/2DAssest/UI/LoversLock.LoversLock") };
 			UTexture2D* LockIcon = nullptr;
 			if (Lock.LockType >= 1 && Lock.LockType <= 6)
 			{

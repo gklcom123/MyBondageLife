@@ -42,10 +42,10 @@ void UMyBondageLifeWardrobeWidget::UpdateLockCountdown()
 		TEXT("\u4E3B\u4EBA\u8BA1\u65F6\u9501"),
 		TEXT("\u666E\u901A\u6302\u9501"),
 		TEXT("\u5BC6\u7801\u9501"),
-		TEXT("\u8BA1\u65F6\u9501")
-	};
+		TEXT("\u8BA1\u65F6\u9501"),
+		TEXT("\u604B\u4EBA\u9501")
 
-	const int32 LockIndex = FMath::Clamp(PickerLockType, 0, 5);
+	const int32 LockIndex = FMath::Clamp(PickerLockType, 0, 6);
 	const FString SlotName = FMyBondageLifeRestraintCatalog::GetSlotName(PickerSlot);
 	const FTimespan Remaining = PickerLockExpiry - FDateTime::UtcNow();
 

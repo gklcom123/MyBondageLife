@@ -1918,6 +1918,19 @@ bool UMyBondageLifeWardrobeWidget::IsLockTypeAllowed(int32 LockType) const
 			return Account->GetContractRoleWith(FriendAccount) == EMyBondageLifeContractRole::Master;
 		}
 
+		if (LockType == 6)
+		{
+			// 恋人锁：只有与该账号存在恋人关系（lover / married）时才能用。
+			for (const FMyBondageLifeRomanceEntry& Romance : Account->GetOwnRomances())
+			{
+				if (Romance.Account.Equals(FriendAccount, ESearchCase::IgnoreCase))
+				{
+					return true;
+				}
+			}
+		return false;
+		}
+
 		return (ActorClass == 1 && OwnerClass >= 2) || (ActorClass == 2 && OwnerClass >= 2);
 	}
 
