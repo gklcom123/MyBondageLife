@@ -1042,10 +1042,10 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 
 	// 模糊：性欲比蒙眼更明显地拉近焦平面并压低 F 值。
 	PP.bOverride_DepthOfFieldFstop = bActive;
-	PP.DepthOfFieldFstop = FMath::Max(0.2f, 2.4f - 0.5f * BlindVisualLevel - 1.1f * LibidoVisualLevel);
+	PP.DepthOfFieldFstop = FMath::Max(0.55f, 2.4f - 0.5f * BlindVisualLevel - 0.75f * LibidoVisualLevel);
 
 	PP.bOverride_DepthOfFieldFocalDistance = bActive;
-	PP.DepthOfFieldFocalDistance = FMath::Max(60.0f, 320.0f - 120.0f * LibidoVisualLevel);
+	PP.DepthOfFieldFocalDistance = FMath::Max(170.0f, 320.0f - 70.0f * LibidoVisualLevel);
 
 	PP.bOverride_DepthOfFieldSensorWidth = bActive;
 	PP.DepthOfFieldSensorWidth = 24.0f;
