@@ -239,6 +239,9 @@ public:
 	UFUNCTION(BlueprintPure, Category="Identity")
 	FString GetAccountName() const { return AccountName; }
 
+	/** 直接写账号名（服务端/本地都可用，用于好友衣柜匹配）。 */
+	void SetAccountNameFree(const FString& InAccount) { AccountName = InAccount; }
+
 	UPROPERTY(Replicated, BlueprintReadOnly, Category="Identity")
 	FString AccountName;
 
