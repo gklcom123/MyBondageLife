@@ -280,6 +280,9 @@ void UMyBondageLifeMainHudWidget::ShowBondageProgress(float Value01, const FStri
 		BondageProgressLabel = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_BondageProgressLabel")));
 	}
 
+	UE_LOG(LogMyBondageLife, Log, TEXT("Bondage UI: overlay=%d bar=%d label=%d pct=%.2f"),
+		BondageOverlay ? 1 : 0, BondageProgressBar ? 1 : 0, BondageProgressLabel ? 1 : 0, Value01);
+
 	if (BondageOverlay)
 	{
 		BondageOverlay->SetVisibility(ESlateVisibility::HitTestInvisible);
@@ -300,6 +303,9 @@ void UMyBondageLifeMainHudWidget::HideBondageProgress()
 	{
 		BondageOverlay = WidgetTree->FindWidget(TEXT("ProgressOverlay"));
 	}
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("Bondage UI: overlay=%d bar=%d label=%d pct=%.2f"),
+		BondageOverlay ? 1 : 0, BondageProgressBar ? 1 : 0, BondageProgressLabel ? 1 : 0, Value01);
 
 	if (BondageOverlay)
 	{

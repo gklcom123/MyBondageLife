@@ -3929,6 +3929,8 @@ void AMyBondageLifePlayerController::StartBondageWear(int32 SlotIndex, FName Ite
 
 void AMyBondageLifePlayerController::ClientBondageStarted(float Duration, int32 InRole, int32 SlotIndex, FName ItemId, const FString& BinderName, const FString& TargetName, const FString& TargetAccount)
 {
+	UE_LOG(LogMyBondageLife, Log, TEXT("Bondage: ClientBondageStarted dur=%.2f role=%d"), Duration, InRole);
+
 	bBondageUiActive = true;
 	BondageDuration = FMath::Max(0.1f, Duration);
 	BondageElapsed = 0.0f;
