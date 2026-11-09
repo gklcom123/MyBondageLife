@@ -1860,7 +1860,8 @@ void AMyBondageLifeCharacter::ServerStartBondage_Implementation(AMyBondageLifeCh
 
 void AMyBondageLifeCharacter::MulticastBondageStart_Implementation(AMyBondageLifeCharacter* Binder, AMyBondageLifeCharacter* Target, float Duration, int32 SlotIndex, FName ItemId, bool bSelfTarget, const FString& BinderName, const FString& TargetName, const FString& TargetAccount)
 {
-	AMyBondageLifePlayerController* PC = Cast<AMyBondageLifePlayerController>(GetController());
+	// 用本机玩家控制器：Multicast 会在每个客户端执行，GetController() 拿到的是远端控制器。
+	AMyBondageLifePlayerController* PC = Cast<AMyBondageLifePlayerController>(UGameplayStatics::GetPlayerController(this, 0));
 	APawn* LocalPawn = PC ? PC->GetPawn() : nullptr;
 
 	if (LocalPawn == Binder)
@@ -1890,7 +1891,7 @@ void AMyBondageLifeCharacter::MulticastBondageStart_Implementation(AMyBondageLif
 
 void AMyBondageLifeCharacter::MulticastBondageEnd_Implementation(bool bSuccess, bool bResisted, const FString& BinderName, const FString& TargetName, const FString& TargetAccount)
 {
-	if (AMyBondageLifePlayerController* PC = Cast<AMyBondageLifePlayerController>(GetController()))
+	if (AMyBondageLifePlayerController* PC = Cast<AMyBondageLifePlayerController>(UGameplayStatics::GetPlayerController(this, 0)))
 	{
 		PC->ClientBondageEnded(bSuccess, bResisted, BinderName, TargetName, TargetAccount);
 	}
