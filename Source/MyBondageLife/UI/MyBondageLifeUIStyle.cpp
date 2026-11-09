@@ -3,6 +3,9 @@
 #include "MyBondageLifeUIStyle.h"
 
 #include "Components/EditableTextBox.h"
+#include "Blueprint/UserWidget.h"
+#include "Blueprint/WidgetTree.h"
+#include "MyBondageLife.h"
 
 namespace MyBondageLifeUI
 {
