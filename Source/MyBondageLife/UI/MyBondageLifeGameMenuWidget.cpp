@@ -84,7 +84,7 @@ void UMyBondageLifeGameMenuWidget::BuildLayout()
 	}
 
 	// 游戏设置 - visible but not implemented yet.
-	UButton* SettingsButton = CreateMenuButton(CenterBox, TEXT("\u6E38\u620F\u8BBE\u7F6E"), MenuButtonHeight, false);
+	UButton* SettingsButton = CreateMenuButton(CenterBox, TEXT("\u6E38\u620F\u8BBE\u7F6E"), MenuButtonHeight, true);
 	SettingsButton->SetToolTipText(FText::FromString(TEXT("\u5C1A\u672A\u5B9E\u73B0")));
 	SettingsButton->OnClicked.AddDynamic(this, &UMyBondageLifeGameMenuWidget::HandleSettingsClicked);
 

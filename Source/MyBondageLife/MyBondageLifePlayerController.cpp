@@ -937,6 +937,11 @@ bool AMyBondageLifePlayerController::IsPlayerInfoOpen() const
 
 void AMyBondageLifePlayerController::TogglePlayerInfo()
 {
+	if (bClimaxLocked)
+	{
+		return;
+	}
+
 	if (!PlayerInfoWidget)
 	{
 		return;
@@ -1120,6 +1125,11 @@ void AMyBondageLifePlayerController::HideFriendList()
 
 void AMyBondageLifePlayerController::ToggleFriendList()
 {
+	if (bClimaxLocked)
+	{
+		return;
+	}
+
 	if (!FriendListWidget)
 	{
 		return;
@@ -1998,6 +2008,11 @@ void AMyBondageLifePlayerController::HideWardrobe()
 
 void AMyBondageLifePlayerController::ToggleWardrobe()
 {
+	if (bClimaxLocked)
+	{
+		return;
+	}
+
 	if (!WardrobeWidget)
 	{
 		return;
@@ -2581,6 +2596,11 @@ void AMyBondageLifePlayerController::HandleNotificationAdded(const FMyBondageLif
 
 void AMyBondageLifePlayerController::ToggleMessageCenter()
 {
+	if (bClimaxLocked)
+	{
+		return;
+	}
+
 
 	if (!MessageCenterWidget)
 	{
@@ -2928,6 +2948,11 @@ void AMyBondageLifePlayerController::HandleInteractPressed()
 
 void AMyBondageLifePlayerController::HandleSitKeyPressed()
 {
+	if (bClimaxLocked)
+	{
+		return;
+	}
+
 	// CantSit：规则开启时按 G 直接无效。
 	if (const UMyBondageLifeAccountSubsystem* SitAccount = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
@@ -3187,11 +3212,21 @@ void AMyBondageLifePlayerController::PushRestraintColors()
 
 void AMyBondageLifePlayerController::HandleEmoteKeyPressed()
 {
+	if (bClimaxLocked)
+	{
+		return;
+	}
+
 	ToggleEmoteList();
 }
 
 void AMyBondageLifePlayerController::ToggleEmoteList()
 {
+	if (bClimaxLocked)
+	{
+		return;
+	}
+
 	if (!EmoteListWidget)
 	{
 		UClass* ListClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_EmoteList.WBP_EmoteList_C"));
@@ -3796,7 +3831,6 @@ void AMyBondageLifePlayerController::BeginClimaxSequence()
 	if (AMyBondageLifeCharacter* ClimaxCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
 	{
 		ClimaxCharacter->BeginClimax();
-		ClimaxCharacter->DisableInput(this);
 	}
 
 	DisableInput(this);
@@ -3837,7 +3871,6 @@ void AMyBondageLifePlayerController::EndClimaxSequence()
 	if (AMyBondageLifeCharacter* ClimaxCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
 	{
 		ClimaxCharacter->EndClimax();
-		ClimaxCharacter->EnableInput(this);
 	}
 
 	EnableInput(this);
@@ -3856,6 +3889,11 @@ void AMyBondageLifePlayerController::EndClimaxSequence()
 
 void AMyBondageLifePlayerController::ToggleSettings()
 {
+	if (bClimaxLocked)
+	{
+		return;
+	}
+
 	if (!SettingsWidget)
 	{
 		SettingsWidget = CreateWidget<UMyBondageLifeSettingsWidget>(this, UMyBondageLifeSettingsWidget::StaticClass());
