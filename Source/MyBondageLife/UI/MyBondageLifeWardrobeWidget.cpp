@@ -10,6 +10,7 @@
 #include "UI/MyBondageLifeRestraintSlotsWidget.h"
 #include "Core/MyBondageLifeOutfitCatalog.h"
 #include "MyBondageLifePlayerController.h"
+#include "EngineUtils.h"
 #include "Core/MyBondageLifeAccountSubsystem.h"
 #include "MyBondageLifeCharacter.h"
 
@@ -1374,19 +1375,40 @@ void UMyBondageLifeWardrobeWidget::PickRestraintItem(FName ItemId)
 		const FMyBondageLifeRestraintItem* PickedItem = FMyBondageLifeRestraintCatalog::Find(ItemId);
 		const float WearTime = PickedItem ? PickedItem->WearTime : 0.0f;
 
-		if (WearTime > 0.0f && !bFriendMode)
+		if (WearTime > 0.0f)
 		{
 			if (AMyBondageLifePlayerController* PC = Cast<AMyBondageLifePlayerController>(GetOwningPlayer()))
 			{
-				if (AMyBondageLifeCharacter* Binder = Cast<AMyBondageLifeCharacter>(PC->GetPawn()))
+				// 同一房间内查找目标角色（好友模式）或自己。
+				AMyBondageLifeCharacter* Binder = Cast<AMyBondageLifeCharacter>(PC->GetPawn());
+				AMyBondageLifeCharacter* Target = Binder;
+				bool bSelfTarget = true;
+
+				if (bFriendMode && !FriendAccount.IsEmpty())
 				{
-					PC->StartBondageWear(PickerSlot, ItemId, Binder, WearTime, true);
+					for (TActorIterator<AMyBondageLifeCharacter> It(GetWorld()); It; ++It)
+					{
+						AMyBondageLifeCharacter* Candidate = *It;
+						if (Candidate && Candidate != Binder
+							&& Candidate->GetAccountName().Equals(FriendAccount, ESearchCase::IgnoreCase))
+						{
+							Target = Candidate;
+							bSelfTarget = false;
+							break;
+						}
+					}
+				}
+
+				if (Binder && Target)
+				{
+					PC->StartBondageWear(PickerSlot, ItemId, Target, WearTime, bSelfTarget);
 					CloseRestraintPicker();
 					SetPanelOpen(false);
 					return;
 				}
 			}
 		}
+
 
 		bClosePanelsOnNextChange = true;
 		if (bFriendMode) { Account->EquipRestraintFor(FriendAccount, PickerSlot, ItemId.ToString()); } else { Account->EquipRestraint(PickerSlot, ItemId.ToString()); }
