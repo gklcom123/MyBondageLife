@@ -417,12 +417,30 @@ void UMyBondageLifeRestraintPickerWidget::HandleItemClicked(FName ItemId)
 					}
 				}
 
-				if (Binder && Target)
+				if (Binder && Target && (!bOther || !bSelfTarget))
 				{
+					UE_LOG(LogMyBondageLife, Log, TEXT("Bondage: start binder=%s target=%s self=%d"),
+						*Binder->GetName(), *Target->GetName(), bSelfTarget ? 1 : 0);
+
 					PC->StartBondageWear(PickerSlot, ItemId, Target, WearTime, bSelfTarget);
 					PC->CloseWardrobeForBondage();
 					ClosePicker();
 					return;
+				}
+
+				// 好友不在房间 / 找不到角色：退回原来的瞬间穿戴（并打印房间内所有账号便于排查）。
+				{
+					FString Names;
+					for (TActorIterator<AMyBondageLifeCharacter> It(GetWorld()); It; ++It)
+					{
+						if (AMyBondageLifeCharacter* RoomChar = *It)
+						{
+							Names += FString::Printf(TEXT("[%s] "), *RoomChar->GetAccountName());
+						}
+					}
+
+					UE_LOG(LogMyBondageLife, Warning,
+						TEXT("Bondage: target %s not found in room. candidates: %s"), *ViewAccount, *Names);
 				}
 			}
 		}
