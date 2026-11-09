@@ -4,6 +4,7 @@
 #include "MyBondageLifePlayerController.h"
 
 #include "Components/AudioComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 #include "Core/MyBondageLifeAccountSubsystem.h"
@@ -3941,6 +3942,15 @@ void AMyBondageLifePlayerController::ClientBondageStarted(float Duration, int32 
 
 	SetIgnoreMoveInput(true);
 
+	// 彻底禁止移动（EnhancedInput 的移动不受 SetIgnoreMoveInput 影响）。
+	if (ACharacter* BondagePawn = Cast<ACharacter>(GetPawn()))
+	{
+		if (UCharacterMovementComponent* Movement = BondagePawn->GetCharacterMovement())
+		{
+			Movement->DisableMovement();
+		}
+	}
+
 	const FString Label = (InRole == 1) ? TEXT("受缚中（按Space抵抗）") : TEXT("捆绑中（按Space取消）");
 	if (MainHudWidget)
 	{
@@ -3973,6 +3983,14 @@ void AMyBondageLifePlayerController::ClientBondageEnded(bool bSuccess, bool bRes
 	bBondageUiActive = false;
 	GetWorldTimerManager().ClearTimer(BondageProgressTimer);
 	SetIgnoreMoveInput(false);
+
+	if (ACharacter* BondagePawn = Cast<ACharacter>(GetPawn()))
+	{
+		if (UCharacterMovementComponent* Movement = BondagePawn->GetCharacterMovement())
+		{
+			Movement->SetMovementMode(MOVE_Walking);
+	}
+	}
 
 	if (MainHudWidget)
 	{

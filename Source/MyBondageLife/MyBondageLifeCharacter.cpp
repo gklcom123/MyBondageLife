@@ -1797,7 +1797,7 @@ void AMyBondageLifeCharacter::PlayBondageMontage()
 	}
 
 	if (USoundBase* Cue = LoadObject<USoundBase>(nullptr,
-		TEXT("/Game/Characters/Sound/Sex/Bondage_Cue.Bondage_Cue")))
+		TEXT("/Game/Characters/Sound/UI/Bondage_Cue.Bondage_Cue")))
 	{
 		UGameplayStatics::PlaySoundAtLocation(this, Cue, GetActorLocation());
 	}
@@ -1855,7 +1855,7 @@ void AMyBondageLifeCharacter::MulticastBondageStart_Implementation(AMyBondageLif
 	{
 		PlayBondageMontage();
 	}
-	else if (USoundBase* Cue = LoadObject<USoundBase>(nullptr, TEXT("/Game/Characters/Sound/Sex/Bondage_Cue.Bondage_Cue")))
+	else if (USoundBase* Cue = LoadObject<USoundBase>(nullptr, TEXT("/Game/Characters/Sound/UI/Bondage_Cue.Bondage_Cue")))
 	{
 		UGameplayStatics::PlaySoundAtLocation(this, Cue, GetActorLocation());
 	}
