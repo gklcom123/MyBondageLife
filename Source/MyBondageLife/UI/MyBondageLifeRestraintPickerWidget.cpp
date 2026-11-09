@@ -18,6 +18,7 @@
 #include "EngineUtils.h"
 #include "MyBondageLifePlayerController.h"
 #include "MyBondageLifeCharacter.h"
+#include "GameFramework/PlayerState.h"
 #include "Core/MyBondageLifeRestraintCatalog.h"
 
 namespace
@@ -407,8 +408,18 @@ void UMyBondageLifeRestraintPickerWidget::HandleItemClicked(FName ItemId)
 					for (TActorIterator<AMyBondageLifeCharacter> It(GetWorld()); It; ++It)
 					{
 						AMyBondageLifeCharacter* Candidate = *It;
-						if (Candidate && Candidate != Binder
-							&& Candidate->GetAccountName().Equals(ViewAccount, ESearchCase::IgnoreCase))
+						if (!Candidate || Candidate == Binder)
+						{
+							continue;
+						}
+
+						// 账号名（可能为空）或 PlayerState 名字（登录时 SetName 为账号）都参与匹配。
+						const FString CandidateAccount = Candidate->GetAccountName();
+						const FString CandidateStateName = Candidate->GetPlayerState()
+							? Candidate->GetPlayerState()->GetPlayerName() : FString();
+
+						if (CandidateAccount.Equals(ViewAccount, ESearchCase::IgnoreCase)
+							|| CandidateStateName.Equals(ViewAccount, ESearchCase::IgnoreCase))
 						{
 							Target = Candidate;
 							bSelfTarget = false;
@@ -435,7 +446,8 @@ void UMyBondageLifeRestraintPickerWidget::HandleItemClicked(FName ItemId)
 					{
 						if (AMyBondageLifeCharacter* RoomChar = *It)
 						{
-							Names += FString::Printf(TEXT("[%s] "), *RoomChar->GetAccountName());
+							const FString StateName = RoomChar->GetPlayerState() ? RoomChar->GetPlayerState()->GetPlayerName() : FString();
+							Names += FString::Printf(TEXT("[acct=%s state=%s] "), *RoomChar->GetAccountName(), *StateName);
 						}
 					}
 
