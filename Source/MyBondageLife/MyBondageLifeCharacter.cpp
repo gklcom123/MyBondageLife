@@ -1863,9 +1863,6 @@ void AMyBondageLifeCharacter::ServerStartBondage_Implementation(AMyBondageLifeCh
 		TargetName = Target->GetName();
 	}
 
-	// 服务器播放蒙太奇 → 复制到所有客户端（客户端本地播放他人看不到）。
-	PlayBondageMontage();
-
 	MulticastBondageStart(this, Target, Duration, SlotIndex, ItemId, bSelfTarget, BinderName, TargetName, TargetName);
 
 	GetWorldTimerManager().SetTimer(BondageTimer, [this, BinderName, TargetName]()
@@ -1884,6 +1881,12 @@ void AMyBondageLifeCharacter::ServerStartBondage_Implementation(AMyBondageLifeCh
 
 void AMyBondageLifeCharacter::MulticastBondageStart_Implementation(AMyBondageLifeCharacter* Binder, AMyBondageLifeCharacter* Target, float Duration, int32 SlotIndex, FName ItemId, bool bSelfTarget, const FString& BinderName, const FString& TargetName, const FString& TargetAccount)
 {
+	// 每个客户端都在拘束者角色上本地播放，确保所有玩家都能看到动画。
+	if (Binder)
+	{
+		Binder->PlayBondageMontage();
+	}
+
 	// 用本机玩家控制器：Multicast 会在每个客户端执行，GetController() 拿到的是远端控制器。
 	AMyBondageLifePlayerController* PC = Cast<AMyBondageLifePlayerController>(UGameplayStatics::GetPlayerController(this, 0));
 	APawn* LocalPawn = PC ? PC->GetPawn() : nullptr;

@@ -1457,6 +1457,19 @@ void AMyBondageLifePlayerController::ApplyAccountNameToPlayerState()
 	// other player's game state and shows up on their nameplates.
 	SetName(Account->GetAccountName());
 
+	// 把自己的账号写到角色（服务端执行并复制给所有人），供好友面板/规则判定使用。
+	if (HasAuthority())
+	{
+		if (AMyBondageLifeCharacter* NamedCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+		{
+			NamedCharacter->SetAccountNameFree(Account->GetAccountName());
+		}
+	}
+	else
+	{
+		ServerAssignAccount(Account->GetAccountName());
+	}
+
 	ApplyCharacterNameToPawn();
 
 	// 把账号名同步到角色（好友衣柜按账号查找目标角色用）。
@@ -4093,3 +4106,21 @@ void AMyBondageLifePlayerController::CloseWardrobeForBondage()
 		WardrobeWidget->SetPanelOpen(false);
 	}
 }
+
+void AMyBondageLifePlayerController::ServerAssignAccount_Implementation(const FString& InAccount)
+{
+	if (InAccount.IsEmpty())
+	{
+		return;
+	}
+
+	if (PlayerState)
+	{
+		PlayerState->SetPlayerName(InAccount);
+	}
+	if (AMyBondageLifeCharacter* AssignedCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		AssignedCharacter->SetAccountNameFree(InAccount);
+	}
+}
+

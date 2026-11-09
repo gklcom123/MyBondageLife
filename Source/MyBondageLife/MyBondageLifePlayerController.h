@@ -570,6 +570,10 @@ public:
 
 	FString GetOwnAccountName() const;
 
+	/** 客户端登录后把自己的账号写到角色上（服务端执行并复制）。 */
+	UFUNCTION(Server, Reliable)
+	void ServerAssignAccount(const FString& InAccount);
+
 	// ---- 拘束穿戴进度 ----
 	void CloseWardrobeForBondage();
 
