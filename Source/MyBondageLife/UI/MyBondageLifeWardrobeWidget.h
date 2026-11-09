@@ -75,6 +75,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Wardrobe")
 	void SetPanelOpen(bool bOpen);
 
+	/** ESC：优先关闭打开中的弹层（锁输入/锁菜单/颜色选择/拘束/衣服选择），返回是否关掉了东西。 */
+	bool CloseTopPopup();
+
 	UFUNCTION(BlueprintCallable, Category = "Wardrobe")
 	void TogglePanel();
 

@@ -1046,7 +1046,7 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 	PP.VignetteIntensity = 2.4f * BlindVisualLevel + 2.2f * LibidoVisualLevel;
 
 	PP.bOverride_VignetteColor = bActive;
-	PP.VignetteColor = bBlind ? FLinearColor(0.0f, 0.0f, 0.0f) : FLinearColor(1.0f, 0.3f, 0.55f);
+	PP.VignetteColor = bBlind ? FLinearColor(0.0f, 0.0f, 0.0f) : FLinearColor(1.0f, 0.55f, 0.75f);
 
 	PP.bOverride_AutoExposureBias = bActive;
 	PP.AutoExposureBias = -0.55f * BlindVisualLevel;
@@ -1063,7 +1063,7 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 
 	// 性欲的粉色染色：越强越明显（不影响蒙眼的黑色暗角）。
 	PP.bOverride_SceneColorTint = bLibido;
-	PP.SceneColorTint = FLinearColor::LerpUsingHSV(FLinearColor::White, FLinearColor(1.0f, 0.55f, 0.72f), FMath::Clamp(LibidoVisualLevel * 0.5f, 0.0f, 1.0f));
+	PP.SceneColorTint = FLinearColor::LerpUsingHSV(FLinearColor::White, FLinearColor(1.0f, 0.72f, 0.86f), FMath::Clamp(LibidoVisualLevel * 0.5f, 0.0f, 1.0f));
 
 }
 void AMyBondageLifeCharacter::ApplyBodyPartHiding()

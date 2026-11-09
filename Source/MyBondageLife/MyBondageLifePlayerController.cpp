@@ -3536,6 +3536,27 @@ void AMyBondageLifePlayerController::HandleEscapePressed()
 	if (bRulePanelOpen)
 	{
 		CloseRulePanel();
+		return;
+	}
+
+	// 衣柜里的弹层（锁输入 / 锁菜单 / 颜色 / 拘束选择 / 衣服选择）优先于衣柜本体。
+	if (WardrobeWidget && WardrobeWidget->CloseTopPopup())
+	{
+		return;
+	}
+
+	// 表情动作面板。
+	if (bEmotePanelOpen)
+	{
+		CloseEmotePanel();
+		return;
+	}
+
+	// 消息通知。
+	if (MessageCenterWidget && MessageCenterWidget->IsPanelOpen())
+	{
+		MessageCenterWidget->CloseCenter();
+		return;
 	}
 }
 

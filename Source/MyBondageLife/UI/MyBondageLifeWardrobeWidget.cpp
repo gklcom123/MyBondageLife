@@ -2794,3 +2794,44 @@ void UMyBondageLifeWardrobeWidget::HandleRestraintColorCommitted(int32 SlotIndex
 		}
 	}
 }
+
+bool UMyBondageLifeWardrobeWidget::CloseTopPopup()
+{
+	auto IsShown = [](const UWidget* Widget)
+	{
+		return Widget && Widget->GetVisibility() != ESlateVisibility::Collapsed
+			&& Widget->GetVisibility() != ESlateVisibility::Hidden;
+	};
+
+	if (IsShown(LockInputWidget))
+	{
+		LockInputWidget->CloseInput();
+		return true;
+	}
+
+	if (IsShown(LockMenuWidget))
+	{
+		LockMenuWidget->CloseMenu();
+		return true;
+	}
+
+	if (IsShown(OutfitColorPicker))
+	{
+		OutfitColorPicker->ClosePicker();
+		return true;
+	}
+
+	if (IsShown(OutfitPicker))
+	{
+		OutfitPicker->ClosePicker();
+		return true;
+	}
+
+	if (IsShown(RestraintPicker))
+	{
+		RestraintPicker->ClosePicker();
+		return true;
+	}
+
+	return false;
+}
