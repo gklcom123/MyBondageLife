@@ -304,7 +304,6 @@ void UMyBondageLifeMainHudWidget::HideBondageProgress()
 		BondageOverlay = WidgetTree->FindWidget(TEXT("ProgressOverlay"));
 	}
 
-	UE_LOG(LogMyBondageLife, Log, TEXT("Bondage UI: overlay=%d bar=%d label=%d pct=%.2f"),
 	UE_LOG(LogMyBondageLife, Log, TEXT("Bondage UI(hide): overlay=%d"), BondageOverlay ? 1 : 0);
 
 	if (BondageOverlay)
