@@ -4036,3 +4036,11 @@ FString AMyBondageLifePlayerController::GetOwnAccountName() const
 	}
 	return FString();
 }
+
+void AMyBondageLifePlayerController::CloseWardrobeForBondage()
+{
+	if (WardrobeWidget)
+	{
+		WardrobeWidget->SetPanelOpen(false);
+	}
+}

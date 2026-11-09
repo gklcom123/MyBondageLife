@@ -15,6 +15,10 @@
 #include "Core/MyBondageLifeRestraintCatalog.h"
 #include "Engine/Texture2D.h"
 #include "MyBondageLife.h"
+#include "EngineUtils.h"
+#include "MyBondageLifePlayerController.h"
+#include "MyBondageLifeCharacter.h"
+#include "Core/MyBondageLifeRestraintCatalog.h"
 
 namespace
 {
@@ -381,6 +385,48 @@ void UMyBondageLifeRestraintPickerWidget::HandleItemClicked(FName ItemId)
 	const FString WornId = bOther
 		? Account->GetViewedRestraint(PickerSlot)
 		: Account->GetEquippedRestraint(PickerSlot);
+
+	// 有 WearTime 的拘束：走进度流程，而不是瞬间穿戴。
+	if (WornId != ItemId.ToString())
+	{
+		const FMyBondageLifeRestraintItem* PickedItem = FMyBondageLifeRestraintCatalog::Find(ItemId);
+		const float WearTime = PickedItem ? PickedItem->WearTime : 0.0f;
+		UE_LOG(LogMyBondageLife, Log, TEXT("Bondage: picker item=%s wearTime=%.2f other=%d"),
+			*ItemId.ToString(), WearTime, bOther ? 1 : 0);
+
+		if (WearTime > 0.0f)
+		{
+			if (AMyBondageLifePlayerController* PC = Cast<AMyBondageLifePlayerController>(GetOwningPlayer()))
+			{
+				AMyBondageLifeCharacter* Binder = Cast<AMyBondageLifeCharacter>(PC->GetPawn());
+				AMyBondageLifeCharacter* Target = Binder;
+				bool bSelfTarget = true;
+
+				if (bOther && Binder)
+				{
+					for (TActorIterator<AMyBondageLifeCharacter> It(GetWorld()); It; ++It)
+					{
+						AMyBondageLifeCharacter* Candidate = *It;
+						if (Candidate && Candidate != Binder
+							&& Candidate->GetAccountName().Equals(ViewAccount, ESearchCase::IgnoreCase))
+						{
+							Target = Candidate;
+							bSelfTarget = false;
+							break;
+						}
+					}
+				}
+
+				if (Binder && Target)
+				{
+					PC->StartBondageWear(PickerSlot, ItemId, Target, WearTime, bSelfTarget);
+					PC->CloseWardrobeForBondage();
+					ClosePicker();
+					return;
+				}
+			}
+		}
+	}
 
 	if (WornId == ItemId.ToString())
 	{
