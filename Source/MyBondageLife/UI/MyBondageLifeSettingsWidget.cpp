@@ -195,7 +195,13 @@ void UMyBondageLifeSettingsWidget::BuildLayout()
 	// ---------------------------------------------------------------- 画面
 	UGameUserSettings* Settings = GEngine ? GEngine->GetGameUserSettings() : nullptr;
 
-	const int32 OverallLevel = Settings ? Settings->GetOverallScalabilityLevel() : 2;
+	int32 OverallLevel = Settings ? Settings->GetOverallScalabilityLevel() : 2;
+	if (OverallLevel < 0 && Settings)
+	{
+		// 自定义画质时 VS 返回 -1，用抗锯齿档位兜底，避免误显示为「非常低」。
+		OverallLevel = Settings->GetAntiAliasingQuality();
+	}
+	OverallLevel = FMath::Clamp(OverallLevel, 0, 4);
 	AddComboRow(PicturePage, TEXT("画质等级"), QualityNames(), FMath::Clamp(OverallLevel, 0, 4),
 		[this](int32 Index) { ApplyQualityLevel(Index); });
 
@@ -207,14 +213,28 @@ void UMyBondageLifeSettingsWidget::BuildLayout()
 		}
 
 		const FString CurrentText = FString::Printf(TEXT("%dx%d"), CurrentResolution.X, CurrentResolution.Y);
-		int32 Selected = ResolutionNames().IndexOfByKey(CurrentText);
+
+		// 用"当前实际分辨率 + 常见列表"生成选项：当前值不在列表时补进去并选中它。
+		TArray<FString> ResolutionOptions = ResolutionNames();
+		int32 Selected = ResolutionOptions.IndexOfByKey(CurrentText);
 		if (Selected == INDEX_NONE)
 		{
-			Selected = 3;
+			Selected = ResolutionOptions.Add(CurrentText);
+			ResolutionOptions.Sort([](const FString& A, const FString& B)
+			{
+				return FCString::Atoi(*A) < FCString::Atoi(*B);
+			});
+			Selected = ResolutionOptions.IndexOfByKey(CurrentText);
 		}
 
-		AddComboRow(PicturePage, TEXT("分辨率"), ResolutionNames(), Selected,
-			[this](int32 Index) { ApplyResolution(ResolutionNames()[Index]); });
+		AddComboRow(PicturePage, TEXT("分辨率"), ResolutionOptions, Selected,
+			[this, ResolutionOptions](int32 Index)
+			{
+				if (ResolutionOptions.IsValidIndex(Index))
+				{
+					ApplyResolution(ResolutionOptions[Index]);
+				}
+			});
 	}
 
 	{
