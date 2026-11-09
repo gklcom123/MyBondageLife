@@ -76,7 +76,19 @@ namespace MyBondageLifeUI
 		}
 
 		TArray<UWidget*> Stack;
-		Stack.Add(Root);
+
+		// UUserWidget 本身不是 Panel：必须从它的 WidgetTree 根控件开始遍历。
+		if (const UUserWidget* UserWidget = Cast<UUserWidget>(Root))
+		{
+			if (UserWidget->WidgetTree && UserWidget->WidgetTree->RootWidget)
+			{
+				Stack.Add(UserWidget->WidgetTree->RootWidget);
+			}
+		}
+		else
+		{
+			Stack.Add(Root);
+		}
 
 		while (Stack.Num() > 0)
 		{
