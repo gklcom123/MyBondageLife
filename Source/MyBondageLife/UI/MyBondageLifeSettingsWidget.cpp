@@ -30,13 +30,8 @@ namespace
 
 	FSlateFontInfo MakeFont(int32 Size, bool bBold = false)
 	{
-		FSlateFontInfo Font;
-		Font.Size = Size;
-		if (bBold)
-		{
-			Font.TypefaceFontName = TEXT("Bold");
-		}
-		return Font;
+		// 必须带字体对象：只设置 Size 会得到空字体，中文全部显示为方块。
+		return FCoreStyle::GetDefaultFontStyle(bBold ? TEXT("Bold") : TEXT("Regular"), Size);
 	}
 
 	UTextBlock* MakeLabel(UWidgetTree* Tree, const FString& Text, int32 Size, const FLinearColor& Color)
