@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "MyBondageLifeWardrobeWidget.h"
+#include "MyBondageLifeUIStyle.h"
 #include "MyBondageLifeRestraintSlotsWidget.h"
 #include "MyBondageLifeRestraintPickerWidget.h"
 #include "UI/MyBondageLifeLockMenuWidget.h"
@@ -166,6 +167,7 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 	{
 		FSlateFontInfo CloseFont = CloseLabel->GetFont();
 		CloseFont.Size = 20;
+		CloseFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		CloseLabel->SetFont(CloseFont);
 	}
 	CloseButton->AddChild(CloseLabel);
@@ -197,6 +199,7 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 		{
 			FSlateFontInfo TabFont = TabLabel->GetFont();
 			TabFont.Size = 24;
+			TabFont.FontObject = MyBondageLifeUI::LoadUIFont();
 			TabLabel->SetFont(TabFont);
 		}
 		TabButton->AddChild(TabLabel);
@@ -244,6 +247,7 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 	{
 		FSlateFontInfo CaptionFont = HeightCaption->GetFont();
 		CaptionFont.Size = 28;
+		CaptionFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		HeightCaption->SetFont(CaptionFont);
 	}
 	if (UCanvasPanelSlot* CaptionSlot = BodyPage->AddChildToCanvas(HeightCaption))
@@ -277,6 +281,7 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 		{
 			FSlateFontInfo ArrowFont = ArrowLabel->GetFont();
 			ArrowFont.Size = 30;
+			ArrowFont.FontObject = MyBondageLifeUI::LoadUIFont();
 			ArrowLabel->SetFont(ArrowFont);
 		}
 		ArrowButton->AddChild(ArrowLabel);
@@ -294,6 +299,7 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 	{
 		FSlateFontInfo ValueFont = HeightValueLabel->GetFont();
 		ValueFont.Size = 28;
+		ValueFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		HeightValueLabel->SetFont(ValueFont);
 	}
 	if (UCanvasPanelSlot* ValueSlot = BodyPage->AddChildToCanvas(HeightValueLabel))
@@ -315,6 +321,7 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 	{
 		FSlateFontInfo CaptionFont = HairCaption->GetFont();
 		CaptionFont.Size = 28;
+		CaptionFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		HairCaption->SetFont(CaptionFont);
 	}
 	if (UCanvasPanelSlot* CaptionSlot = BodyPage->AddChildToCanvas(HairCaption))
@@ -348,6 +355,7 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 		{
 			FSlateFontInfo ArrowFont = ArrowLabel->GetFont();
 			ArrowFont.Size = 30;
+			ArrowFont.FontObject = MyBondageLifeUI::LoadUIFont();
 			ArrowLabel->SetFont(ArrowFont);
 		}
 		ArrowButton->AddChild(ArrowLabel);
@@ -365,6 +373,7 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 	{
 		FSlateFontInfo ValueFont = HairValueLabel->GetFont();
 		ValueFont.Size = 28;
+		ValueFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		HairValueLabel->SetFont(ValueFont);
 	}
 	if (UCanvasPanelSlot* HairValueSlot = BodyPage->AddChildToCanvas(HairValueLabel))
@@ -386,6 +395,7 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 	{
 		FSlateFontInfo CaptionFont = SkinCaption->GetFont();
 		CaptionFont.Size = 28;
+		CaptionFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		SkinCaption->SetFont(CaptionFont);
 	}
 	if (UCanvasPanelSlot* SkinCaptionSlot = BodyPage->AddChildToCanvas(SkinCaption))
@@ -410,6 +420,7 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 	{
 		FSlateFontInfo ValueFont = SkinValueLabel->GetFont();
 		ValueFont.Size = 28;
+		ValueFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		SkinValueLabel->SetFont(ValueFont);
 	}
 	if (UCanvasPanelSlot* SkinValueSlot = BodyPage->AddChildToCanvas(SkinValueLabel))
@@ -871,6 +882,7 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 	{
 		FSlateFontInfo HintFont = HintText->GetFont();
 		HintFont.Size = 16;
+		HintFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		HintText->SetFont(HintFont);
 	}
 	HintSize->AddChild(HintText);
@@ -944,6 +956,7 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 		{
 			FSlateFontInfo LabelFont = Label->GetFont();
 			LabelFont.Size = 16;
+			LabelFont.FontObject = MyBondageLifeUI::LoadUIFont();
 			Label->SetFont(LabelFont);
 		}
 		if (UVerticalBoxSlot* LabelSlot = Column->AddChildToVerticalBox(Label))
@@ -987,6 +1000,7 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 	{
 		FSlateFontInfo TitleFont = PickerTitle->GetFont();
 		TitleFont.Size = 22;
+		TitleFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		PickerTitle->SetFont(TitleFont);
 	}
 	if (UVerticalBoxSlot* TitleSlot = PickerColumn->AddChildToVerticalBox(PickerTitle))
@@ -1027,6 +1041,7 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 	{
 		FSlateFontInfo ActionFont = LockActionLabel->GetFont();
 		ActionFont.Size = 20;
+		ActionFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		LockActionLabel->SetFont(ActionFont);
 	}
 	LockActionButton->AddChild(LockActionLabel);
@@ -1056,6 +1071,7 @@ void UMyBondageLifeWardrobeWidget::BuildRestraintSlots()
 	{
 		FSlateFontInfo CancelFont = CancelLabel->GetFont();
 		CancelFont.Size = 20;
+		CancelFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		CancelLabel->SetFont(CancelFont);
 	}
 	CancelButton->AddChild(CancelLabel);
@@ -1247,6 +1263,7 @@ void UMyBondageLifeWardrobeWidget::OpenRestraintPicker(int32 SlotIndex)
 		{
 			FSlateFontInfo NameFont = NameLabel->GetFont();
 			NameFont.Size = 16;
+			NameFont.FontObject = MyBondageLifeUI::LoadUIFont();
 			NameLabel->SetFont(NameFont);
 		}
 		if (UVerticalBoxSlot* NameSlot = ItemColumn->AddChildToVerticalBox(NameLabel))
@@ -1661,6 +1678,7 @@ void UMyBondageLifeWardrobeWidget::OpenLockMenu()
 		{
 			FSlateFontInfo TitleFont = LockMenuTitle->GetFont();
 			TitleFont.Size = 22;
+			TitleFont.FontObject = MyBondageLifeUI::LoadUIFont();
 			LockMenuTitle->SetFont(TitleFont);
 		}
 		if (UVerticalBoxSlot* TitleSlot = Column->AddChildToVerticalBox(LockMenuTitle))
@@ -1723,6 +1741,7 @@ void UMyBondageLifeWardrobeWidget::OpenLockMenu()
 			{
 				FSlateFontInfo CaptionFont = Caption->GetFont();
 				CaptionFont.Size = 15;
+				CaptionFont.FontObject = MyBondageLifeUI::LoadUIFont();
 				Caption->SetFont(CaptionFont);
 			}
 			if (UVerticalBoxSlot* CaptionSlot = LockBox->AddChildToVerticalBox(Caption))

@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "MyBondageLifeHostInfoWidget.h"
+#include "MyBondageLifeUIStyle.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
@@ -56,6 +57,7 @@ void UMyBondageLifeHostInfoWidget::BuildLayout()
 	{
 		FSlateFontInfo InfoFont = InfoLabel->GetFont();
 		InfoFont.Size = 18;
+		InfoFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		InfoLabel->SetFont(InfoFont);
 	}
 	Background->AddChild(InfoLabel);

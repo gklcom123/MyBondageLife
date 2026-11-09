@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "MyBondageLifeGameMenuWidget.h"
+#include "MyBondageLifeUIStyle.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "MyBondageLifePlayerController.h"
@@ -75,6 +76,7 @@ void UMyBondageLifeGameMenuWidget::BuildLayout()
 	{
 		FSlateFontInfo TitleFont = TitleLabel->GetFont();
 		TitleFont.Size = 44;
+		TitleFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		TitleLabel->SetFont(TitleFont);
 	}
 	if (UVerticalBoxSlot* TitleSlot = CenterBox->AddChildToVerticalBox(TitleLabel))
@@ -105,6 +107,7 @@ void UMyBondageLifeGameMenuWidget::BuildLayout()
 	{
 		FSlateFontInfo HintFont = HintLabel->GetFont();
 		HintFont.Size = 16;
+		HintFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		HintLabel->SetFont(HintFont);
 	}
 	if (UVerticalBoxSlot* HintSlot = CenterBox->AddChildToVerticalBox(HintLabel))
@@ -139,6 +142,7 @@ UButton* UMyBondageLifeGameMenuWidget::CreateMenuButton(UVerticalBox* Parent, co
 	{
 		FSlateFontInfo LabelFont = Label->GetFont();
 		LabelFont.Size = 26;
+		LabelFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		Label->SetFont(LabelFont);
 	}
 	Button->AddChild(Label);

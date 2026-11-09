@@ -1619,13 +1619,6 @@ void AMyBondageLifePlayerController::OnPossess(APawn* InPawn)
 	EnsureInputSetup();
 
 	// 统一字体：登录/菜单/游戏内控件都会在此后创建，用低频轮询持续覆盖。
-	if (UWorld* FontWorld = GetWorld())
-	{
-		FontWorld->GetTimerManager().SetTimer(UIFontTimer, this,
-			&AMyBondageLifePlayerController::ApplyUIFontsPass, 1.0f, true);
-	}
-
-
 	// The engine's ignore counters live on the controller and survive a travel, so
 	// clear them before the input mode is applied for the new pawn.
 	bGameplayInputBlocked = false;
@@ -1698,13 +1691,6 @@ void AMyBondageLifePlayerController::BeginPlay()
 	EnsureInputSetup();
 
 	// 统一字体：登录/菜单/游戏内控件都会在此后创建，用低频轮询持续覆盖。
-	if (UWorld* FontWorld = GetWorld())
-	{
-		FontWorld->GetTimerManager().SetTimer(UIFontTimer, this,
-			&AMyBondageLifePlayerController::ApplyUIFontsPass, 1.0f, true);
-	}
-
-
 	const UGameInstance* GameInstance = GetGameInstance();
 	const UMyBondageLifeAccountSubsystem* Account = GameInstance
 		? GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>()

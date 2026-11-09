@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "UI/MyBondageLifeRestraintSlotsWidget.h"
+#include "MyBondageLifeUIStyle.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
@@ -183,6 +184,7 @@ void UMyBondageLifeRestraintSlotsWidget::BuildLayout()
 		{
 			FSlateFontInfo LabelFont = Label->GetFont();
 			LabelFont.Size = 16;
+			LabelFont.FontObject = MyBondageLifeUI::LoadUIFont();
 			Label->SetFont(LabelFont);
 		}
 		if (UVerticalBoxSlot* LabelSlot = Column->AddChildToVerticalBox(Label))
@@ -219,6 +221,7 @@ void UMyBondageLifeRestraintSlotsWidget::BuildLayout()
 		HintText->SetColorAndOpacity(FSlateColor(FLinearColor(0.4f, 0.4f, 0.42f)));
 		FSlateFontInfo HintFont = HintText->GetFont();
 		HintFont.Size = 16;
+		HintFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		HintText->SetFont(HintFont);
 		HintSize->AddChild(HintText);
 	}

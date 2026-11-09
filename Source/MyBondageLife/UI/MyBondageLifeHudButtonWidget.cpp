@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "UI/MyBondageLifeHudButtonWidget.h"
+#include "MyBondageLifeUIStyle.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
@@ -104,6 +105,7 @@ TSharedRef<SWidget> UMyBondageLifeHudButtonWidget::RebuildWidget()
 			{
 				FSlateFontInfo LabelFont = EntryLabel->GetFont();
 				LabelFont.Size = 12;
+				LabelFont.FontObject = MyBondageLifeUI::LoadUIFont();
 				EntryLabel->SetFont(LabelFont);
 			}
 			if (UVerticalBoxSlot* LabelSlot = Column->AddChildToVerticalBox(EntryLabel))

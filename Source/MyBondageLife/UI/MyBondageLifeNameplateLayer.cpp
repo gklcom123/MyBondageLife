@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "MyBondageLifeNameplateLayer.h"
+#include "MyBondageLifeUIStyle.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/CanvasPanel.h"
@@ -65,6 +66,7 @@ UTextBlock* UMyBondageLifeNameplateLayer::FindOrCreateLabel(AMyBondageLifeCharac
 	{
 		FSlateFontInfo NameFont = Label->GetFont();
 		NameFont.Size = 18;
+		NameFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		Label->SetFont(NameFont);
 	}
 	Label->SetVisibility(ESlateVisibility::Collapsed);

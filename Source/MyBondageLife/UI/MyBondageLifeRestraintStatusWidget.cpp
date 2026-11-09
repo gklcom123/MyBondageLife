@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "UI/MyBondageLifeRestraintStatusWidget.h"
+#include "MyBondageLifeUIStyle.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Image.h"
@@ -77,6 +78,7 @@ void UMyBondageLifeRestraintStatusWidget::BuildLayout()
 			{
 				FSlateFontInfo Font = Text->GetFont();
 				Font.Size = 16;
+				Font.FontObject = MyBondageLifeUI::LoadUIFont();
 				Text->SetFont(Font);
 			}
 			if (UVerticalBoxSlot* TextSlot = Unit->AddChildToVerticalBox(Text))

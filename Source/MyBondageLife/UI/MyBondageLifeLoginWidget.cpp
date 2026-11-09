@@ -78,6 +78,7 @@ UButton* UMyBondageLifeLoginWidget::CreateActionButton(UVerticalBox* Parent, con
 	{
 		FSlateFontInfo LabelFont = Label->GetFont();
 		LabelFont.Size = 24;
+		LabelFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		Label->SetFont(LabelFont);
 	}
 	Button->AddChild(Label);
@@ -116,6 +117,7 @@ void UMyBondageLifeLoginWidget::BuildLayout()
 	{
 		FSlateFontInfo TitleFont = TitleLabel->GetFont();
 		TitleFont.Size = 46;
+		TitleFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		TitleLabel->SetFont(TitleFont);
 	}
 	if (UVerticalBoxSlot* TitleSlot = LoginPanel->AddChildToVerticalBox(TitleLabel))
@@ -132,6 +134,7 @@ void UMyBondageLifeLoginWidget::BuildLayout()
 	{
 		FSlateFontInfo SubtitleFont = SubtitleLabel->GetFont();
 		SubtitleFont.Size = 22;
+		SubtitleFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		SubtitleLabel->SetFont(SubtitleFont);
 	}
 	if (UVerticalBoxSlot* SubtitleSlot = LoginPanel->AddChildToVerticalBox(SubtitleLabel))
@@ -183,6 +186,7 @@ void UMyBondageLifeLoginWidget::BuildLayout()
 	{
 		FSlateFontInfo StatusFont = LoginStatusLabel->GetFont();
 		StatusFont.Size = 17;
+		StatusFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		LoginStatusLabel->SetFont(StatusFont);
 	}
 	if (UVerticalBoxSlot* StatusSlot = LoginPanel->AddChildToVerticalBox(LoginStatusLabel))
@@ -209,6 +213,7 @@ void UMyBondageLifeLoginWidget::BuildLayout()
 	{
 		FSlateFontInfo RegisterTitleFont = RegisterTitle->GetFont();
 		RegisterTitleFont.Size = 38;
+		RegisterTitleFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		RegisterTitle->SetFont(RegisterTitleFont);
 	}
 	if (UVerticalBoxSlot* RegisterTitleSlot = RegisterPanel->AddChildToVerticalBox(RegisterTitle))
@@ -264,6 +269,7 @@ void UMyBondageLifeLoginWidget::BuildLayout()
 	{
 		FSlateFontInfo RegisterStatusFont = RegisterStatusLabel->GetFont();
 		RegisterStatusFont.Size = 17;
+		RegisterStatusFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		RegisterStatusLabel->SetFont(RegisterStatusFont);
 	}
 	if (UVerticalBoxSlot* RegisterStatusSlot = RegisterPanel->AddChildToVerticalBox(RegisterStatusLabel))
@@ -627,6 +633,7 @@ UButton* UMyBondageLifeLoginWidget::CreateClassOption(UHorizontalBox* Row, const
 	{
 		FSlateFontInfo LabelFont = Label->GetFont();
 		LabelFont.Size = 18;
+		LabelFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		Label->SetFont(LabelFont);
 	}
 	if (UHorizontalBoxSlot* LabelSlot = Content->AddChildToHorizontalBox(Label))

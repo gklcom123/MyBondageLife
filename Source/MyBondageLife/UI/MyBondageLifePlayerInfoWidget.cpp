@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "MyBondageLifePlayerInfoWidget.h"
+#include "MyBondageLifeUIStyle.h"
 #include "MyBondageLifePlayerController.h"
 
 #include "Blueprint/WidgetTree.h"
@@ -140,6 +141,7 @@ void UMyBondageLifePlayerInfoWidget::BuildLayout()
 	{
 		FSlateFontInfo EntryFont = EntryLabel->GetFont();
 		EntryFont.Size = 16;
+		EntryFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		EntryLabel->SetFont(EntryFont);
 	}
 	if (UVerticalBoxSlot* LabelSlot = EntryColumn->AddChildToVerticalBox(EntryLabel))
@@ -171,6 +173,7 @@ void UMyBondageLifePlayerInfoWidget::BuildLayout()
 		{
 			FSlateFontInfo PartFont = Part->GetFont();
 			PartFont.Size = 24;
+			PartFont.FontObject = MyBondageLifeUI::LoadUIFont();
 			Part->SetFont(PartFont);
 		}
 		if (UHorizontalBoxSlot* PartSlot = InteractionHintRow->AddChildToHorizontalBox(Part))
@@ -230,6 +233,7 @@ void UMyBondageLifePlayerInfoWidget::BuildLayout()
 	{
 		FSlateFontInfo CloseFont = CloseLabel->GetFont();
 		CloseFont.Size = 20;
+		CloseFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		CloseLabel->SetFont(CloseFont);
 	}
 	CloseButton->AddChild(CloseLabel);
@@ -252,6 +256,7 @@ void UMyBondageLifePlayerInfoWidget::BuildLayout()
 		{
 			FSlateFontInfo LineFont = Line->GetFont();
 			LineFont.Size = 24;
+			LineFont.FontObject = MyBondageLifeUI::LoadUIFont();
 			Line->SetFont(LineFont);
 		}
 		if (UVerticalBoxSlot* LineSlot = InfoColumn->AddChildToVerticalBox(Line))
@@ -327,6 +332,7 @@ void UMyBondageLifePlayerInfoWidget::BuildLayout()
 	{
 		FSlateFontInfo AddFriendFont = AddFriendLabel->GetFont();
 		AddFriendFont.Size = 20;
+		AddFriendFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		AddFriendLabel->SetFont(AddFriendFont);
 	}
 	AddFriendButton->AddChild(AddFriendLabel);
@@ -362,6 +368,7 @@ void UMyBondageLifePlayerInfoWidget::BuildLayout()
 	{
 		FSlateFontInfo ContractFont = ContractLabel->GetFont();
 		ContractFont.Size = 20;
+		ContractFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		ContractLabel->SetFont(ContractFont);
 	}
 	ContractButton->AddChild(ContractLabel);
@@ -390,6 +397,7 @@ void UMyBondageLifePlayerInfoWidget::BuildLayout()
 	{
 		FSlateFontInfo WardrobeFont = WardrobeLabel->GetFont();
 		WardrobeFont.Size = 20;
+		WardrobeFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		WardrobeLabel->SetFont(WardrobeFont);
 	}
 	WardrobeButton->AddChild(WardrobeLabel);
@@ -1259,6 +1267,7 @@ void UMyBondageLifePlayerInfoWidget::BuildEntryButtonOnly()
 	{
 		FSlateFontInfo LabelFont = Label->GetFont();
 		LabelFont.Size = 16;
+		LabelFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		Label->SetFont(LabelFont);
 	}
 	if (UVerticalBoxSlot* LabelSlot = Column->AddChildToVerticalBox(Label))

@@ -59,6 +59,7 @@ namespace MyBondageLifeUI
 
 		FSlateFontInfo Info;
 		Info.Size = Size;
+		Info.FontObject = MyBondageLifeUI::LoadUIFont();
 		return Info;
 	}
 

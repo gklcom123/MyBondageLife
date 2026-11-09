@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "UI/MyBondageLifeMessageWidgets.h"
+#include "MyBondageLifeUIStyle.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
@@ -141,6 +142,7 @@ void UMyBondageLifeMessageButtonWidget::BuildLayout()
 		{
 			FSlateFontInfo LabelFont = Label->GetFont();
 			LabelFont.Size = 16;
+			LabelFont.FontObject = MyBondageLifeUI::LoadUIFont();
 			Label->SetFont(LabelFont);
 		}
 		if (UVerticalBoxSlot* LabelSlot = Column->AddChildToVerticalBox(Label))

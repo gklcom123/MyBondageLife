@@ -144,6 +144,7 @@ void UMyBondageLifeChatWidget::AppendLogLine(const FString& LineText, const FLin
 	{
 		FSlateFontInfo LineFont = Line->GetFont();
 		LineFont.Size = 16;
+		LineFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		Line->SetFont(LineFont);
 	}
 
@@ -279,6 +280,7 @@ void UMyBondageLifeChatWidget::AddChatMessageWithPrefix(const FString& Prefix, c
 		{
 			FSlateFontInfo BlockFont = Block->GetFont();
 			BlockFont.Size = 16;
+			BlockFont.FontObject = MyBondageLifeUI::LoadUIFont();
 			Block->SetFont(BlockFont);
 		}
 		if (UHorizontalBoxSlot* PieceSlot = Line->AddChildToHorizontalBox(Block))

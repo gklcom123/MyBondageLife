@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "UI/MyBondageLifeHudEntryWidget.h"
+#include "MyBondageLifeUIStyle.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "MyBondageLife.h"
@@ -132,6 +133,7 @@ void UMyBondageLifeHudEntryWidget::BuildTree()
 	{
 		FSlateFontInfo LabelFont = Label->GetFont();
 		LabelFont.Size = 12;
+		LabelFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		Label->SetFont(LabelFont);
 	}
 	if (UVerticalBoxSlot* LabelSlot = Column->AddChildToVerticalBox(Label))

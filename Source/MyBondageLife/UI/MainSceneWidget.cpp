@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "MainSceneWidget.h"
+#include "MyBondageLifeUIStyle.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "MyBondageLifePlayerController.h"
@@ -105,6 +106,7 @@ void UMainSceneWidget::BuildLayout()
 	{
 		FSlateFontInfo TitleFont = TitleLabel->GetFont();
 		TitleFont.Size = 48;
+		TitleFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		TitleLabel->SetFont(TitleFont);
 	}
 	if (UVerticalBoxSlot* BoxSlot = CenterBox->AddChildToVerticalBox(TitleLabel))
@@ -120,6 +122,7 @@ void UMainSceneWidget::BuildLayout()
 	{
 		FSlateFontInfo AccountFont = AccountLabel->GetFont();
 		AccountFont.Size = 18;
+		AccountFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		AccountLabel->SetFont(AccountFont);
 	}
 	if (UVerticalBoxSlot* BoxSlot = CenterBox->AddChildToVerticalBox(AccountLabel))
@@ -183,6 +186,7 @@ UButton* UMainSceneWidget::CreateMenuButton(UVerticalBox* Parent, const FString&
 	{
 		FSlateFontInfo LabelFont = Label->GetFont();
 		LabelFont.Size = 26;
+		LabelFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		Label->SetFont(LabelFont);
 	}
 	Button->AddChild(Label);
@@ -223,6 +227,7 @@ void UMainSceneWidget::BuildRoomBrowser()
 	{
 		FSlateFontInfo HeaderFont = RoomBrowserTitle->GetFont();
 		HeaderFont.Size = 30;
+		HeaderFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		RoomBrowserTitle->SetFont(HeaderFont);
 	}
 	if (UHorizontalBoxSlot* LabelSlot = HeaderRow->AddChildToHorizontalBox(RoomBrowserTitle))
@@ -252,6 +257,7 @@ void UMainSceneWidget::BuildRoomBrowser()
 		{
 			FSlateFontInfo TextFont = Text->GetFont();
 			TextFont.Size = 18;
+			TextFont.FontObject = MyBondageLifeUI::LoadUIFont();
 			Text->SetFont(TextFont);
 		}
 		Button->AddChild(Text);
@@ -287,6 +293,7 @@ void UMainSceneWidget::BuildRoomBrowser()
 	{
 		FSlateFontInfo HintFont = RoomListHint->GetFont();
 		HintFont.Size = 20;
+		HintFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		RoomListHint->SetFont(HintFont);
 	}
 	if (UVerticalBoxSlot* HintSlot = Column->AddChildToVerticalBox(RoomListHint))
@@ -303,6 +310,7 @@ void UMainSceneWidget::BuildRoomBrowser()
 	{
 		FSlateFontInfo FooterFont = FooterHint->GetFont();
 		FooterFont.Size = 16;
+		FooterFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		FooterHint->SetFont(FooterFont);
 	}
 	if (UVerticalBoxSlot* FooterSlot = Column->AddChildToVerticalBox(FooterHint))
@@ -337,6 +345,7 @@ void UMainSceneWidget::BuildConnectingOverlay()
 	{
 		FSlateFontInfo Font = ConnectingLabel->GetFont();
 		Font.Size = 34;
+		Font.FontObject = MyBondageLifeUI::LoadUIFont();
 		ConnectingLabel->SetFont(Font);
 	}
 	if (UVerticalBoxSlot* LabelSlot = Box->AddChildToVerticalBox(ConnectingLabel))
@@ -352,6 +361,7 @@ void UMainSceneWidget::BuildConnectingOverlay()
 	{
 		FSlateFontInfo Font = Hint->GetFont();
 		Font.Size = 18;
+		Font.FontObject = MyBondageLifeUI::LoadUIFont();
 		Hint->SetFont(Font);
 	}
 	if (UVerticalBoxSlot* HintSlot = Box->AddChildToVerticalBox(Hint))
@@ -379,6 +389,7 @@ void UMainSceneWidget::BuildConnectingOverlay()
 	{
 		FSlateFontInfo Font = CancelLabel->GetFont();
 		Font.Size = 20;
+		Font.FontObject = MyBondageLifeUI::LoadUIFont();
 		CancelLabel->SetFont(Font);
 	}
 	CancelButton->AddChild(CancelLabel);
@@ -714,6 +725,7 @@ void UMainSceneWidget::RebuildRoomRows()
 		{
 			FSlateFontInfo RowFont = RowLabel->GetFont();
 			RowFont.Size = 20;
+			RowFont.FontObject = MyBondageLifeUI::LoadUIFont();
 			RowLabel->SetFont(RowFont);
 		}
 		RowButton->AddChild(RowLabel);
@@ -956,6 +968,7 @@ void UMainSceneWidget::RebuildLocalRoomRows()
 		{
 			FSlateFontInfo RowFont = RowLabel->GetFont();
 			RowFont.Size = 20;
+			RowFont.FontObject = MyBondageLifeUI::LoadUIFont();
 			RowLabel->SetFont(RowFont);
 		}
 		RowButton->AddChild(RowLabel);

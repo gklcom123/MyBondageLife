@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "UI/MyBondageLifeSitHintWidget.h"
+#include "MyBondageLifeUIStyle.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/CanvasPanel.h"
@@ -28,6 +29,7 @@ TSharedRef<SWidget> UMyBondageLifeSitHintWidget::RebuildWidget()
 		{
 			FSlateFontInfo Font = HintText->GetFont();
 			Font.Size = 22;
+			Font.FontObject = MyBondageLifeUI::LoadUIFont();
 			HintText->SetFont(Font);
 		}
 

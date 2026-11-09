@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "MyBondageLifeFriendListWidget.h"
+#include "MyBondageLifeUIStyle.h"
 #include "MyBondageLifeFriendRowWidget.h"
 
 #include "Blueprint/WidgetTree.h"
@@ -155,6 +156,7 @@ void UMyBondageLifeFriendListWidget::BuildLayout()
 	{
 		FSlateFontInfo EntryFont = EntryLabel->GetFont();
 		EntryFont.Size = 16;
+		EntryFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		EntryLabel->SetFont(EntryFont);
 	}
 	if (UVerticalBoxSlot* LabelSlot = EntryColumn->AddChildToVerticalBox(EntryLabel))
@@ -206,6 +208,7 @@ void UMyBondageLifeFriendListWidget::BuildLayout()
 	{
 		FSlateFontInfo CloseFont = CloseLabel->GetFont();
 		CloseFont.Size = 20;
+		CloseFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		CloseLabel->SetFont(CloseFont);
 	}
 	CloseButton->AddChild(CloseLabel);
@@ -218,6 +221,7 @@ void UMyBondageLifeFriendListWidget::BuildLayout()
 	{
 		FSlateFontInfo TitleFont = Title->GetFont();
 		TitleFont.Size = 30;
+		TitleFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		Title->SetFont(TitleFont);
 	}
 	if (UCanvasPanelSlot* TitleSlot = PanelCanvas->AddChildToCanvas(Title))
@@ -253,6 +257,7 @@ void UMyBondageLifeFriendListWidget::BuildLayout()
 		{
 			FSlateFontInfo LabelFont = Label->GetFont();
 			LabelFont.Size = 22;
+			LabelFont.FontObject = MyBondageLifeUI::LoadUIFont();
 			Label->SetFont(LabelFont);
 		}
 		Cell->AddChild(Label);
@@ -290,6 +295,7 @@ void UMyBondageLifeFriendListWidget::BuildLayout()
 	{
 		FSlateFontInfo HintFont = EmptyHint->GetFont();
 		HintFont.Size = 24;
+		HintFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		EmptyHint->SetFont(HintFont);
 	}
 	if (UCanvasPanelSlot* EmptySlot = PanelCanvas->AddChildToCanvas(EmptyHint))
@@ -309,6 +315,7 @@ void UMyBondageLifeFriendListWidget::BuildLayout()
 	{
 		FSlateFontInfo FooterFont = FooterNote->GetFont();
 		FooterFont.Size = 18;
+		FooterFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		FooterNote->SetFont(FooterFont);
 	}
 	if (UCanvasPanelSlot* FooterSlot = PanelCanvas->AddChildToCanvas(FooterNote))
@@ -346,6 +353,7 @@ void UMyBondageLifeFriendListWidget::BuildLayout()
 	{
 		FSlateFontInfo RequestFont = RequestText->GetFont();
 		RequestFont.Size = 26;
+		RequestFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		RequestText->SetFont(RequestFont);
 	}
 	if (UVerticalBoxSlot* TextSlot = DialogColumn->AddChildToVerticalBox(RequestText))
@@ -380,6 +388,7 @@ void UMyBondageLifeFriendListWidget::BuildLayout()
 		{
 			FSlateFontInfo LabelFont = Label->GetFont();
 			LabelFont.Size = 24;
+			LabelFont.FontObject = MyBondageLifeUI::LoadUIFont();
 			Label->SetFont(LabelFont);
 		}
 		Button->AddChild(Label);
@@ -517,6 +526,7 @@ void UMyBondageLifeFriendListWidget::RefreshFriends()
 			{
 				FSlateFontInfo LabelFont = Label->GetFont();
 				LabelFont.Size = 22;
+				LabelFont.FontObject = MyBondageLifeUI::LoadUIFont();
 				Label->SetFont(LabelFont);
 			}
 
@@ -733,6 +743,7 @@ void UMyBondageLifeFriendListWidget::BuildDialogs()
 	{
 		FSlateFontInfo TitleFont = MenuTitle->GetFont();
 		TitleFont.Size = 26;
+		TitleFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		MenuTitle->SetFont(TitleFont);
 	}
 	if (UVerticalBoxSlot* TitleSlot = MenuColumn->AddChildToVerticalBox(MenuTitle))
@@ -764,6 +775,7 @@ void UMyBondageLifeFriendListWidget::BuildDialogs()
 		{
 			FSlateFontInfo LabelFont = Label->GetFont();
 			LabelFont.Size = 22;
+			LabelFont.FontObject = MyBondageLifeUI::LoadUIFont();
 			Label->SetFont(LabelFont);
 		}
 		Button->AddChild(Label);
@@ -815,6 +827,7 @@ void UMyBondageLifeFriendListWidget::BuildDialogs()
 	{
 		FSlateFontInfo ConfirmFont = ConfirmText->GetFont();
 		ConfirmFont.Size = 26;
+		ConfirmFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		ConfirmText->SetFont(ConfirmFont);
 	}
 	if (UVerticalBoxSlot* ConfirmTextSlot = ConfirmColumn->AddChildToVerticalBox(ConfirmText))
@@ -849,6 +862,7 @@ void UMyBondageLifeFriendListWidget::BuildDialogs()
 		{
 			FSlateFontInfo LabelFont = Label->GetFont();
 			LabelFont.Size = 22;
+			LabelFont.FontObject = MyBondageLifeUI::LoadUIFont();
 			Label->SetFont(LabelFont);
 		}
 		Button->AddChild(Label);
@@ -1159,6 +1173,7 @@ void UMyBondageLifeFriendListWidget::BuildEntryButtonOnly()
 	{
 		FSlateFontInfo LabelFont = Label->GetFont();
 		LabelFont.Size = 16;
+		LabelFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		Label->SetFont(LabelFont);
 	}
 	if (UVerticalBoxSlot* LabelSlot = Column->AddChildToVerticalBox(Label))

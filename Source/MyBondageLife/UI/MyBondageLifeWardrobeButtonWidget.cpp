@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "UI/MyBondageLifeWardrobeButtonWidget.h"
+#include "MyBondageLifeUIStyle.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
@@ -108,6 +109,7 @@ void UMyBondageLifeWardrobeButtonWidget::BuildLayout()
 		{
 			FSlateFontInfo EntryFont = Label->GetFont();
 			EntryFont.Size = 16;
+			EntryFont.FontObject = MyBondageLifeUI::LoadUIFont();
 			Label->SetFont(EntryFont);
 		}
 		if (UVerticalBoxSlot* LabelSlot = EntryColumn->AddChildToVerticalBox(Label))

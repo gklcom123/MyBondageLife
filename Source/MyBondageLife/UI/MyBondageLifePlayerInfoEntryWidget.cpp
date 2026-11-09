@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "UI/MyBondageLifePlayerInfoEntryWidget.h"
+#include "MyBondageLifeUIStyle.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
@@ -99,6 +100,7 @@ void UMyBondageLifePlayerInfoEntryWidget::BuildLayout()
 		{
 			FSlateFontInfo LabelFont = Label->GetFont();
 			LabelFont.Size = 16;
+			LabelFont.FontObject = MyBondageLifeUI::LoadUIFont();
 			Label->SetFont(LabelFont);
 		}
 		if (UVerticalBoxSlot* LabelSlot = Column->AddChildToVerticalBox(Label))

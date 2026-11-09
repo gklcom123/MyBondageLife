@@ -21,6 +21,7 @@
 #include "Internationalization/Internationalization.h"
 #include "Misc/ConfigCacheIni.h"
 #include "MyBondageLife.h"
+#include "MyBondageLifeUIStyle.h"
 #include "Styling/CoreStyle.h"
 
 namespace
@@ -31,7 +32,7 @@ namespace
 	FSlateFontInfo MakeFont(int32 Size, bool bBold = false)
 	{
 		// 必须带字体对象：只设置 Size 会得到空字体，中文全部显示为方块。
-		return FCoreStyle::GetDefaultFontStyle(bBold ? TEXT("Bold") : TEXT("Regular"), Size);
+		return MyBondageLifeUI::Font(Size);
 	}
 
 	UTextBlock* MakeLabel(UWidgetTree* Tree, const FString& Text, int32 Size, const FLinearColor& Color)
