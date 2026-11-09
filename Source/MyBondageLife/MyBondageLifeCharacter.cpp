@@ -1863,6 +1863,9 @@ void AMyBondageLifeCharacter::ServerStartBondage_Implementation(AMyBondageLifeCh
 		TargetName = Target->GetName();
 	}
 
+	// 由服务器播放蒙太奇：会被复制到所有客户端（客户端本地播放对方看不到）。
+	PlayBondageMontage();
+
 	MulticastBondageStart(this, Target, Duration, SlotIndex, ItemId, bSelfTarget, BinderName, TargetName, TargetName);
 
 	GetWorldTimerManager().SetTimer(BondageTimer, [this, BinderName, TargetName]()
@@ -1885,14 +1888,15 @@ void AMyBondageLifeCharacter::MulticastBondageStart_Implementation(AMyBondageLif
 	AMyBondageLifePlayerController* PC = Cast<AMyBondageLifePlayerController>(UGameplayStatics::GetPlayerController(this, 0));
 	APawn* LocalPawn = PC ? PC->GetPawn() : nullptr;
 
-	if (LocalPawn == Binder)
+	// 动画由服务器播放并复制；这里只负责所有客户端都能听到音效。
 	{
-		PlayBondageMontage();
+		if (USoundBase* Cue = LoadObject<USoundBase>(nullptr, TEXT("/Game/Characters/Sound/UI/Bondage_Cue.Bondage_Cue")))
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, Cue, GetActorLocation());
+		}
 	}
-	else if (USoundBase* Cue = LoadObject<USoundBase>(nullptr, TEXT("/Game/Characters/Sound/UI/Bondage_Cue.Bondage_Cue")))
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, Cue, GetActorLocation());
-	}
+
+	if (LocalPawn == Binder) { UE_LOG(LogMyBondageLife, Log, TEXT("Bondage: montage played on server (replicated)")); }
 
 	if (!PC || !LocalPawn)
 	{
@@ -1954,5 +1958,11 @@ void AMyBondageLifeCharacter::ServerCancelBondage_Implementation()
 	}
 
 	GetWorldTimerManager().ClearTimer(BondageTimer);
+	if (ActiveBondageMontage)
+	{
+		StopAnimMontage(ActiveBondageMontage);
+		ActiveBondageMontage = nullptr;
+	}
+
 	MulticastBondageEnd(false, bResisted, BinderName, TargetName, TargetName);
 }

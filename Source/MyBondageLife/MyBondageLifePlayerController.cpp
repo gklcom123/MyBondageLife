@@ -1462,14 +1462,22 @@ void AMyBondageLifePlayerController::ApplyAccountNameToPlayerState()
 	// 把账号名同步到角色（好友衣柜按账号查找目标角色用）。
 	if (AMyBondageLifeCharacter* BondageCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
 	{
-		if (const UMyBondageLifeAccountSubsystem* AccountSub = GetGameInstance()
-			? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+		// 优先 PlayerState 名字（服务器已把每个玩家的 SetName 同步过来）；
+		// 只有本机玩家且 PlayerState 还没名字时才用本机账号兜底，
+		// 否则服务器上的 AccountSubsystem 会把主机账号写到所有角色上。
+		FString LoginAccount = PlayerState ? PlayerState->GetPlayerName() : FString();
+		if (LoginAccount.IsEmpty() && IsLocalPlayerController())
 		{
-			const FString LoginAccount = AccountSub->GetAccountName();
-			if (!LoginAccount.IsEmpty())
+			if (const UMyBondageLifeAccountSubsystem* AccountSub = GetGameInstance()
+				? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
 			{
-				BondageCharacter->SetAccountNameFree(LoginAccount);
+				LoginAccount = AccountSub->GetAccountName();
 			}
+		}
+
+		if (!LoginAccount.IsEmpty())
+		{
+			BondageCharacter->SetAccountNameFree(LoginAccount);
 		}
 	}
 
