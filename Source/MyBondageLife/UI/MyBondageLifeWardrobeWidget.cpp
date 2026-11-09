@@ -1366,12 +1366,30 @@ void UMyBondageLifeWardrobeWidget::PickRestraintItem(FName ItemId)
 	if (ItemId.IsNone())
 	{
 		bClosePanelsOnNextChange = true;
-	if (bFriendMode) { Account->UnequipRestraintFor(FriendAccount, PickerSlot); } else { Account->UnequipRestraint(PickerSlot); }
+		if (bFriendMode) { Account->UnequipRestraintFor(FriendAccount, PickerSlot); } else { Account->UnequipRestraint(PickerSlot); }
 	}
 	else
 	{
+		// 有 WearTime 的拘束：进入穿戴进度流程（关衣柜、锁移动、播放蒙太奇）。
+		const FMyBondageLifeRestraintItem* PickedItem = FMyBondageLifeRestraintCatalog::Find(ItemId);
+		const float WearTime = PickedItem ? PickedItem->WearTime : 0.0f;
+
+		if (WearTime > 0.0f && !bFriendMode)
+		{
+			if (AMyBondageLifePlayerController* PC = Cast<AMyBondageLifePlayerController>(GetOwningPlayer()))
+			{
+				if (AMyBondageLifeCharacter* Binder = Cast<AMyBondageLifeCharacter>(PC->GetPawn()))
+				{
+					PC->StartBondageWear(PickerSlot, ItemId, Binder, WearTime, true);
+					CloseRestraintPicker();
+					SetPanelOpen(false);
+					return;
+				}
+			}
+		}
+
 		bClosePanelsOnNextChange = true;
-	if (bFriendMode) { Account->EquipRestraintFor(FriendAccount, PickerSlot, ItemId.ToString()); } else { Account->EquipRestraint(PickerSlot, ItemId.ToString()); }
+		if (bFriendMode) { Account->EquipRestraintFor(FriendAccount, PickerSlot, ItemId.ToString()); } else { Account->EquipRestraint(PickerSlot, ItemId.ToString()); }
 	}
 
 	CloseRestraintPicker();

@@ -1711,6 +1711,10 @@ void AMyBondageLifePlayerController::SetupInputComponent()
 	InputComponent->BindKey(EKeys::G, IE_Pressed, this,
 		&AMyBondageLifePlayerController::HandleSitKeyPressed);
 
+	// Space：取消拘束穿戴
+	InputComponent->BindKey(EKeys::SpaceBar, IE_Pressed, this,
+		&AMyBondageLifePlayerController::CancelBondage);
+
 	// Z：表情动作面板
 	InputComponent->BindKey(EKeys::Z, IE_Pressed, this,
 		&AMyBondageLifePlayerController::HandleEmoteKeyPressed);
@@ -3909,4 +3913,108 @@ void AMyBondageLifePlayerController::ToggleSettings()
 	}
 
 	SettingsWidget->TogglePanel();
+}
+
+void AMyBondageLifePlayerController::StartBondageWear(int32 SlotIndex, FName ItemId, AMyBondageLifeCharacter* Target, float Duration, bool bSelfTarget)
+{
+	AMyBondageLifeCharacter* Binder = Cast<AMyBondageLifeCharacter>(GetPawn());
+	if (!Binder || !Target)
+	{
+		return;
+	}
+
+	Binder->ServerStartBondage(Target, Duration, bSelfTarget, SlotIndex, ItemId);
+}
+
+void AMyBondageLifePlayerController::ClientBondageStarted(float Duration, bool bSelfTarget, int32 SlotIndex, FName ItemId)
+{
+	bBondageUiActive = true;
+	BondageDuration = FMath::Max(0.1f, Duration);
+	BondageElapsed = 0.0f;
+	bBondageSelfTarget = bSelfTarget;
+	BondagePendingSlot = SlotIndex;
+	BondagePendingItem = ItemId;
+
+	// 双方都不能移动；视角保留。
+	SetIgnoreMoveInput(true);
+
+	if (GetPawn() == nullptr)
+	{
+		return;
+	}
+
+	if (MainHudWidget)
+	{
+		MainHudWidget->ShowBondageProgress(0.0f,
+			bSelfTarget ? TEXT("捆绑中（按Space取消）") : TEXT("与对方捆绑中（按Space取消）"));
+	}
+
+	GetWorldTimerManager().SetTimer(BondageProgressTimer, [this]()
+	{
+		BondageElapsed += 0.05f;
+		const float Alpha = FMath::Clamp(BondageElapsed / BondageDuration, 0.0f, 1.0f);
+		if (MainHudWidget)
+		{
+			MainHudWidget->ShowBondageProgress(Alpha,
+				BondageElapsed >= BondageDuration ? TEXT("捆绑完成") : TEXT("捆绑中（按Space取消）"));
+		}
+
+		if (Alpha >= 1.0f)
+		{
+			GetWorldTimerManager().ClearTimer(BondageProgressTimer);
+		}
+	}, 0.05f, true);
+}
+
+void AMyBondageLifePlayerController::ClientBondageEnded(bool bSuccess, bool bResisted)
+{
+	if (!bBondageUiActive)
+	{
+		return;
+	}
+
+	bBondageUiActive = false;
+	GetWorldTimerManager().ClearTimer(BondageProgressTimer);
+	SetIgnoreMoveInput(false);
+
+	if (MainHudWidget)
+	{
+		MainHudWidget->HideBondageProgress();
+	}
+
+	if (bSuccess)
+	{
+		UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+			? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+		if (Account && BondagePendingSlot >= 0 && !BondagePendingItem.IsNone())
+		{
+			Account->EquipRestraint(BondagePendingSlot, BondagePendingItem.ToString());
+		}
+	}
+	else
+	{
+		UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+			? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+		if (Account)
+		{
+			const FString MyName = Account->GetCharacterName();
+			Account->BroadcastSystemText(
+				bResisted ? FString::Printf(TEXT("%s抵抗了拘束"), *MyName)
+				          : FString::Printf(TEXT("%s取消了拘束"), *MyName),
+				FString());
+		}
+	}
+}
+
+void AMyBondageLifePlayerController::CancelBondage()
+{
+	if (!bBondageUiActive)
+	{
+		return;
+	}
+
+	if (AMyBondageLifeCharacter* BondageChar = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		BondageChar->ServerCancelBondage();
+	}
 }

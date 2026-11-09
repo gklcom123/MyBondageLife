@@ -568,6 +568,21 @@ public:
 	/** 游戏设置（F10 打开，ESC 关闭）。 */
 	void ToggleSettings();
 
+	// ---- 拘束穿戴进度 ----
+	void StartBondageWear(int32 SlotIndex, FName ItemId, AMyBondageLifeCharacter* Target, float Duration, bool bSelfTarget);
+	void ClientBondageStarted(float Duration, bool bSelfTarget, int32 SlotIndex, FName ItemId);
+	void ClientBondageEnded(bool bSuccess, bool bResisted);
+	void CancelBondage();
+
+	bool bBondageUiActive = false;
+	float BondageDuration = 0.0f;
+	float BondageElapsed = 0.0f;
+	FTimerHandle BondageProgressTimer;
+	bool bBondageSelfTarget = false;
+	int32 BondagePendingSlot = -1;
+	FName BondagePendingItem;
+	bool bBondageBinder = true;
+
 	UPROPERTY(Transient)
 	TObjectPtr<UMyBondageLifeSettingsWidget> SettingsWidget;
 

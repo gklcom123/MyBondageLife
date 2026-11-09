@@ -503,6 +503,28 @@ protected:
 public:
 	void SetLibidoScreenLevel(int32 InLevel);
 
+	// ---- 拘束穿戴流程（服务器权威） ----
+	UFUNCTION(Server, Reliable)
+	void ServerStartBondage(AMyBondageLifeCharacter* Target, float Duration, bool bSelfTarget, int32 SlotIndex, FName ItemId);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastBondageStart(float Duration, bool bSelfTarget, int32 SlotIndex, FName ItemId);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastBondageEnd(bool bSuccess, bool bResisted);
+
+	UFUNCTION(Server, Reliable)
+	void ServerCancelBondage();
+
+	void PlayBondageMontage();
+
+	AMyBondageLifeCharacter* BondageBinder = nullptr;
+	bool bBondageInProgress = false;
+	FTimerHandle BondageTimer;
+	TWeakObjectPtr<AMyBondageLifeCharacter> BondageTarget;
+	int32 BondageSlot = -1;
+	FName BondageItem;
+
 	/** 0 = 无，1 = 40%+，2 = 70%+（仅本地玩家）。 */
 	int32 GetLibidoScreenLevel() const { return LibidoScreenLevel; }
 

@@ -265,6 +265,7 @@ void FMyBondageLifeRestraintCatalog::Refresh()
 		// 口部道具的枚举类型（Enum_GagType）。旧表没有这一列时 bHasGagType 为 false。
 		Item.bCantVisiable = ReadBool(RowStruct, RowData, { TEXT("CantVisiable"), TEXT("CantVisible") });
 		Item.Libido = ReadFloat(RowStruct, RowData, { TEXT("Libido") });
+		Item.WearTime = ReadFloat(RowStruct, RowData, { TEXT("WearTime") });
 
 		Item.bHasGagType = HasProperty(RowStruct, { TEXT("GagType") });
 		Item.GagType = Item.bHasGagType ? ReadInt(RowStruct, RowData, { TEXT("GagType") }) : 0;

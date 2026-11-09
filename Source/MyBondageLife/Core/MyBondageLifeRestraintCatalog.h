@@ -50,6 +50,9 @@ struct FMyBondageLifeRestraintItem
 	/** 性欲值增长速度，纯客户端字段（服务端不存）。 */
 	float Libido = 0.0f;
 
+	/** 穿戴所需时间（秒）；<=0 表示瞬间穿戴。 */
+	float WearTime = 0.0f;
+
 	/** true = 不出现在拘束选择列表，但仍可被穿戴/脱下。 */
 	bool bCantVisiable = false;
 };

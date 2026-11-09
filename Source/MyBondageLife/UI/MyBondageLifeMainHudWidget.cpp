@@ -264,3 +264,45 @@ void UMyBondageLifeMainHudWidget::SetSexProgress(float Value01, float Percent, b
 		}
 	}
 }
+
+void UMyBondageLifeMainHudWidget::ShowBondageProgress(float Value01, const FString& LabelText)
+{
+	if (!BondageOverlay && WidgetTree)
+	{
+		BondageOverlay = WidgetTree->FindWidget(TEXT("ProgressOverlay"));
+	}
+	if (!BondageProgressBar && WidgetTree)
+	{
+		BondageProgressBar = Cast<UProgressBar>(WidgetTree->FindWidget(TEXT("W_BondageProgressBar")));
+	}
+	if (!BondageProgressLabel && WidgetTree)
+	{
+		BondageProgressLabel = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_BondageProgressLabel")));
+	}
+
+	if (BondageOverlay)
+	{
+		BondageOverlay->SetVisibility(ESlateVisibility::HitTestInvisible);
+	}
+	if (BondageProgressBar)
+	{
+		BondageProgressBar->SetPercent(FMath::Clamp(Value01, 0.0f, 1.0f));
+	}
+	if (BondageProgressLabel)
+	{
+		BondageProgressLabel->SetText(FText::FromString(LabelText));
+	}
+}
+
+void UMyBondageLifeMainHudWidget::HideBondageProgress()
+{
+	if (!BondageOverlay && WidgetTree)
+	{
+		BondageOverlay = WidgetTree->FindWidget(TEXT("ProgressOverlay"));
+	}
+
+	if (BondageOverlay)
+	{
+		BondageOverlay->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}

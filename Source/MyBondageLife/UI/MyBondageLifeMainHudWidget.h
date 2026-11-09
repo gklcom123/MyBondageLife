@@ -48,6 +48,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "HUD")
 	void SetSexProgress(float Value01, float Percent, bool bPlayAnim);
 
+	/** 拘束穿戴进度：0..1，LabelText 由调用方决定。 */
+	UFUNCTION(BlueprintCallable, Category = "HUD")
+	void ShowBondageProgress(float Value01, const FString& LabelText);
+
+	UFUNCTION(BlueprintCallable, Category = "HUD")
+	void HideBondageProgress();
+
+	UPROPERTY(Transient)
+	TObjectPtr<UWidget> BondageOverlay;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UProgressBar> BondageProgressBar;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> BondageProgressLabel;
+
 protected:
 
 	void BuildLayout();

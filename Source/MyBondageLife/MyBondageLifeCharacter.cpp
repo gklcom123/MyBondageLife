@@ -1781,3 +1781,91 @@ void AMyBondageLifeCharacter::MulticastSetClimax_Implementation(bool bActive)
 		}
 	}
 }
+
+// ---------------------------------------------------------------------------
+// 拘束穿戴流程
+// ---------------------------------------------------------------------------
+
+void AMyBondageLifeCharacter::PlayBondageMontage()
+{
+	static const TCHAR* MontagePath =
+		TEXT("/Game/Characters/MainCharc/FinalYab/Animation/MainCharcF_Bondage_Montage.MainCharcF_Bondage_Montage");
+
+	if (UAnimMontage* Montage = LoadObject<UAnimMontage>(nullptr, MontagePath))
+	{
+		PlayAnimMontage(Montage);
+	}
+
+	if (USoundBase* Cue = LoadObject<USoundBase>(nullptr,
+		TEXT("/Game/Characters/Sound/Sex/Bondage_Cue.Bondage_Cue")))
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, Cue, GetActorLocation());
+	}
+}
+
+void AMyBondageLifeCharacter::ServerStartBondage_Implementation(AMyBondageLifeCharacter* Target, float Duration, bool bSelfTarget, int32 SlotIndex, FName ItemId)
+{
+	if (!Target || bBondageInProgress)
+	{
+		return;
+	}
+
+	bBondageInProgress = true;
+	BondageBinder = this;
+	BondageTarget = Target;
+	BondageSlot = SlotIndex;
+	BondageItem = ItemId;
+	Target->bBondageInProgress = true;
+	Target->BondageBinder = this;
+
+	MulticastBondageStart(Duration, bSelfTarget, SlotIndex, ItemId);
+
+	GetWorldTimerManager().SetTimer(BondageTimer, [this]()
+	{
+		if (bBondageInProgress)
+		{
+			bBondageInProgress = false;
+			if (AMyBondageLifeCharacter* TargetChar = BondageTarget.Get())
+			{
+				TargetChar->bBondageInProgress = false;
+			}
+			MulticastBondageEnd(true, false);
+		}
+	}, FMath::Max(0.1f, Duration), false);
+}
+
+void AMyBondageLifeCharacter::MulticastBondageStart_Implementation(float Duration, bool bSelfTarget, int32 SlotIndex, FName ItemId)
+{
+	PlayBondageMontage();
+
+	if (AMyBondageLifePlayerController* PC = Cast<AMyBondageLifePlayerController>(GetController()))
+	{
+		PC->ClientBondageStarted(Duration, bSelfTarget, SlotIndex, ItemId);
+	}
+}
+
+void AMyBondageLifeCharacter::MulticastBondageEnd_Implementation(bool bSuccess, bool bResisted)
+{
+	if (AMyBondageLifePlayerController* PC = Cast<AMyBondageLifePlayerController>(GetController()))
+	{
+		PC->ClientBondageEnded(bSuccess, bResisted);
+	}
+}
+
+void AMyBondageLifeCharacter::ServerCancelBondage_Implementation()
+{
+	if (!bBondageInProgress)
+	{
+		return;
+	}
+
+	const bool bResisted = (BondageBinder != this);
+	bBondageInProgress = false;
+	if (AMyBondageLifeCharacter* TargetChar = BondageTarget.Get())
+	{
+		TargetChar->bBondageInProgress = false;
+	}
+
+	GetWorldTimerManager().ClearTimer(BondageTimer);
+	MulticastBondageEnd(false, bResisted);
+}
