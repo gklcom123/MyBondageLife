@@ -1829,11 +1829,34 @@ void AMyBondageLifeCharacter::ServerStartBondage_Implementation(AMyBondageLifeCh
 	// 拘束者移动到被缚者身后。
 	if (!bSelfTarget)
 	{
-		const FVector Behind = Target->GetActorLocation() - Target->GetActorForwardVector() * 90.0f;
-		SetActorLocation(Behind, false, nullptr, ETeleportType::TeleportPhysics);
+		// 从近到远尝试站位：60 → 45 → 30，带 sweep 避免穿墙。
+		const FVector TargetLocation = Target->GetActorLocation();
+		const FVector BackDir = -Target->GetActorForwardVector();
+		static const float Distances[] = { 60.0f, 45.0f, 30.0f };
+
+		FVector ChosenLocation = GetActorLocation();
+		bool bPlaced = false;
+		for (const float Distance : Distances)
+		{
+			const FVector Candidate = TargetLocation + BackDir * Distance;
+			FHitResult Hit;
+			SetActorLocation(Candidate, true, &Hit, ETeleportType::None);
+			if (!Hit.bBlockingHit)
+			{
+				ChosenLocation = Candidate;
+				bPlaced = true;
+				break;
+			}
+		}
+
+		if (!bPlaced)
+		{
+			// 身后完全被挡住：留在原地，只转身面向对方。
+			ChosenLocation = GetActorLocation();
+		}
 
 		// 面向被缚者。
-		const FRotator FacingRotation = (Target->GetActorLocation() - Behind).Rotation();
+		const FRotator FacingRotation = (TargetLocation - ChosenLocation).Rotation();
 		SetActorRotation(FRotator(0.0f, FacingRotation.Yaw, 0.0f));
 	}
 
