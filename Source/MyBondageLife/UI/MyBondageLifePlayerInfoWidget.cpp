@@ -1523,12 +1523,12 @@ void UMyBondageLifePlayerInfoWidget::RefreshRomanceRows()
 
 			RomanceTexts[Index]->SetText(FText::FromString(FString::Printf(
 				TEXT("%s%s（已相恋%d天）"), *Prefix, *Romances[Index].CharacterName, Days)));
-			RomanceTexts[Index]->SetColorAndOpacity(FSlateColor(FLinearColor::White));
+
 		}
 		else
 		{
 			RomanceTexts[Index]->SetText(FText::FromString(TEXT("恋人：暂无")));
-			RomanceTexts[Index]->SetColorAndOpacity(FSlateColor(FLinearColor::White));
+
 		}
 	}
 }
