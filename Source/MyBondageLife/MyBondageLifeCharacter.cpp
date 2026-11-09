@@ -1803,7 +1803,7 @@ void AMyBondageLifeCharacter::PlayBondageMontage()
 	}
 }
 
-void AMyBondageLifeCharacter::ServerStartBondage_Implementation(AMyBondageLifeCharacter* Target, float Duration, bool bSelfTarget, int32 SlotIndex, FName ItemId)
+void AMyBondageLifeCharacter::ServerStartBondage_Implementation(AMyBondageLifeCharacter* Target, float Duration, bool bSelfTarget, int32 SlotIndex, FName ItemId, const FString& InTargetAccount)
 {
 	if (!Target || bBondageInProgress)
 	{
@@ -1815,6 +1815,10 @@ void AMyBondageLifeCharacter::ServerStartBondage_Implementation(AMyBondageLifeCh
 	{
 		const FVector Behind = Target->GetActorLocation() - Target->GetActorForwardVector() * 90.0f;
 		SetActorLocation(Behind, false, nullptr, ETeleportType::TeleportPhysics);
+
+		// 面向被缚者。
+		const FRotator FacingRotation = (Target->GetActorLocation() - Behind).Rotation();
+		SetActorRotation(FRotator(0.0f, FacingRotation.Yaw, 0.0f));
 	}
 
 	bBondageInProgress = true;
@@ -1828,7 +1832,15 @@ void AMyBondageLifeCharacter::ServerStartBondage_Implementation(AMyBondageLifeCh
 	AMyBondageLifePlayerController* BinderPC = Cast<AMyBondageLifePlayerController>(GetController());
 	AMyBondageLifePlayerController* TargetPC = Cast<AMyBondageLifePlayerController>(Target->GetController());
 	const FString BinderName = BinderPC ? BinderPC->GetOwnAccountName() : GetName();
-	const FString TargetName = TargetPC ? TargetPC->GetOwnAccountName() : Target->GetName();
+	FString TargetName = TargetPC ? TargetPC->GetOwnAccountName() : FString();
+	if (TargetName.IsEmpty())
+	{
+		TargetName = InTargetAccount.IsEmpty() ? Target->GetAccountName() : InTargetAccount;
+	}
+	if (TargetName.IsEmpty())
+	{
+		TargetName = Target->GetName();
+	}
 
 	MulticastBondageStart(this, Target, Duration, SlotIndex, ItemId, bSelfTarget, BinderName, TargetName, TargetName);
 

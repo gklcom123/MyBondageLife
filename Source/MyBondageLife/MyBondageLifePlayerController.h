@@ -573,7 +573,7 @@ public:
 	// ---- 拘束穿戴进度 ----
 	void CloseWardrobeForBondage();
 
-	void StartBondageWear(int32 SlotIndex, FName ItemId, AMyBondageLifeCharacter* Target, float Duration, bool bSelfTarget);
+	void StartBondageWear(int32 SlotIndex, FName ItemId, AMyBondageLifeCharacter* Target, float Duration, bool bSelfTarget, const FString& TargetAccount = FString());
 	void ClientBondageStarted(float Duration, int32 Role, int32 SlotIndex, FName ItemId, const FString& BinderName, const FString& TargetName, const FString& TargetAccount);
 	void ClientBondageEnded(bool bSuccess, bool bResisted, const FString& BinderName, const FString& TargetName, const FString& TargetAccount);
 	void CancelBondage();

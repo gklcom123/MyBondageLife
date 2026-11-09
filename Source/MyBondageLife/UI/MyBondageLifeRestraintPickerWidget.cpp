@@ -433,7 +433,7 @@ void UMyBondageLifeRestraintPickerWidget::HandleItemClicked(FName ItemId)
 					UE_LOG(LogMyBondageLife, Log, TEXT("Bondage: start binder=%s target=%s self=%d"),
 						*Binder->GetName(), *Target->GetName(), bSelfTarget ? 1 : 0);
 
-					PC->StartBondageWear(PickerSlot, ItemId, Target, WearTime, bSelfTarget);
+					PC->StartBondageWear(PickerSlot, ItemId, Target, WearTime, bSelfTarget, bOther ? ViewAccount : FString());
 					PC->CloseWardrobeForBondage();
 					ClosePicker();
 					return;

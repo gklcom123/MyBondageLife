@@ -3986,7 +3986,7 @@ void AMyBondageLifePlayerController::ToggleSettings()
 	SettingsWidget->TogglePanel();
 }
 
-void AMyBondageLifePlayerController::StartBondageWear(int32 SlotIndex, FName ItemId, AMyBondageLifeCharacter* Target, float Duration, bool bSelfTarget)
+void AMyBondageLifePlayerController::StartBondageWear(int32 SlotIndex, FName ItemId, AMyBondageLifeCharacter* Target, float Duration, bool bSelfTarget, const FString& TargetAccount)
 {
 	AMyBondageLifeCharacter* Binder = Cast<AMyBondageLifeCharacter>(GetPawn());
 	if (!Binder || !Target)
@@ -3994,7 +3994,7 @@ void AMyBondageLifePlayerController::StartBondageWear(int32 SlotIndex, FName Ite
 		return;
 	}
 
-	Binder->ServerStartBondage(Target, Duration, bSelfTarget, SlotIndex, ItemId);
+	Binder->ServerStartBondage(Target, Duration, bSelfTarget, SlotIndex, ItemId, TargetAccount);
 }
 
 void AMyBondageLifePlayerController::ClientBondageStarted(float Duration, int32 InRole, int32 SlotIndex, FName ItemId, const FString& BinderName, const FString& TargetName, const FString& TargetAccount)
@@ -4078,6 +4078,12 @@ void AMyBondageLifePlayerController::ClientBondageEnded(bool bSuccess, bool bRes
 
 	if (bSuccess)
 	{
+		// 只有拘束者客户端负责落地穿戴，避免双方各穿一次。
+		if (!bBondageBinder)
+		{
+			return;
+		}
+
 		if (BondagePendingSlot >= 0 && !BondagePendingItem.IsNone())
 		{
 			if (BondageTargetAccount.IsEmpty() || BondageTargetAccount.Equals(Account->GetAccountName(), ESearchCase::IgnoreCase))

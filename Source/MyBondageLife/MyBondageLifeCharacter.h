@@ -508,7 +508,7 @@ public:
 
 	// ---- 拘束穿戴流程（服务器权威） ----
 	UFUNCTION(Server, Reliable)
-	void ServerStartBondage(AMyBondageLifeCharacter* Target, float Duration, bool bSelfTarget, int32 SlotIndex, FName ItemId);
+	void ServerStartBondage(AMyBondageLifeCharacter* Target, float Duration, bool bSelfTarget, int32 SlotIndex, FName ItemId, const FString& TargetAccount);
 
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastBondageStart(AMyBondageLifeCharacter* Binder, AMyBondageLifeCharacter* Target, float Duration, int32 SlotIndex, FName ItemId, bool bSelfTarget, const FString& BinderName, const FString& TargetName, const FString& TargetAccount);
