@@ -19,6 +19,7 @@ class UMyBondageLifeChatWidget;
 class UMyBondageLifePlayerInfoWidget;
 class UMyBondageLifeFriendListWidget;
 class UMyBondageLifeWardrobeWidget;
+class UMyBondageLifeSettingsWidget;
 class AMyBondageLifeCharacter;
 
 /**
@@ -563,6 +564,12 @@ public:
 
 	UFUNCTION()
 	void CloseEmotePanel();
+
+	/** 游戏设置（F10 打开，ESC 关闭）。 */
+	void ToggleSettings();
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMyBondageLifeSettingsWidget> SettingsWidget;
 
 	UFUNCTION(BlueprintCallable, Category="UI")
 	void ToggleRulePanelFor(const FString& TargetAccount = FString());

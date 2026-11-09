@@ -40,6 +40,7 @@
 #include "UI/MyBondageLifeNameplateLayer.h"
 #include "UI/MyBondageLifePlayerInfoWidget.h"
 #include "UI/MyBondageLifeWardrobeWidget.h"
+#include "UI/MyBondageLifeSettingsWidget.h"
 #include "UI/MyBondageLifeWardrobeButtonWidget.h"
 #include "UI/MyBondageLifePlayerInfoEntryWidget.h"
 
@@ -1699,6 +1700,10 @@ void AMyBondageLifePlayerController::SetupInputComponent()
 	// G：靠近椅子时坐下 / 起身
 	InputComponent->BindKey(EKeys::G, IE_Pressed, this,
 		&AMyBondageLifePlayerController::HandleSitKeyPressed);
+
+	// F10：游戏设置
+	InputComponent->BindKey(EKeys::F10, IE_Pressed, this,
+		&AMyBondageLifePlayerController::ToggleSettings);
 
 	// Z：表情动作面板
 	InputComponent->BindKey(EKeys::Z, IE_Pressed, this,
@@ -3549,7 +3554,14 @@ bool AMyBondageLifePlayerController::HandleEscapePanels()
 		return true;
 	}
 
-	// 细节面板优先关闭，其次规则面板；两者都没开时不处理（交给其它 ESC 逻辑）。
+	// 游戏设置最优先关闭。
+	if (SettingsWidget && SettingsWidget->IsPanelOpen())
+	{
+		SettingsWidget->ClosePanel();
+		return true;
+	}
+
+	// 细节面板优先关闭，其次规则面板。
 	if (bRuleDetailOpen)
 	{
 		CloseRuleDetailPanel();
@@ -3846,4 +3858,23 @@ void AMyBondageLifePlayerController::EndClimaxSequence()
 	{
 		ChatWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	}
+}
+
+void AMyBondageLifePlayerController::ToggleSettings()
+{
+	if (!SettingsWidget)
+	{
+		SettingsWidget = CreateWidget<UMyBondageLifeSettingsWidget>(this, UMyBondageLifeSettingsWidget::StaticClass());
+		if (SettingsWidget)
+		{
+			SettingsWidget->AddToViewport(600);
+		}
+	}
+
+	if (!SettingsWidget)
+	{
+		return;
+	}
+
+	SettingsWidget->TogglePanel();
 }
