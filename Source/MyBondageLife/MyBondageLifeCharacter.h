@@ -508,10 +508,10 @@ public:
 	void ServerStartBondage(AMyBondageLifeCharacter* Target, float Duration, bool bSelfTarget, int32 SlotIndex, FName ItemId);
 
 	UFUNCTION(NetMulticast, Reliable)
-	void MulticastBondageStart(float Duration, bool bSelfTarget, int32 SlotIndex, FName ItemId);
+	void MulticastBondageStart(AMyBondageLifeCharacter* Binder, AMyBondageLifeCharacter* Target, float Duration, int32 SlotIndex, FName ItemId, bool bSelfTarget, const FString& BinderName, const FString& TargetName, const FString& TargetAccount);
 
 	UFUNCTION(NetMulticast, Reliable)
-	void MulticastBondageEnd(bool bSuccess, bool bResisted);
+	void MulticastBondageEnd(bool bSuccess, bool bResisted, const FString& BinderName, const FString& TargetName, const FString& TargetAccount);
 
 	UFUNCTION(Server, Reliable)
 	void ServerCancelBondage();

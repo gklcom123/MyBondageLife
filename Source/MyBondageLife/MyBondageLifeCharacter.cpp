@@ -1810,6 +1810,13 @@ void AMyBondageLifeCharacter::ServerStartBondage_Implementation(AMyBondageLifeCh
 		return;
 	}
 
+	// 拘束者移动到被缚者身后。
+	if (!bSelfTarget)
+	{
+		const FVector Behind = Target->GetActorLocation() - Target->GetActorForwardVector() * 90.0f;
+		SetActorLocation(Behind, false, nullptr, ETeleportType::TeleportPhysics);
+	}
+
 	bBondageInProgress = true;
 	BondageBinder = this;
 	BondageTarget = Target;
@@ -1818,9 +1825,14 @@ void AMyBondageLifeCharacter::ServerStartBondage_Implementation(AMyBondageLifeCh
 	Target->bBondageInProgress = true;
 	Target->BondageBinder = this;
 
-	MulticastBondageStart(Duration, bSelfTarget, SlotIndex, ItemId);
+	AMyBondageLifePlayerController* BinderPC = Cast<AMyBondageLifePlayerController>(GetController());
+	AMyBondageLifePlayerController* TargetPC = Cast<AMyBondageLifePlayerController>(Target->GetController());
+	const FString BinderName = BinderPC ? BinderPC->GetOwnAccountName() : GetName();
+	const FString TargetName = TargetPC ? TargetPC->GetOwnAccountName() : Target->GetName();
 
-	GetWorldTimerManager().SetTimer(BondageTimer, [this]()
+	MulticastBondageStart(this, Target, Duration, SlotIndex, ItemId, bSelfTarget, BinderName, TargetName, TargetName);
+
+	GetWorldTimerManager().SetTimer(BondageTimer, [this, BinderName, TargetName]()
 	{
 		if (bBondageInProgress)
 		{
@@ -1829,26 +1841,46 @@ void AMyBondageLifeCharacter::ServerStartBondage_Implementation(AMyBondageLifeCh
 			{
 				TargetChar->bBondageInProgress = false;
 			}
-			MulticastBondageEnd(true, false);
+			MulticastBondageEnd(true, false, BinderName, TargetName, TargetName);
 		}
 	}, FMath::Max(0.1f, Duration), false);
 }
 
-void AMyBondageLifeCharacter::MulticastBondageStart_Implementation(float Duration, bool bSelfTarget, int32 SlotIndex, FName ItemId)
+void AMyBondageLifeCharacter::MulticastBondageStart_Implementation(AMyBondageLifeCharacter* Binder, AMyBondageLifeCharacter* Target, float Duration, int32 SlotIndex, FName ItemId, bool bSelfTarget, const FString& BinderName, const FString& TargetName, const FString& TargetAccount)
 {
-	PlayBondageMontage();
+	AMyBondageLifePlayerController* PC = Cast<AMyBondageLifePlayerController>(GetController());
+	APawn* LocalPawn = PC ? PC->GetPawn() : nullptr;
 
-	if (AMyBondageLifePlayerController* PC = Cast<AMyBondageLifePlayerController>(GetController()))
+	if (LocalPawn == Binder)
 	{
-		PC->ClientBondageStarted(Duration, bSelfTarget, SlotIndex, ItemId);
+		PlayBondageMontage();
 	}
+	else if (USoundBase* Cue = LoadObject<USoundBase>(nullptr, TEXT("/Game/Characters/Sound/Sex/Bondage_Cue.Bondage_Cue")))
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, Cue, GetActorLocation());
+	}
+
+	if (!PC || !LocalPawn)
+	{
+		return;
+	}
+
+	const bool bIsBinder = (LocalPawn == Binder);
+	const bool bIsTarget = (LocalPawn == Target);
+	if (!bIsBinder && !bIsTarget)
+	{
+		return;
+	}
+
+	const int32 BondageRole = bSelfTarget ? 2 : (bIsBinder ? 0 : 1);
+	PC->ClientBondageStarted(Duration, BondageRole, SlotIndex, ItemId, BinderName, TargetName, TargetAccount);
 }
 
-void AMyBondageLifeCharacter::MulticastBondageEnd_Implementation(bool bSuccess, bool bResisted)
+void AMyBondageLifeCharacter::MulticastBondageEnd_Implementation(bool bSuccess, bool bResisted, const FString& BinderName, const FString& TargetName, const FString& TargetAccount)
 {
 	if (AMyBondageLifePlayerController* PC = Cast<AMyBondageLifePlayerController>(GetController()))
 	{
-		PC->ClientBondageEnded(bSuccess, bResisted);
+		PC->ClientBondageEnded(bSuccess, bResisted, BinderName, TargetName, TargetAccount);
 	}
 }
 
@@ -1859,13 +1891,19 @@ void AMyBondageLifeCharacter::ServerCancelBondage_Implementation()
 		return;
 	}
 
+	AMyBondageLifePlayerController* BinderPC = Cast<AMyBondageLifePlayerController>(GetController());
+	const FString BinderName = BinderPC ? BinderPC->GetOwnAccountName() : GetName();
+	AMyBondageLifeCharacter* TargetChar = BondageTarget.Get();
+	AMyBondageLifePlayerController* TargetPC = TargetChar ? Cast<AMyBondageLifePlayerController>(TargetChar->GetController()) : nullptr;
+	const FString TargetName = TargetPC ? TargetPC->GetOwnAccountName() : (TargetChar ? TargetChar->GetName() : FString());
+
 	const bool bResisted = (BondageBinder != this);
 	bBondageInProgress = false;
-	if (AMyBondageLifeCharacter* TargetChar = BondageTarget.Get())
+	if (TargetChar)
 	{
 		TargetChar->bBondageInProgress = false;
 	}
 
 	GetWorldTimerManager().ClearTimer(BondageTimer);
-	MulticastBondageEnd(false, bResisted);
+	MulticastBondageEnd(false, bResisted, BinderName, TargetName, TargetName);
 }

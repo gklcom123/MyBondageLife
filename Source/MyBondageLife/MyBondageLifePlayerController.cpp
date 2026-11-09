@@ -3926,37 +3926,34 @@ void AMyBondageLifePlayerController::StartBondageWear(int32 SlotIndex, FName Ite
 	Binder->ServerStartBondage(Target, Duration, bSelfTarget, SlotIndex, ItemId);
 }
 
-void AMyBondageLifePlayerController::ClientBondageStarted(float Duration, bool bSelfTarget, int32 SlotIndex, FName ItemId)
+void AMyBondageLifePlayerController::ClientBondageStarted(float Duration, int32 InRole, int32 SlotIndex, FName ItemId, const FString& BinderName, const FString& TargetName, const FString& TargetAccount)
 {
 	bBondageUiActive = true;
 	BondageDuration = FMath::Max(0.1f, Duration);
 	BondageElapsed = 0.0f;
-	bBondageSelfTarget = bSelfTarget;
+	bBondageSelfTarget = (InRole == 2);
+	bBondageBinder = (InRole != 1);
 	BondagePendingSlot = SlotIndex;
 	BondagePendingItem = ItemId;
+	BondageBinderName = BinderName;
+	BondageTargetName = TargetName;
+	BondageTargetAccount = TargetAccount;
 
-	// 双方都不能移动；视角保留。
 	SetIgnoreMoveInput(true);
 
-	if (GetPawn() == nullptr)
-	{
-		return;
-	}
-
+	const FString Label = (InRole == 1) ? TEXT("受缚中（按Space抵抗）") : TEXT("捆绑中（按Space取消）");
 	if (MainHudWidget)
 	{
-		MainHudWidget->ShowBondageProgress(0.0f,
-			bSelfTarget ? TEXT("捆绑中（按Space取消）") : TEXT("与对方捆绑中（按Space取消）"));
+		MainHudWidget->ShowBondageProgress(0.0f, Label);
 	}
 
-	GetWorldTimerManager().SetTimer(BondageProgressTimer, [this]()
+	GetWorldTimerManager().SetTimer(BondageProgressTimer, [this, Label]()
 	{
 		BondageElapsed += 0.05f;
 		const float Alpha = FMath::Clamp(BondageElapsed / BondageDuration, 0.0f, 1.0f);
 		if (MainHudWidget)
 		{
-			MainHudWidget->ShowBondageProgress(Alpha,
-				BondageElapsed >= BondageDuration ? TEXT("捆绑完成") : TEXT("捆绑中（按Space取消）"));
+			MainHudWidget->ShowBondageProgress(Alpha, Label);
 		}
 
 		if (Alpha >= 1.0f)
@@ -3966,7 +3963,7 @@ void AMyBondageLifePlayerController::ClientBondageStarted(float Duration, bool b
 	}, 0.05f, true);
 }
 
-void AMyBondageLifePlayerController::ClientBondageEnded(bool bSuccess, bool bResisted)
+void AMyBondageLifePlayerController::ClientBondageEnded(bool bSuccess, bool bResisted, const FString& BinderName, const FString& TargetName, const FString& TargetAccount)
 {
 	if (!bBondageUiActive)
 	{
@@ -3982,25 +3979,36 @@ void AMyBondageLifePlayerController::ClientBondageEnded(bool bSuccess, bool bRes
 		MainHudWidget->HideBondageProgress();
 	}
 
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	if (!Account)
+	{
+		return;
+	}
+
 	if (bSuccess)
 	{
-		UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
-			? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
-		if (Account && BondagePendingSlot >= 0 && !BondagePendingItem.IsNone())
+		if (BondagePendingSlot >= 0 && !BondagePendingItem.IsNone())
 		{
-			Account->EquipRestraint(BondagePendingSlot, BondagePendingItem.ToString());
+			if (BondageTargetAccount.IsEmpty() || BondageTargetAccount.Equals(Account->GetAccountName(), ESearchCase::IgnoreCase))
+			{
+				Account->EquipRestraint(BondagePendingSlot, BondagePendingItem.ToString());
+			}
+			else
+			{
+				Account->EquipRestraintFor(BondageTargetAccount, BondagePendingSlot, BondagePendingItem.ToString());
+			}
 		}
 	}
 	else
 	{
-		UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
-			? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
-		if (Account)
+		// 只有发起方负责发公开文本，避免重复。
+		if (bBondageBinder)
 		{
-			const FString MyName = Account->GetCharacterName();
 			Account->BroadcastSystemText(
-				bResisted ? FString::Printf(TEXT("%s抵抗了拘束"), *MyName)
-				          : FString::Printf(TEXT("%s取消了拘束"), *MyName),
+				bResisted
+					? FString::Printf(TEXT("%s抵抗了%s的拘束"), *TargetName, *BinderName)
+					: FString::Printf(TEXT("%s取消了对%s的拘束"), *BinderName, *TargetName),
 				FString());
 		}
 	}
@@ -4017,4 +4025,14 @@ void AMyBondageLifePlayerController::CancelBondage()
 	{
 		BondageChar->ServerCancelBondage();
 	}
+}
+
+FString AMyBondageLifePlayerController::GetOwnAccountName() const
+{
+	if (const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		return Account->GetAccountName();
+	}
+	return FString();
 }

@@ -568,10 +568,12 @@ public:
 	/** 游戏设置（F10 打开，ESC 关闭）。 */
 	void ToggleSettings();
 
+	FString GetOwnAccountName() const;
+
 	// ---- 拘束穿戴进度 ----
 	void StartBondageWear(int32 SlotIndex, FName ItemId, AMyBondageLifeCharacter* Target, float Duration, bool bSelfTarget);
-	void ClientBondageStarted(float Duration, bool bSelfTarget, int32 SlotIndex, FName ItemId);
-	void ClientBondageEnded(bool bSuccess, bool bResisted);
+	void ClientBondageStarted(float Duration, int32 Role, int32 SlotIndex, FName ItemId, const FString& BinderName, const FString& TargetName, const FString& TargetAccount);
+	void ClientBondageEnded(bool bSuccess, bool bResisted, const FString& BinderName, const FString& TargetName, const FString& TargetAccount);
 	void CancelBondage();
 
 	bool bBondageUiActive = false;
@@ -582,6 +584,9 @@ public:
 	int32 BondagePendingSlot = -1;
 	FName BondagePendingItem;
 	bool bBondageBinder = true;
+	FString BondageBinderName;
+	FString BondageTargetName;
+	FString BondageTargetAccount;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMyBondageLifeSettingsWidget> SettingsWidget;
