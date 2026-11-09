@@ -521,6 +521,9 @@ public:
 
 	void PlayBondageMontage();
 
+	UPROPERTY(Transient)
+	TObjectPtr<UAnimMontage> ActiveBondageMontage;
+
 	AMyBondageLifeCharacter* BondageBinder = nullptr;
 	bool bBondageInProgress = false;
 	FTimerHandle BondageTimer;

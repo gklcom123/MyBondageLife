@@ -1789,10 +1789,11 @@ void AMyBondageLifeCharacter::MulticastSetClimax_Implementation(bool bActive)
 void AMyBondageLifeCharacter::PlayBondageMontage()
 {
 	static const TCHAR* MontagePath =
-		TEXT("/Game/Characters/MainCharc/FinalYab/Animation/MainCharcF_Bondage_Montage.MainCharcF_Bondage_Montage");
+		TEXT("/Game/Characters/MainCharc/FinalYab/Animation/IKAnmi_bondage_Montage.IKAnmi_bondage_Montage");
 
 	if (UAnimMontage* Montage = LoadObject<UAnimMontage>(nullptr, MontagePath))
 	{
+		ActiveBondageMontage = Montage;
 		PlayAnimMontage(Montage);
 	}
 
@@ -1896,6 +1897,12 @@ void AMyBondageLifeCharacter::MulticastBondageStart_Implementation(AMyBondageLif
 
 void AMyBondageLifeCharacter::MulticastBondageEnd_Implementation(bool bSuccess, bool bResisted, const FString& BinderName, const FString& TargetName, const FString& TargetAccount)
 {
+	// 过程结束/取消：立即停止捆绑动画。
+	if (ActiveBondageMontage)
+	{
+		StopAnimMontage(ActiveBondageMontage);
+		ActiveBondageMontage = nullptr;
+	}
 	if (AMyBondageLifePlayerController* PC = Cast<AMyBondageLifePlayerController>(UGameplayStatics::GetPlayerController(this, 0)))
 	{
 		PC->ClientBondageEnded(bSuccess, bResisted, BinderName, TargetName, TargetAccount);
