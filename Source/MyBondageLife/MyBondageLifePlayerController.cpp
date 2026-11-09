@@ -1564,36 +1564,26 @@ void AMyBondageLifePlayerController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
 
-	// 把账号名同步到角色（好友衣柜按账号查找目标角色用）。
-	if (AMyBondageLifeCharacter* BondageCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	if (AMyBondageLifeCharacter* BondageCharacter = Cast<AMyBondageLifeCharacter>(InPawn))
 	{
-		if (const UMyBondageLifeAccountSubsystem* AccountSub = GetGameInstance()
-			? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+		FString LoginAccount = PlayerState ? PlayerState->GetPlayerName() : FString();
+		if (LoginAccount.IsEmpty() && IsLocalPlayerController())
 		{
-			const FString LoginAccount = AccountSub->GetAccountName();
-			if (!LoginAccount.IsEmpty())
+			if (const UMyBondageLifeAccountSubsystem* AccountSub = GetGameInstance()
+				? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
 			{
-				BondageCharacter->SetAccountNameFree(LoginAccount);
+				LoginAccount = AccountSub->GetAccountName();
 			}
 		}
+
+		if (!LoginAccount.IsEmpty())
+		{
+			BondageCharacter->SetAccountNameFree(LoginAccount);
+		}
 	}
+
 
 	ApplyCharacterNameToPawn();
-
-	// 把账号名同步到角色（好友衣柜按账号查找目标角色用）。
-	if (AMyBondageLifeCharacter* BondageCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
-	{
-		if (const UMyBondageLifeAccountSubsystem* AccountSub = GetGameInstance()
-			? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
-		{
-			const FString LoginAccount = AccountSub->GetAccountName();
-			if (!LoginAccount.IsEmpty())
-			{
-				BondageCharacter->SetAccountNameFree(LoginAccount);
-			}
-		}
-	}
-
 	// Remote players change our wardrobe through the service: poll it.
 	if (UWorld* SyncWorld = GetWorld())
 	{
@@ -2097,30 +2087,6 @@ void AMyBondageLifePlayerController::HandleHeightChanged(float NewHeightScale)
 {
 	// Re-publish the identity so the pawn (and every other client) picks the new size.
 	ApplyCharacterNameToPawn();
-
-	// 把账号名同步到角色（好友衣柜按账号查找目标角色用）。
-	if (AMyBondageLifeCharacter* BondageCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
-	{
-		if (const UMyBondageLifeAccountSubsystem* AccountSub = GetGameInstance()
-			? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
-		{
-			const FString LoginAccount = AccountSub->GetAccountName();
-			if (!LoginAccount.IsEmpty())
-			{
-				BondageCharacter->SetAccountNameFree(LoginAccount);
-			}
-		}
-	}
-
-	// Remote players change our wardrobe through the service: poll it.
-	if (UWorld* SyncWorld = GetWorld())
-	{
-		SyncWorld->GetTimerManager().SetTimer(RestraintSyncTimer, this,
-			&AMyBondageLifePlayerController::SyncRestraintsFromServer, 5.0f, true);
-	}
-
-	// Restore the worn restraints on the freshly possessed pawn.
-	PushRestraintsToPawn();
 }
 
 // ---------------------------------------------------------------------------
@@ -2301,30 +2267,6 @@ void AMyBondageLifePlayerController::HandleHairChanged(int32 NewHairIndex)
 {
 	// Re-publish the identity so the pawn (and everyone else) wears the new hair.
 	ApplyCharacterNameToPawn();
-
-	// 把账号名同步到角色（好友衣柜按账号查找目标角色用）。
-	if (AMyBondageLifeCharacter* BondageCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
-	{
-		if (const UMyBondageLifeAccountSubsystem* AccountSub = GetGameInstance()
-			? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
-		{
-			const FString LoginAccount = AccountSub->GetAccountName();
-			if (!LoginAccount.IsEmpty())
-			{
-				BondageCharacter->SetAccountNameFree(LoginAccount);
-			}
-		}
-	}
-
-	// Remote players change our wardrobe through the service: poll it.
-	if (UWorld* SyncWorld = GetWorld())
-	{
-		SyncWorld->GetTimerManager().SetTimer(RestraintSyncTimer, this,
-			&AMyBondageLifePlayerController::SyncRestraintsFromServer, 5.0f, true);
-	}
-
-	// Restore the worn restraints on the freshly possessed pawn.
-	PushRestraintsToPawn();
 }
 
 // ---------------------------------------------------------------------------
