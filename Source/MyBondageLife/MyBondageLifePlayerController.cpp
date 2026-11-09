@@ -1701,10 +1701,6 @@ void AMyBondageLifePlayerController::SetupInputComponent()
 	InputComponent->BindKey(EKeys::G, IE_Pressed, this,
 		&AMyBondageLifePlayerController::HandleSitKeyPressed);
 
-	// F10：游戏设置
-	InputComponent->BindKey(EKeys::F10, IE_Pressed, this,
-		&AMyBondageLifePlayerController::ToggleSettings);
-
 	// Z：表情动作面板
 	InputComponent->BindKey(EKeys::Z, IE_Pressed, this,
 		&AMyBondageLifePlayerController::HandleEmoteKeyPressed);
