@@ -1811,6 +1811,21 @@ void AMyBondageLifeCharacter::ServerStartBondage_Implementation(AMyBondageLifeCh
 		return;
 	}
 
+	// 任何一方在坐着都先站起来。
+	auto ForceStand = [](AMyBondageLifeCharacter* Who)
+	{
+		if (!Who || !Who->IsSitting())
+		{
+			return;
+		}
+
+		const FVector StandLocation = Who->GetActorLocation() + Who->GetActorForwardVector() * 100.0f;
+		Who->ServerSetSitting(false, StandLocation, Who->GetActorRotation());
+	};
+
+	ForceStand(this);
+	ForceStand(Target);
+
 	// 拘束者移动到被缚者身后。
 	if (!bSelfTarget)
 	{
