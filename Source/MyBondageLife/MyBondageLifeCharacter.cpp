@@ -1863,6 +1863,9 @@ void AMyBondageLifeCharacter::ServerStartBondage_Implementation(AMyBondageLifeCh
 		TargetName = Target->GetName();
 	}
 
+	// 服务器播放蒙太奇 → 复制到所有客户端（客户端本地播放他人看不到）。
+	PlayBondageMontage();
+
 	MulticastBondageStart(this, Target, Duration, SlotIndex, ItemId, bSelfTarget, BinderName, TargetName, TargetName);
 
 	GetWorldTimerManager().SetTimer(BondageTimer, [this, BinderName, TargetName]()
@@ -1885,11 +1888,6 @@ void AMyBondageLifeCharacter::MulticastBondageStart_Implementation(AMyBondageLif
 	AMyBondageLifePlayerController* PC = Cast<AMyBondageLifePlayerController>(UGameplayStatics::GetPlayerController(this, 0));
 	APawn* LocalPawn = PC ? PC->GetPawn() : nullptr;
 
-	// 每个客户端都在拘束者角色上本地播放一次，确保所有人都看得到。
-	if (Binder)
-	{
-		Binder->PlayBondageMontage();
-	}
 
 	{
 		if (USoundBase* Cue = LoadObject<USoundBase>(nullptr, TEXT("/Game/Characters/Sound/UI/Bondage_Cue.Bondage_Cue")))
