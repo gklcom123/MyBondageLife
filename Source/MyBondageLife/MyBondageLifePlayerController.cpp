@@ -4084,6 +4084,9 @@ void AMyBondageLifePlayerController::ClientBondageEnded(bool bSuccess, bool bRes
 			return;
 		}
 
+		UE_LOG(LogMyBondageLife, Log, TEXT("Bondage: equip targetAccount=[%s] own=[%s] slot=%d item=%s"),
+			*BondageTargetAccount, *Account->GetAccountName(), BondagePendingSlot, *BondagePendingItem.ToString());
+
 		if (BondagePendingSlot >= 0 && !BondagePendingItem.IsNone())
 		{
 			if (BondageTargetAccount.IsEmpty() || BondageTargetAccount.Equals(Account->GetAccountName(), ESearchCase::IgnoreCase))
