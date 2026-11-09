@@ -1374,6 +1374,8 @@ void UMyBondageLifeWardrobeWidget::PickRestraintItem(FName ItemId)
 		// 有 WearTime 的拘束：进入穿戴进度流程（关衣柜、锁移动、播放蒙太奇）。
 		const FMyBondageLifeRestraintItem* PickedItem = FMyBondageLifeRestraintCatalog::Find(ItemId);
 		const float WearTime = PickedItem ? PickedItem->WearTime : 0.0f;
+		UE_LOG(LogMyBondageLife, Log, TEXT("Bondage: pick item=%s found=%d wearTime=%.2f friendMode=%d"),
+		*ItemId.ToString(), PickedItem ? 1 : 0, WearTime, bFriendMode ? 1 : 0);
 
 		if (WearTime > 0.0f)
 		{
