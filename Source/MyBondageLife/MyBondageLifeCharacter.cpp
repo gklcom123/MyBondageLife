@@ -1831,8 +1831,13 @@ void AMyBondageLifeCharacter::ServerStartBondage_Implementation(AMyBondageLifeCh
 
 	AMyBondageLifePlayerController* BinderPC = Cast<AMyBondageLifePlayerController>(GetController());
 	AMyBondageLifePlayerController* TargetPC = Cast<AMyBondageLifePlayerController>(Target->GetController());
-	const FString BinderName = BinderPC ? BinderPC->GetOwnAccountName() : GetName();
-	FString TargetName = TargetPC ? TargetPC->GetOwnAccountName() : FString();
+	// 服务器上的 AccountSubsystem 只代表主机玩家，不能用它取别人的账号；PlayerState 名字在登录时被 SetName 为账号。
+	FString BinderName = (BinderPC && BinderPC->PlayerState) ? BinderPC->PlayerState->GetPlayerName() : FString();
+	if (BinderName.IsEmpty())
+	{
+		BinderName = GetAccountName().IsEmpty() ? GetName() : GetAccountName();
+	}
+	FString TargetName = (TargetPC && TargetPC->PlayerState) ? TargetPC->PlayerState->GetPlayerName() : FString();
 	if (TargetName.IsEmpty())
 	{
 		TargetName = InTargetAccount.IsEmpty() ? Target->GetAccountName() : InTargetAccount;
@@ -1905,10 +1910,19 @@ void AMyBondageLifeCharacter::ServerCancelBondage_Implementation()
 	}
 
 	AMyBondageLifePlayerController* BinderPC = Cast<AMyBondageLifePlayerController>(GetController());
-	const FString BinderName = BinderPC ? BinderPC->GetOwnAccountName() : GetName();
+	// 服务器上的 AccountSubsystem 只代表主机玩家，不能用它取别人的账号；PlayerState 名字在登录时被 SetName 为账号。
+	FString BinderName = (BinderPC && BinderPC->PlayerState) ? BinderPC->PlayerState->GetPlayerName() : FString();
+	if (BinderName.IsEmpty())
+	{
+		BinderName = GetAccountName().IsEmpty() ? GetName() : GetAccountName();
+	}
 	AMyBondageLifeCharacter* TargetChar = BondageTarget.Get();
 	AMyBondageLifePlayerController* TargetPC = TargetChar ? Cast<AMyBondageLifePlayerController>(TargetChar->GetController()) : nullptr;
-	const FString TargetName = TargetPC ? TargetPC->GetOwnAccountName() : (TargetChar ? TargetChar->GetName() : FString());
+	FString TargetName = (TargetPC && TargetPC->PlayerState) ? TargetPC->PlayerState->GetPlayerName() : FString();
+	if (TargetName.IsEmpty())
+	{
+		TargetName = TargetChar ? (TargetChar->GetAccountName().IsEmpty() ? TargetChar->GetName() : TargetChar->GetAccountName()) : FString();
+	}
 
 	const bool bResisted = (BondageBinder != this);
 	bBondageInProgress = false;
