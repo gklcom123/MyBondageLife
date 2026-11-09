@@ -31,4 +31,72 @@ namespace MyBondageLifeUI
 
 		TextBox->SetWidgetStyle(Style);
 	}
+
+	UFont* LoadUIFont()
+	{
+		static TWeakObjectPtr<UFont> CachedFont;
+		if (CachedFont.IsValid())
+		{
+			return CachedFont.Get();
+		}
+
+		UFont* Font = LoadObject<UFont>(nullptr,
+			TEXT("/Game/Font/AlimamaFangYuanTiVF-Thin-2_Font.AlimamaFangYuanTiVF-Thin-2_Font"));
+
+		CachedFont = Font;
+		return Font;
+	}
+
+	FSlateFontInfo Font(int32 Size)
+	{
+		if (UFont* UIFont = LoadUIFont())
+		{
+			return FSlateFontInfo(UIFont, Size);
+		}
+
+		FSlateFontInfo Info;
+		Info.Size = Size;
+		return Info;
+	}
+
+	void ApplyFonts(UWidget* Root)
+	{
+		if (!Root)
+		{
+			return;
+		}
+
+		UFont* UIFont = LoadUIFont();
+		if (!UIFont)
+		{
+			return;
+		}
+
+		TArray<UWidget*> Stack;
+		Stack.Add(Root);
+
+		while (Stack.Num() > 0)
+		{
+			UWidget* Current = Stack.Pop();
+			if (!Current)
+			{
+				continue;
+			}
+
+			if (UTextBlock* Label = Cast<UTextBlock>(Current))
+			{
+				FSlateFontInfo Info = Label->GetFont();
+				Info.FontObject = UIFont;
+				Label->SetFont(Info);
+			}
+
+			if (UPanelWidget* Panel = Cast<UPanelWidget>(Current))
+			{
+				for (int32 Index = 0; Index < Panel->GetChildrenCount(); ++Index)
+				{
+					Stack.Add(Panel->GetChildAt(Index));
+				}
+			}
+		}
+	}
 }

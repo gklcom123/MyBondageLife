@@ -41,6 +41,7 @@
 #include "UI/MyBondageLifeNameplateLayer.h"
 #include "UI/MyBondageLifePlayerInfoWidget.h"
 #include "UI/MyBondageLifeWardrobeWidget.h"
+#include "UI/MyBondageLifeUIStyle.h"
 #include "UI/MyBondageLifeSettingsWidget.h"
 #include "UI/MyBondageLifeWardrobeButtonWidget.h"
 #include "UI/MyBondageLifePlayerInfoEntryWidget.h"
@@ -4124,3 +4125,34 @@ void AMyBondageLifePlayerController::ServerAssignAccount_Implementation(const FS
 	}
 }
 
+
+void AMyBondageLifePlayerController::ApplyUIFontsPass()
+{
+	auto ApplyTo = [](UUserWidget* Widget)
+	{
+		if (Widget)
+		{
+			MyBondageLifeUI::ApplyFonts(Widget);
+		}
+	};
+
+	ApplyTo(MainHudWidget);
+	ApplyTo(ChatWidget);
+	ApplyTo(WardrobeWidget);
+	ApplyTo(PlayerInfoWidget);
+	ApplyTo(FriendListWidget);
+	ApplyTo(MessageCenterWidget);
+	ApplyTo(SettingsWidget);
+	ApplyTo(LoginWidget);
+	ApplyTo(GameMenuWidget);
+	ApplyTo(HostInfoWidget);
+	ApplyTo(RulePanelWidget);
+	ApplyTo(EmoteListWidget);
+	ApplyTo(SeatHintWidget);
+
+	++UIFontPassCount;
+	if (UIFontPassCount > 40 && GetWorld())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(UIFontTimer);
+	}
+}

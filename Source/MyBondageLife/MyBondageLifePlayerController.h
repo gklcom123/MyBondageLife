@@ -568,6 +568,11 @@ public:
 	/** 游戏设置（F10 打开，ESC 关闭）。 */
 	void ToggleSettings();
 
+	/** 统一 UI 字体：把已创建控件树里的所有 TextBlock 换成 AlimamaFangYuanTiVF-Thin-2_Font。 */
+	void ApplyUIFontsPass();
+	FTimerHandle UIFontTimer;
+	int32 UIFontPassCount = 0;
+
 	FString GetOwnAccountName() const;
 
 	/** 客户端登录后把自己的账号写到角色上（服务端执行并复制）。 */
