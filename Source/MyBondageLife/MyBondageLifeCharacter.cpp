@@ -1863,9 +1863,6 @@ void AMyBondageLifeCharacter::ServerStartBondage_Implementation(AMyBondageLifeCh
 		TargetName = Target->GetName();
 	}
 
-	// 由服务器播放蒙太奇：会被复制到所有客户端（客户端本地播放对方看不到）。
-	PlayBondageMontage();
-
 	MulticastBondageStart(this, Target, Duration, SlotIndex, ItemId, bSelfTarget, BinderName, TargetName, TargetName);
 
 	GetWorldTimerManager().SetTimer(BondageTimer, [this, BinderName, TargetName]()
@@ -1888,7 +1885,12 @@ void AMyBondageLifeCharacter::MulticastBondageStart_Implementation(AMyBondageLif
 	AMyBondageLifePlayerController* PC = Cast<AMyBondageLifePlayerController>(UGameplayStatics::GetPlayerController(this, 0));
 	APawn* LocalPawn = PC ? PC->GetPawn() : nullptr;
 
-	// 动画由服务器播放并复制；这里只负责所有客户端都能听到音效。
+	// 每个客户端都在拘束者角色上本地播放一次，确保所有人都看得到。
+	if (Binder)
+	{
+		Binder->PlayBondageMontage();
+	}
+
 	{
 		if (USoundBase* Cue = LoadObject<USoundBase>(nullptr, TEXT("/Game/Characters/Sound/UI/Bondage_Cue.Bondage_Cue")))
 		{
@@ -1916,12 +1918,9 @@ void AMyBondageLifeCharacter::MulticastBondageStart_Implementation(AMyBondageLif
 
 void AMyBondageLifeCharacter::MulticastBondageEnd_Implementation(bool bSuccess, bool bResisted, const FString& BinderName, const FString& TargetName, const FString& TargetAccount)
 {
-	// 过程结束/取消：立即停止捆绑动画。
-	if (ActiveBondageMontage)
-	{
-		StopAnimMontage(ActiveBondageMontage);
-		ActiveBondageMontage = nullptr;
-	}
+	// 过程结束/取消：停止捆绑动画（this 就是拘束者，各客户端本地停）。
+	StopAnimMontage(ActiveBondageMontage);
+	ActiveBondageMontage = nullptr;
 	if (AMyBondageLifePlayerController* PC = Cast<AMyBondageLifePlayerController>(UGameplayStatics::GetPlayerController(this, 0)))
 	{
 		PC->ClientBondageEnded(bSuccess, bResisted, BinderName, TargetName, TargetAccount);
@@ -1965,4 +1964,19 @@ void AMyBondageLifeCharacter::ServerCancelBondage_Implementation()
 	}
 
 	MulticastBondageEnd(false, bResisted, BinderName, TargetName, TargetName);
+}
+
+FString AMyBondageLifeCharacter::GetAccountName() const
+{
+	if (!AccountName.IsEmpty())
+	{
+		return AccountName;
+	}
+
+	// 兜底：登录时 PC 会 SetName(账号)，PlayerState 名字在所有客户端一致。
+	if (const APlayerState* State = GetPlayerState())
+	{
+		return State->GetPlayerName();
+	}
+	return FString();
 }
