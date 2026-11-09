@@ -510,6 +510,8 @@ protected:
 
 	int32 LibidoScreenLevel = 0;
 	float LibidoVisualLevel = 0.0f;
+	float LastAppliedBlind = -1.0f;
+	float LastAppliedLibido = -1.0f;
 
 	/** 拘束的 HideBodyPart：把对应材质插槽换成透明材质（任一件生效即可）。 */
 	void ApplyBodyPartHiding();

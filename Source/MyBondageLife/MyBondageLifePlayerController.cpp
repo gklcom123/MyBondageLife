@@ -228,7 +228,12 @@ void AMyBondageLifePlayerController::ToggleGameMenu()
 		return;
 	}
 
-	// Panels are the top-most layers: Escape closes them first.
+	// 面板/弹层优先（规则、衣柜弹层、表情、消息通知）。
+	if (HandleEscapePanels())
+	{
+		return;
+	}
+
 	if (bWardrobeOpen)
 	{
 		ToggleWardrobe();
@@ -1700,8 +1705,7 @@ void AMyBondageLifePlayerController::SetupInputComponent()
 		&AMyBondageLifePlayerController::HandleEmoteKeyPressed);
 
 	// ESC：先关细节面板，再关规则面板
-	InputComponent->BindKey(EKeys::Escape, IE_Pressed, this,
-		&AMyBondageLifePlayerController::HandleEscapePressed);
+	// ESC 统一由 ToggleGameMenu 处理（面板 → 衣柜/好友/信息 → 退出菜单）。
 
 	// 坐着时按任意移动键起身（只起身，不会触发坐下）
 	InputComponent->BindKey(EKeys::W, IE_Pressed, this, &AMyBondageLifePlayerController::HandleStandUpOnMove);
@@ -2505,7 +2509,7 @@ void AMyBondageLifePlayerController::ShowMessageHud()
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().SetTimer(NotificationPollTimer, this,
-			&AMyBondageLifePlayerController::PollNotifications, 5.0f, true);
+			&AMyBondageLifePlayerController::PollNotifications, 12.0f, true);
 
 		World->GetTimerManager().SetTimer(SexLibidoTimer, this,
 		&AMyBondageLifePlayerController::TickSexLibido, 3.0f, true);
@@ -3022,40 +3026,63 @@ void AMyBondageLifePlayerController::UpdateSeatProximity()
 
 	if (!SittingPawn->IsSitting())
 	{
-		for (TActorIterator<AActor> It(GetWorld()); It; ++It)
+		// 只扫描一次世界，缓存所有带 SitPoint 的椅子（避免每 0.25 秒 TActorIterator 全场景）。
+		if (!bSeatCandidatesBuilt)
 		{
-			AActor* Actor = *It;
-			if (!Actor)
+			bSeatCandidatesBuilt = true;
+			SeatCandidates.Reset();
+			SeatCandidateLocations.Reset();
+			for (TActorIterator<AActor> It(GetWorld()); It; ++It)
 			{
-				continue;
-			}
-
-			bool bHasSitPoint = false;
-			TArray<USceneComponent*> Components;
-			Actor->GetComponents<USceneComponent>(Components);
-			FVector SitLocation = Actor->GetActorLocation();
-			for (USceneComponent* Component : Components)
-			{
-				if (Component && Component->GetFName() == TEXT("SitPoint"))
+				AActor* Candidate = *It;
+				if (!Candidate)
 				{
-					bHasSitPoint = true;
-					SitLocation = Component->GetComponentLocation();
-					break;
+					continue;
+				}
+
+				FVector SitLocation = Candidate->GetActorLocation();
+				bool bHasSitPoint = false;
+				TArray<USceneComponent*> Components;
+				Candidate->GetComponents<USceneComponent>(Components);
+				for (USceneComponent* Component : Components)
+				{
+					if (Component && Component->GetFName() == TEXT("SitPoint"))
+					{
+						bHasSitPoint = true;
+						SitLocation = Component->GetComponentLocation();
+						break;
+					}
+				}
+
+				if (bHasSitPoint)
+				{
+					SeatCandidates.Add(Candidate);
+					SeatCandidateLocations.Add(SitLocation);
 				}
 			}
+		}
 
-			if (!bHasSitPoint)
+		// 进入/退出范围只做距离比较；占用判断只对范围内最近的椅子做。
+		for (int32 Index = 0; Index < SeatCandidates.Num(); ++Index)
+		{
+			AActor* Candidate = SeatCandidates[Index].Get();
+			if (!Candidate)
 			{
 				continue;
 			}
 
-			// 已被别人坐着的椅子不能选
+			const float Distance = FVector::Dist(SittingPawn->GetActorLocation(), SeatCandidateLocations[Index]);
+			if (Distance >= BestDistance)
+			{
+				continue;
+			}
+
 			bool bOccupiedByOther = false;
 			for (TActorIterator<AMyBondageLifeCharacter> CharIt(GetWorld()); CharIt; ++CharIt)
 			{
 				AMyBondageLifeCharacter* OtherCharacter = *CharIt;
 				if (OtherCharacter && OtherCharacter != SittingPawn
-					&& OtherCharacter->GetOccupiedSeat() == Actor)
+					&& OtherCharacter->GetOccupiedSeat() == Candidate)
 				{
 					bOccupiedByOther = true;
 					break;
@@ -3067,18 +3094,14 @@ void AMyBondageLifePlayerController::UpdateSeatProximity()
 				continue;
 			}
 
-			const float Distance = FVector::Dist(SittingPawn->GetActorLocation(), SitLocation);
-			if (Distance < BestDistance)
-			{
-				BestDistance = Distance;
-				Best = Actor;
-			}
+			BestDistance = Distance;
+			Best = Candidate;
 		}
 	}
 
 	if (Best)
 	{
-		UE_LOG(LogMyBondageLife, Log, TEXT("Seat: near '%s' (%.0fcm)."), *Best->GetName(), BestDistance);
+		UE_LOG(LogMyBondageLife, Verbose, TEXT("Seat: near %s (%.0fcm)."), *Best->GetName(), BestDistance);
 	}
 
 	NearSeatActor = Best;
@@ -3518,47 +3541,49 @@ void AMyBondageLifePlayerController::CloseRuleDetailPanel()
 	RefreshChatInputState();
 }
 
-void AMyBondageLifePlayerController::HandleEscapePressed()
+bool AMyBondageLifePlayerController::HandleEscapePanels()
 {
 	// 高潮期间忽略所有快捷键（含 ESC）。
 	if (bClimaxLocked)
 	{
-		return;
+		return true;
 	}
 
 	// 细节面板优先关闭，其次规则面板；两者都没开时不处理（交给其它 ESC 逻辑）。
 	if (bRuleDetailOpen)
 	{
 		CloseRuleDetailPanel();
-		return;
+		return true;
 	}
 
 	if (bRulePanelOpen)
 	{
 		CloseRulePanel();
-		return;
+		return true;
 	}
 
 	// 衣柜里的弹层（锁输入 / 锁菜单 / 颜色 / 拘束选择 / 衣服选择）优先于衣柜本体。
 	if (WardrobeWidget && WardrobeWidget->CloseTopPopup())
 	{
-		return;
+		return true;
 	}
 
 	// 表情动作面板。
 	if (bEmotePanelOpen)
 	{
 		CloseEmotePanel();
-		return;
+		return true;
 	}
 
 	// 消息通知。
 	if (MessageCenterWidget && MessageCenterWidget->IsPanelOpen())
 	{
 		MessageCenterWidget->CloseCenter();
-		return;
+		return true;
 	}
+	return false;
 }
+
 
 void AMyBondageLifePlayerController::HandleRomanceFailed(const FString& Code, const FString& Message)
 {
@@ -3685,8 +3710,15 @@ void AMyBondageLifePlayerController::UpdateLibidoEffects(float Value)
 
 	if (UWorld* AudioWorld = GetWorld())
 	{
-		AudioWorld->GetTimerManager().SetTimer(LibidoAudioTimer, this,
-			&AMyBondageLifePlayerController::TickLibidoAudio, 0.35f, true);
+		if (Level >= 1)
+		{
+			AudioWorld->GetTimerManager().SetTimer(LibidoAudioTimer, this,
+				&AMyBondageLifePlayerController::TickLibidoAudio, 0.35f, true);
+		}
+		else
+		{
+			AudioWorld->GetTimerManager().ClearTimer(LibidoAudioTimer);
+		}
 	}
 
 	// 画面：交给角色的后处理合并（与蒙眼共存）。

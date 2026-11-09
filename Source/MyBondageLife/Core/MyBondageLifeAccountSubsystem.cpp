@@ -1581,6 +1581,27 @@ void UMyBondageLifeAccountSubsystem::MergeNotifications(const TArray<FMyBondageL
 {
 	const FString Prefix = bFriendKind ? TEXT("f:") : TEXT("c:");
 
+	// 先比较：同一类通知的 id 集合没变化就不重建、不广播（省 UMG 重建）。
+	TArray<FString> ExistingIds;
+	for (const FMyBondageLifeNotification& Item : PendingNotifications)
+	{
+		if (Item.Id.StartsWith(Prefix))
+		{
+			ExistingIds.Add(Item.Id);
+		}
+	}
+	TArray<FString> FetchedIds;
+	for (const FMyBondageLifeNotification& Item : Fetched)
+	{
+		FetchedIds.Add(Item.Id);
+	}
+	ExistingIds.Sort();
+	FetchedIds.Sort();
+	if (ExistingIds == FetchedIds && !FetchedIds.IsEmpty())
+	{
+		return;
+	}
+
 	// Keep the other kind, replace this one.
 	PendingNotifications.RemoveAll([&Prefix](const FMyBondageLifeNotification& Item)
 	{

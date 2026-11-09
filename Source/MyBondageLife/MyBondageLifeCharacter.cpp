@@ -1034,6 +1034,15 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 	BlindVisualLevel = FMath::FInterpTo(BlindVisualLevel, Target, InDeltaTime, 5.0f);
 	LibidoVisualLevel = FMath::FInterpTo(LibidoVisualLevel, static_cast<float>(LibidoScreenLevel), InDeltaTime, 4.0f);
 
+	// 状态没变化就不每帧写后处理（省 CPU）。
+	if (FMath::IsNearlyEqual(BlindVisualLevel, LastAppliedBlind) &&
+		FMath::IsNearlyEqual(LibidoVisualLevel, LastAppliedLibido))
+	{
+		return;
+	}
+	LastAppliedBlind = BlindVisualLevel;
+	LastAppliedLibido = LibidoVisualLevel;
+
 	FPostProcessSettings& PP = Camera->PostProcessSettings;
 	const bool bActive = BlindVisualLevel > 0.01f || LibidoVisualLevel > 0.01f;
 	const bool bBlind  = BlindVisualLevel > 0.01f;

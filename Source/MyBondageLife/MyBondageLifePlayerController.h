@@ -587,7 +587,7 @@ public:
 	void CloseRuleDetailPanel();
 
 	UFUNCTION()
-	void HandleEscapePressed();
+	bool HandleEscapePanels();
 
 	UFUNCTION()
 	void HandleRomanceFailed(const FString& Code, const FString& Message);
@@ -631,6 +631,12 @@ public:
 	TObjectPtr<class UMyBondageLifeSitHintWidget> SeatHintWidget;
 
 	FTimerHandle SeatProximityTimer;
+
+	/** 椅子候选缓存：只扫描一次世界，之后仅做距离/占用判断。 */
+	TArray<TWeakObjectPtr<AActor>> SeatCandidates;
+	TArray<FVector> SeatCandidateLocations;
+	bool bSeatCandidatesBuilt = false;
+	TWeakObjectPtr<AActor> LastShownSeat;
 
 	void HandleSitKeyPressed();
 
