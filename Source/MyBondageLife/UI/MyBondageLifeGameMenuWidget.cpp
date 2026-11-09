@@ -3,6 +3,7 @@
 #include "MyBondageLifeGameMenuWidget.h"
 
 #include "Blueprint/WidgetTree.h"
+#include "MyBondageLifePlayerController.h"
 #include "Components/Border.h"
 #include "Components/Button.h"
 #include "Components/CanvasPanel.h"
@@ -169,7 +170,10 @@ void UMyBondageLifeGameMenuWidget::QuitGameProcess()
 
 void UMyBondageLifeGameMenuWidget::HandleSettingsClicked()
 {
-	UE_LOG(LogMyBondageLife, Log, TEXT("GameMenu: 游戏设置 is not implemented yet."));
+	if (AMyBondageLifePlayerController* PC = Cast<AMyBondageLifePlayerController>(GetOwningPlayer()))
+	{
+		PC->ToggleSettings();
+	}
 }
 
 void UMyBondageLifeGameMenuWidget::HandleReturnClicked()

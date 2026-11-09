@@ -3336,7 +3336,6 @@ void AMyBondageLifePlayerController::CloseEmotePanel()
 
 	// 面板可能加过移动/视角忽略，这里全部清干净，避免关闭后无法操作。
 	SetIgnoreMoveInput(false);
-	SetIgnoreLookInput(false);
 	ResetIgnoreMoveInput();
 	ResetIgnoreLookInput();
 	SetInputMode(FInputModeGameOnly());
@@ -3805,8 +3804,8 @@ void AMyBondageLifePlayerController::BeginClimaxSequence()
 	}
 
 	DisableInput(this);
+	// 只锁移动，保留鼠标旋转视角。
 	SetIgnoreMoveInput(true);
-	SetIgnoreLookInput(true);
 
 	// 临时隐藏 HUD / 聊天。
 	ClimaxHiddenHud = MainHudWidget;
@@ -3847,7 +3846,6 @@ void AMyBondageLifePlayerController::EndClimaxSequence()
 
 	EnableInput(this);
 	SetIgnoreMoveInput(false);
-	SetIgnoreLookInput(false);
 
 	if (ClimaxHiddenHud)
 	{

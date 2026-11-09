@@ -3,6 +3,7 @@
 #include "MainSceneWidget.h"
 
 #include "Blueprint/WidgetTree.h"
+#include "MyBondageLifePlayerController.h"
 #include "Components/Border.h"
 #include "Components/Button.h"
 #include "Components/CanvasPanel.h"
@@ -775,7 +776,10 @@ void UMainSceneWidget::HandleJoinGameClicked()
 
 void UMainSceneWidget::HandleSettingsClicked()
 {
-	UE_LOG(LogMyBondageLife, Log, TEXT("MainScene: 游戏设置 is not implemented yet."));
+	if (AMyBondageLifePlayerController* PC = Cast<AMyBondageLifePlayerController>(GetOwningPlayer()))
+	{
+		PC->ToggleSettings();
+	}
 }
 
 void UMainSceneWidget::HandleQuitClicked()

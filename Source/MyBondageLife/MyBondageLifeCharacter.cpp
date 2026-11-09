@@ -1055,7 +1055,7 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 	PP.VignetteIntensity = 2.4f * BlindVisualLevel + 2.2f * LibidoVisualLevel;
 
 	PP.bOverride_VignetteColor = bActive;
-	PP.VignetteColor = bBlind ? FLinearColor(0.0f, 0.0f, 0.0f) : FLinearColor(1.0f, 0.55f, 0.75f);
+	PP.VignetteColor = bBlind ? FLinearColor(0.0f, 0.0f, 0.0f) : FLinearColor(1.0f, 0.68f, 0.84f);
 
 	PP.bOverride_AutoExposureBias = bActive;
 	PP.AutoExposureBias = -0.55f * BlindVisualLevel;
@@ -1072,7 +1072,7 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 
 	// 性欲的粉色染色：越强越明显（不影响蒙眼的黑色暗角）。
 	PP.bOverride_SceneColorTint = bLibido;
-	PP.SceneColorTint = FLinearColor::LerpUsingHSV(FLinearColor::White, FLinearColor(1.0f, 0.72f, 0.86f), FMath::Clamp(LibidoVisualLevel * 0.5f, 0.0f, 1.0f));
+	PP.SceneColorTint = FLinearColor::LerpUsingHSV(FLinearColor::White, FLinearColor(1.0f, 0.84f, 0.93f), FMath::Clamp(LibidoVisualLevel * 0.5f, 0.0f, 1.0f));
 
 }
 void AMyBondageLifeCharacter::ApplyBodyPartHiding()
@@ -1719,7 +1719,10 @@ void AMyBondageLifeCharacter::BeginClimax()
 		{
 			ClimaxSavedArmLength = Boom->TargetArmLength;
 		}
-		ClimaxLockedArmLength = FMath::Max(50.0f, ClimaxSavedArmLength * 0.5f);
+
+		// 无论当前镜头多远，都固定到一个较近的距离。
+		const float BaseArm = DefaultArmLength > 0.0f ? DefaultArmLength : 300.0f;
+		ClimaxLockedArmLength = FMath::Clamp(BaseArm * 0.45f, 120.0f, 220.0f);
 		Boom->TargetArmLength = ClimaxLockedArmLength;
 	}
 
