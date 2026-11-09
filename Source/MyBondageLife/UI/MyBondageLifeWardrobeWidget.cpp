@@ -1119,7 +1119,7 @@ void UMyBondageLifeWardrobeWidget::RefreshRestraintSlots()
 			}
 			else
 			{
-				SlotIcons[SlotIndex]->SetBrush(FSlateBrush());
+				SlotIcons[SlotIndex]->SetBrushFromTexture(FMyBondageLifeRestraintCatalog::LoadEmptySlotIcon(), true);
 			}
 		}
 	}
@@ -1545,7 +1545,7 @@ void UMyBondageLifeWardrobeWidget::RefreshLockBadges()
 		}
 		else
 		{
-			Badge->SetBrush(FSlateBrush());
+			Badge->SetBrushFromTexture(FMyBondageLifeRestraintCatalog::LoadEmptySlotIcon(), true);
 			Badge->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}

@@ -93,6 +93,9 @@ public:
 	/** Loads the icon of an item (may be null). */
 	static UTexture2D* LoadIcon(FName ItemId);
 
+	/** 空槽位占位图（nothing）。 */
+	static UTexture2D* LoadEmptySlotIcon();
+
 	/** Name for display, falling back to the row name. */
 	static FString GetDisplayName(FName ItemId);
 

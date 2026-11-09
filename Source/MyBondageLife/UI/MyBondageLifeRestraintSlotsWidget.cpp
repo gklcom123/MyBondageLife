@@ -273,7 +273,7 @@ void UMyBondageLifeRestraintSlotsWidget::RefreshSlots()
 			}
 			else
 			{
-				SlotIcons[SlotIndex]->SetBrush(FSlateBrush());
+				SlotIcons[SlotIndex]->SetBrushFromTexture(FMyBondageLifeRestraintCatalog::LoadEmptySlotIcon(), true);
 			}
 		}
 
@@ -320,7 +320,7 @@ void UMyBondageLifeRestraintSlotsWidget::RefreshSlots()
 			}
 			else
 			{
-				SlotLockBadges[SlotIndex]->SetBrush(FSlateBrush());
+				SlotLockBadges[SlotIndex]->SetBrushFromTexture(FMyBondageLifeRestraintCatalog::LoadEmptySlotIcon(), true);
 				SlotLockBadges[SlotIndex]->SetVisibility(ESlateVisibility::Collapsed);
 			}
 		}

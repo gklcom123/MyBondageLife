@@ -441,3 +441,16 @@ USkeletalMesh* FMyBondageLifeRestraintCatalog::LoadWornMesh(FName ItemId)
 	const FMyBondageLifeRestraintItem* Item = Find(ItemId);
 	return Item ? Item->Mesh.LoadSynchronous() : nullptr;
 }
+
+UTexture2D* FMyBondageLifeRestraintCatalog::LoadEmptySlotIcon()
+{
+	static TWeakObjectPtr<UTexture2D> CachedIcon;
+	if (CachedIcon.IsValid())
+	{
+		return CachedIcon.Get();
+	}
+
+	UTexture2D* Icon = LoadObject<UTexture2D>(nullptr, TEXT("/Game/2DAssest/UI/nothing.nothing"));
+	CachedIcon = Icon;
+	return Icon;
+}

@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "UI/MyBondageLifeWardrobeButtonWidget.h"
+#include "Core/MyBondageLifeRestraintCatalog.h"
 #include "MyBondageLifeUIStyle.h"
 
 #include "Blueprint/WidgetTree.h"
@@ -95,7 +96,7 @@ void UMyBondageLifeWardrobeButtonWidget::BuildLayout()
 		else
 		{
 			// No icon configured: keep the entry transparent instead of a white block.
-			Icon->SetBrush(FSlateBrush());
+			Icon->SetBrushFromTexture(FMyBondageLifeRestraintCatalog::LoadEmptySlotIcon(), true);
 			Icon->SetVisibility(ESlateVisibility::Collapsed);
 		}
 		IconSize->AddChild(Icon);

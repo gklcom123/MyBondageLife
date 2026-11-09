@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "UI/MyBondageLifeOutfitWidgets.h"
+#include "UI/MyBondageLifeOutfitWidgets.h"
+#include "Core/MyBondageLifeRestraintCatalog.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
@@ -296,7 +297,7 @@ void UMyBondageLifeOutfitSlotsWidget::RefreshSlots(const TMap<int32, FString>& E
 			}
 			else
 			{
-				SlotImage->SetBrush(FSlateBrush());
+				SlotImage->SetBrushFromTexture(FMyBondageLifeRestraintCatalog::LoadEmptySlotIcon(), true);
 			}
 		}
 		if (SlotText)
