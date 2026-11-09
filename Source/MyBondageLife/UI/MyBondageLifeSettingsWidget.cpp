@@ -87,15 +87,19 @@ namespace
 
 TSharedRef<SWidget> UMyBondageLifeSettingsWidget::RebuildWidget()
 {
-	TSharedRef<SWidget> Widget = Super::RebuildWidget();
-
+	// 纯代码 UI：必须在 Super 之前构建 WidgetTree，否则 Slate 控件已经生成，后加的树不会显示。
 	if (!bLayoutBuilt)
 	{
+		if (!WidgetTree)
+		{
+			WidgetTree = NewObject<UWidgetTree>(this, TEXT("WidgetTree"));
+		}
+
 		bLayoutBuilt = true;
 		BuildLayout();
 	}
 
-	return Widget;
+	return Super::RebuildWidget();
 }
 
 void UMyBondageLifeSettingsWidget::BuildLayout()
