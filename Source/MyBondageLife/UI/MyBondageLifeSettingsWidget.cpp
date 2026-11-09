@@ -13,6 +13,7 @@
 #include "Components/ScrollBox.h"
 #include "Components/Slider.h"
 #include "Components/TextBlock.h"
+#include "Components/SizeBox.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Components/WidgetSwitcher.h"
@@ -20,6 +21,7 @@
 #include "Internationalization/Internationalization.h"
 #include "Misc/ConfigCacheIni.h"
 #include "MyBondageLife.h"
+#include "Styling/CoreStyle.h"
 
 namespace
 {
@@ -52,7 +54,7 @@ namespace
 		Button->SetBackgroundColor(Tint);
 		Button->SetClickMethod(EButtonClickMethod::MouseDown);
 
-		UTextBlock* Label = MakeLabel(Tree, Caption, 18, FLinearColor(0.05f, 0.05f, 0.05f));
+		UTextBlock* Label = MakeLabel(Tree, Caption, 30, FLinearColor(0.05f, 0.05f, 0.05f));
 		Label->SetJustification(ETextJustify::Center);
 		Button->AddChild(Label);
 		return Button;
@@ -119,18 +121,22 @@ void UMyBondageLifeSettingsWidget::BuildLayout()
 
 	UBorder* Panel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
 	Panel->SetBrushColor(FLinearColor(0.93f, 0.90f, 0.90f, 1.0f));
-	Panel->SetPadding(FMargin(26.0f, 18.0f));
+	Panel->SetPadding(FMargin(48.0f, 32.0f));
 	Backdrop->AddChild(Panel);
 
+	USizeBox* PanelSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	PanelSize->SetWidthOverride(1200.0f);
+	Panel->AddChild(PanelSize);
+
 	UVerticalBox* Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-	Panel->AddChild(Column);
+	PanelSize->AddChild(Column);
 
 	// 标题 + 关闭
 	UHorizontalBox* Header = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	Column->AddChildToVerticalBox(Header);
 
-	UTextBlock* Title = MakeLabel(WidgetTree, TEXT("游戏设置"), 26, FLinearColor(0.08f, 0.08f, 0.09f));
-	Title->SetFont(MakeFont(26, true));
+	UTextBlock* Title = MakeLabel(WidgetTree, TEXT("游戏设置"), 44, FLinearColor(0.08f, 0.08f, 0.09f));
+	Title->SetFont(MakeFont(44, true));
 	if (UHorizontalBoxSlot* TitleSlot = Header->AddChildToHorizontalBox(Title))
 	{
 		TitleSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
@@ -243,10 +249,13 @@ void UMyBondageLifeSettingsWidget::BuildLayout()
 	auto AddSliderRow = [this](UVerticalBox* Parent, const TCHAR* LabelText, const TCHAR* Key, float DefaultValue)
 	{
 		UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-		Parent->AddChildToVerticalBox(Row);
+		if (UVerticalBoxSlot* RowSlot = Parent->AddChildToVerticalBox(Row))
+		{
+			RowSlot->SetPadding(FMargin(0.0f, 10.0f));
+		}
 
-		UTextBlock* Label = MakeLabel(WidgetTree, LabelText, 20, FLinearColor(0.1f, 0.1f, 0.11f));
-		Label->SetMinDesiredWidth(160.0f);
+		UTextBlock* Label = MakeLabel(WidgetTree, LabelText, 32, FLinearColor(0.1f, 0.1f, 0.11f));
+		Label->SetMinDesiredWidth(260.0f);
 		Row->AddChildToHorizontalBox(Label);
 
 		USlider* Slider = WidgetTree->ConstructWidget<USlider>(USlider::StaticClass());
@@ -260,8 +269,8 @@ void UMyBondageLifeSettingsWidget::BuildLayout()
 
 		UTextBlock* ValueLabel = MakeLabel(WidgetTree,
 			FString::Printf(TEXT("%d%%"), FMath::RoundToInt(LoadFloat(Key, DefaultValue) * 100.0f)),
-			18, FLinearColor(0.25f, 0.25f, 0.27f));
-		ValueLabel->SetMinDesiredWidth(70.0f);
+			28, FLinearColor(0.25f, 0.25f, 0.27f));
+		ValueLabel->SetMinDesiredWidth(110.0f);
 		Row->AddChildToHorizontalBox(ValueLabel);
 
 		UMyBondageLifeSettingsActionProxy* SliderProxy = NewObject<UMyBondageLifeSettingsActionProxy>(this);
@@ -315,8 +324,8 @@ void UMyBondageLifeSettingsWidget::AddComboRow(UVerticalBox* Parent, const TCHAR
 	UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	Parent->AddChildToVerticalBox(Row);
 
-	UTextBlock* LabelText = MakeLabel(WidgetTree, Label, 20, FLinearColor(0.1f, 0.1f, 0.11f));
-	LabelText->SetMinDesiredWidth(160.0f);
+	UTextBlock* LabelText = MakeLabel(WidgetTree, Label, 32, FLinearColor(0.1f, 0.1f, 0.11f));
+	LabelText->SetMinDesiredWidth(300.0f);
 	Row->AddChildToHorizontalBox(LabelText);
 
 	UComboBoxString* Combo = WidgetTree->ConstructWidget<UComboBoxString>(UComboBoxString::StaticClass());
