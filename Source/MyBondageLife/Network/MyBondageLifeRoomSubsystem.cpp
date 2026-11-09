@@ -3,6 +3,7 @@
 #include "MyBondageLifeRoomSubsystem.h"
 
 #include "Core/MyBondageLifeAccountSubsystem.h"
+#include "Core/MyBondageLifeEOSSubsystem.h"
 #include "Dom/JsonObject.h"
 #include "Engine/Engine.h"
 #include "Engine/GameViewportClient.h"
@@ -23,7 +24,7 @@
 namespace
 {
 	constexpr float RoomRequestTimeoutSeconds = 8.0f;
-	constexpr float HeartbeatIntervalSeconds = 20.0f;
+	constexpr float HeartbeatIntervalSeconds = 10.0f;
 }
 
 void UMyBondageLifeRoomSubsystem::Initialize(FSubsystemCollectionBase& Collection)
@@ -33,12 +34,28 @@ void UMyBondageLifeRoomSubsystem::Initialize(FSubsystemCollectionBase& Collectio
 	ConnectingTickerHandle = FTSTicker::GetCoreTicker().AddTicker(
 		FTickerDelegate::CreateUObject(this, &UMyBondageLifeRoomSubsystem::TickConnectingOverlay),
 		0.25f);
+
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
+		{
+			Account->OnRoomClosed.AddUObject(this, &UMyBondageLifeRoomSubsystem::HandleRoomClosed);
+		}
+	}
 }
 
 void UMyBondageLifeRoomSubsystem::Deinitialize()
 {
 	HideConnectingOverlay();
 	FTSTicker::GetCoreTicker().RemoveTicker(ConnectingTickerHandle);
+
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
+		{
+			Account->OnRoomClosed.RemoveAll(this);
+		}
+	}
 
 	StopHeartbeat();
 	Super::Deinitialize();
@@ -66,6 +83,11 @@ void UMyBondageLifeRoomSubsystem::CreateRoom(const FString& InRoomName, const FS
 	{
 		return;
 	}
+
+	HostedRoomName = InRoomName;
+	HostedRoomPuid = InHostPuid;
+	HostedRoomMap = InMapName;
+	HostedRoomMaxPlayers = InMaxPlayers;
 
 	const TSharedRef<FJsonObject> Payload = MakeShared<FJsonObject>();
 	Payload->SetStringField(TEXT("name"), InRoomName);
@@ -98,6 +120,7 @@ void UMyBondageLifeRoomSubsystem::JoinRoom(const FString& RoomId)
 
 	const int32 Generation = ++JoinGeneration;
 	bRequestInFlight = true;
+	JoiningRoomId = RoomId;
 
 	bTravelStarted = false;
 	ConnectStartedSeconds = FPlatformTime::Seconds();
@@ -244,6 +267,7 @@ bool UMyBondageLifeRoomSubsystem::TickConnectingOverlay(float DeltaSeconds)
 
 	if (Now - ConnectStartedSeconds > 15.0)
 	{
+		ReportUnreachable(JoiningRoomId);
 		CancelJoin();
 		OnRoomsFailed.Broadcast(FText::FromString(TEXT("\u8FDE\u63A5\u8D85\u65F6\uFF0C\u8BF7\u91CD\u8BD5")));
 	}
@@ -254,6 +278,11 @@ bool UMyBondageLifeRoomSubsystem::TickConnectingOverlay(float DeltaSeconds)
 void UMyBondageLifeRoomSubsystem::LeaveRoom()
 {
 	StopHeartbeat();
+
+	HostedRoomName.Reset();
+	HostedRoomPuid.Reset();
+	HostedRoomMap.Reset();
+	JoiningRoomId.Reset();
 
 	if (HostedRoomId.IsEmpty())
 	{
@@ -386,9 +415,16 @@ void UMyBondageLifeRoomSubsystem::HandleCreateResponse(int32 StatusCode, const F
 	}
 
 	HostedRoomId = Room.RoomId;
+	HostedRoomName = Room.RoomName;
+	HostedRoomPuid = Room.HostPuid;
+	HostedRoomMap = Room.MapName;
+	HostedRoomMaxPlayers = Room.MaxPlayers;
 	StartHeartbeat();
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("Rooms: 已创建房间 '%s'（%s）"), *Room.RoomName, *Room.RoomId);
+
+	// Keep the open-room list in sync after an automatic re-open.
+	RefreshRooms();
 }
 
 void UMyBondageLifeRoomSubsystem::HandleJoinResponse(int32 StatusCode, const FString& Body)
@@ -458,23 +494,73 @@ void UMyBondageLifeRoomSubsystem::SendHeartbeat()
 
 	const TSharedRef<FJsonObject> Payload = MakeShared<FJsonObject>();
 	Payload->SetNumberField(TEXT("playerCount"), GetPlayerCount());
+	const FString CurrentPuid = GetCurrentHostPuid();
+	if (!CurrentPuid.IsEmpty())
+	{
+		Payload->SetStringField(TEXT("hostPuid"), CurrentPuid);
+	}
+	if (!HostedRoomMap.IsEmpty())
+	{
+		Payload->SetStringField(TEXT("mapName"), HostedRoomMap);
+	}
+	Payload->SetStringField(TEXT("socketName"), TEXT("GameSocket"));
 
 	SendRequest(FString::Printf(TEXT("/rooms/%s/heartbeat"), *HostedRoomId), TEXT("POST"), Payload,
 		[this](bool bSuccess, int32 StatusCode, const FString& Body)
 		{
 			if (StatusCode == 404)
 			{
-				// The room expired (e.g. the host was suspended); stop trying.
-				UE_LOG(LogMyBondageLife, Warning, TEXT("Rooms: 房间已过期，停止心跳"));
-				HostedRoomId.Reset();
-				StopHeartbeat();
+				// The room expired or was removed. Re-open it immediately so the
+				// advertised room matches the live P2P listener again. Keep the old
+				// id so a failed create retries on the next heartbeat.
+				UE_LOG(LogMyBondageLife, Warning, TEXT("Rooms: 房间已被服务端移除，自动重开"));
+				ReopenHostedRoom();
 			}
 		});
 }
 
-FString UMyBondageLifeRoomSubsystem::GetToken() const
+void UMyBondageLifeRoomSubsystem::ReopenHostedRoom()
 {
-	if (const UGameInstance* GameInstance = GetGameInstance())
+	if (HostedRoomName.IsEmpty() || HostedRoomPuid.IsEmpty() || HostedRoomMap.IsEmpty())
+	{
+		return;
+	}
+	if (bRequestInFlight)
+	{
+		return;
+	}
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("Rooms: 自动重开房间 '%s'"), *HostedRoomName);
+	CreateRoom(HostedRoomName, GetCurrentHostPuid(), HostedRoomMap, HostedRoomMaxPlayers);
+}
+
+void UMyBondageLifeRoomSubsystem::ReportUnreachable(const FString& RoomId)
+{
+	if (RoomId.IsEmpty())
+	{
+		return;
+	}
+
+	const TSharedRef<FJsonObject> Payload = MakeShared<FJsonObject>();
+	Payload->SetStringField(TEXT("reason"), TEXT("p2p_timeout"));
+	SendRequest(FString::Printf(TEXT("/rooms/%s/unreachable"), *RoomId), TEXT("POST"), Payload,
+		[](bool bSuccess, int32 StatusCode, const FString& Body)
+		{
+			UE_LOG(LogMyBondageLife, Log, TEXT("Rooms: 上报不可达（%d）"), StatusCode);
+		});
+}
+
+void UMyBondageLifeRoomSubsystem::HandleRoomClosed(const FString& RoomId, const FString& Reason)
+{
+	if (!HostedRoomId.IsEmpty() && RoomId == HostedRoomId)
+	{
+		UE_LOG(LogMyBondageLife, Warning, TEXT("Rooms: 服务端关闭房间（%s），自动重开"), *Reason);
+		ReopenHostedRoom();
+	}
+}
+
+FString UMyBondageLifeRoomSubsystem::GetToken() const
+{	if (const UGameInstance* GameInstance = GetGameInstance())
 	{
 		if (const UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
 		{
@@ -483,6 +569,23 @@ FString UMyBondageLifeRoomSubsystem::GetToken() const
 	}
 
 	return FString();
+}
+
+FString UMyBondageLifeRoomSubsystem::GetCurrentHostPuid() const
+{
+	if (const UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (const UMyBondageLifeEOSSubsystem* EOS = GameInstance->GetSubsystem<UMyBondageLifeEOSSubsystem>())
+		{
+			const FString Current = EOS->GetProductUserId();
+			if (!Current.IsEmpty())
+			{
+				return Current;
+			}
+		}
+	}
+
+	return HostedRoomPuid;
 }
 
 int32 UMyBondageLifeRoomSubsystem::GetPlayerCount() const

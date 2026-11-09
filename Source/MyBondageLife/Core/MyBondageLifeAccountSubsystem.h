@@ -50,6 +50,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeAuthSucceeded);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeRulesChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeRomanceChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FMyBondageLifeRomanceFailed, const FString&, Code, const FString&, Message);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FMyBondageLifeRoomClosed, const FString&, const FString&);
 
 /** Raised when login/registration failed; carries a player-facing message. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeAuthFailed, const FText&, ErrorMessage);
@@ -503,6 +504,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Rules")
 	FMyBondageLifeRulesChanged OnRulesChanged;
+
+	/** Host-side notification that the advertised room was closed by the server. */
+	FMyBondageLifeRoomClosed OnRoomClosed;
 
 	TSet<FString> EnabledRules;              // own (effects)
 	TSet<FString> ViewedEnabledRules;        // viewed account (panel)

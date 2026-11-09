@@ -81,7 +81,17 @@ private:
 	void StopHeartbeat();
 	void SendHeartbeat();
 
+	/** Re-create the hosted room after the server closed it (unreachable / expired). */
+	void ReopenHostedRoom();
+
+	/** Tell the server that the P2P connection to this room timed out. */
+	void ReportUnreachable(const FString& RoomId);
+
+	/** Realtime callback: the server removed our advertised room. */
+	void HandleRoomClosed(const FString& RoomId, const FString& Reason);
+
 	FString GetToken() const;
+	FString GetCurrentHostPuid() const;
 	int32 GetPlayerCount() const;
 
 	/** Parses one room object; returns false when required fields are missing. */
@@ -92,6 +102,14 @@ private:
 
 	TArray<FMyBondageLifeServerRoom> CachedRooms;
 	FString HostedRoomId;
+	FString HostedRoomName;
+	FString HostedRoomPuid;
+	FString HostedRoomMap;
+	int32 HostedRoomMaxPlayers = 8;
+	FString JoiningRoomId;
+
+	/** 加入成功后所在的房间（房主关闭/失效时用来退回主菜单）。 */
+	FString CurrentRoomId;
 
 	FTimerHandle HeartbeatTimer;
 	bool bRequestInFlight = false;

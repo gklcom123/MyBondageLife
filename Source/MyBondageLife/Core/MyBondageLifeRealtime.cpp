@@ -185,6 +185,17 @@ void UMyBondageLifeAccountSubsystem::HandleRealtimeMessage(const FString& InMess
 		return;
 	}
 
+	if (Type == TEXT("room.closed"))
+	{
+		FString RoomId;
+		FString Reason;
+		Json->TryGetStringField(TEXT("roomId"), RoomId);
+		Json->TryGetStringField(TEXT("reason"), Reason);
+		UE_LOG(LogMyBondageLife, Warning, TEXT("Realtime: room.closed %s (%s)"), *RoomId, *Reason);
+		OnRoomClosed.Broadcast(RoomId, Reason);
+		return;
+	}
+
 	if (Type == TEXT("error"))
 	{
 		FString Code;
