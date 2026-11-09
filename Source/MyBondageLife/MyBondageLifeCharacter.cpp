@@ -1788,13 +1788,21 @@ void AMyBondageLifeCharacter::MulticastSetClimax_Implementation(bool bActive)
 
 void AMyBondageLifeCharacter::PlayBondageMontage()
 {
-	static const TCHAR* MontagePath =
-		TEXT("/Game/Characters/MainCharc/FinalYab/Animation/IKAnmi_bondage_Montage.IKAnmi_bondage_Montage");
-
-	if (UAnimMontage* Montage = LoadObject<UAnimMontage>(nullptr, MontagePath))
+	// 手臂被拘束时不播放捆绑动画（无法做动作），音效照常。
+	if (IsArmsRestrained())
 	{
-		ActiveBondageMontage = Montage;
-		PlayAnimMontage(Montage);
+		UE_LOG(LogMyBondageLife, Log, TEXT("Bondage: montage skipped (arms restrained)."));
+	}
+	else
+	{
+		static const TCHAR* MontagePath =
+			TEXT("/Game/Characters/MainCharc/FinalYab/Animation/IKAnmi_bondage_Montage.IKAnmi_bondage_Montage");
+
+		if (UAnimMontage* Montage = LoadObject<UAnimMontage>(nullptr, MontagePath))
+		{
+			ActiveBondageMontage = Montage;
+			PlayAnimMontage(Montage);
+		}
 	}
 
 	if (USoundBase* Cue = LoadObject<USoundBase>(nullptr,
