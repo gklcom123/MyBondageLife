@@ -1618,6 +1618,14 @@ void AMyBondageLifePlayerController::OnPossess(APawn* InPawn)
 	// mouse back to the game so the look axis keeps working.
 	EnsureInputSetup();
 
+	// 统一字体：登录/菜单/游戏内控件都会在此后创建，用低频轮询持续覆盖。
+	if (UWorld* FontWorld = GetWorld())
+	{
+		FontWorld->GetTimerManager().SetTimer(UIFontTimer, this,
+			&AMyBondageLifePlayerController::ApplyUIFontsPass, 1.0f, true);
+	}
+
+
 	// The engine's ignore counters live on the controller and survive a travel, so
 	// clear them before the input mode is applied for the new pawn.
 	bGameplayInputBlocked = false;
@@ -1688,6 +1696,14 @@ void AMyBondageLifePlayerController::BeginPlay()
 	// Movement / look / jump mapping contexts must exist in every world (menu and
 	// game), otherwise the pawn ignores the mouse after a travel.
 	EnsureInputSetup();
+
+	// 统一字体：登录/菜单/游戏内控件都会在此后创建，用低频轮询持续覆盖。
+	if (UWorld* FontWorld = GetWorld())
+	{
+		FontWorld->GetTimerManager().SetTimer(UIFontTimer, this,
+			&AMyBondageLifePlayerController::ApplyUIFontsPass, 1.0f, true);
+	}
+
 
 	const UGameInstance* GameInstance = GetGameInstance();
 	const UMyBondageLifeAccountSubsystem* Account = GameInstance
@@ -4151,8 +4167,4 @@ void AMyBondageLifePlayerController::ApplyUIFontsPass()
 	ApplyTo(SeatHintWidget);
 
 	++UIFontPassCount;
-	if (UIFontPassCount > 40 && GetWorld())
-	{
-		GetWorld()->GetTimerManager().ClearTimer(UIFontTimer);
-	}
 }
