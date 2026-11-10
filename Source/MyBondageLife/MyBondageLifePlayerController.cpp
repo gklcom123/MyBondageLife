@@ -4288,8 +4288,6 @@ void AMyBondageLifePlayerController::UpdateTractionFollow(float DeltaTime)
 		return;
 	}
 
-	MoveComp->SetMovementMode(MOVE_Walking);
-
 	const float Distance = FVector::Dist(Follower->GetActorLocation(), Leader->GetActorLocation());
 	if (Distance > 120.0f)
 	{
