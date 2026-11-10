@@ -4256,6 +4256,11 @@ void AMyBondageLifePlayerController::HandleTractionChanged()
 
 	SetIgnoreMoveInput(bTractionFollower);
 
+	if (AMyBondageLifeCharacter* Controlled = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		Controlled->bBlockMoveInput = bTractionFollower;
+	}
+
 
 	if (MainHudWidget)
 	{
@@ -4283,19 +4288,18 @@ void AMyBondageLifePlayerController::UpdateTractionFollow(float DeltaTime)
 		return;
 	}
 
-	// 保持正常行走模式，但每帧覆盖速度：WASD 无法改变方向，跟随由牵引驱动。
 	MoveComp->SetMovementMode(MOVE_Walking);
 
 	const float Distance = FVector::Dist(Follower->GetActorLocation(), Leader->GetActorLocation());
 	if (Distance > 120.0f)
 	{
 		const FVector Direction = (Leader->GetActorLocation() - Follower->GetActorLocation()).GetSafeNormal2D();
-		MoveComp->Velocity = Direction * FMath::Clamp(Distance * 3.0f, 200.0f, 600.0f);
+		Follower->AddMovementInput(Direction, 1.0f);
 		Follower->SetActorRotation(FRotator(0.0f, Direction.Rotation().Yaw, 0.0f));
 	}
 	else
 	{
-		MoveComp->Velocity = FVector::ZeroVector;
+		// 距离足够近：不施加移动输入。
 	}
 }
 

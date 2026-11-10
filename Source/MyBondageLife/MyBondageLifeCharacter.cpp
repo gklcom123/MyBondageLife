@@ -220,6 +220,11 @@ void AMyBondageLifeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerI
 
 void AMyBondageLifeCharacter::Move(const FInputActionValue& Value)
 {
+	if (bBlockMoveInput)
+	{
+		return;
+	}
+
 	// input is a Vector2D
 	FVector2D MovementVector = Value.Get<FVector2D>();
 

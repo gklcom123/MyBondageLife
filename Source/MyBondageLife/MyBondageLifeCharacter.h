@@ -615,6 +615,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Camera")
 	void ZoomIn();
 
+	/** 被牵引时屏蔽玩家 WASD（AddMovementInput 不受影响）。 */
+	bool bBlockMoveInput = false;
+
 	/** 高潮：动画蓝图 OnSex=true、镜头拉近、播放单次音效。 */
 	UFUNCTION(BlueprintCallable, Category = "Sex")
 	void BeginClimax();
