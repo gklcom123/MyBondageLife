@@ -71,6 +71,9 @@ public:
 	UFUNCTION()
 	void HandleTractionClicked();
 
+	UFUNCTION()
+	void HandleTractionStateChanged();
+
 	bool bTractionBound = false;
 
 	/** Re-reads the equipment and repaints every slot. */

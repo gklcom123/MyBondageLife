@@ -2765,6 +2765,8 @@ void AMyBondageLifePlayerController::ShowHudEntries()
 	{
 		HudRuleAccount->RefreshRules();
 		HudRuleAccount->OnRomanceActionFailed.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleRomanceFailed);
+		HudRuleAccount->OnTractionChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleTractionChanged);
+		HudRuleAccount->RefreshTractionState();
 	}
 
 	// Restraint status icons (gag / arms / legs / cannot move) live in the HUD too.

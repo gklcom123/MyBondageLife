@@ -362,35 +362,74 @@ void UMyBondageLifeRestraintSlotsWidget::RefreshSlaveControlPanel()
 		return;
 	}
 
-	UWidget* ControlPanel = WidgetTree->FindWidget(TEXT("W_Overlay_SlaveControlPanel"));
-	if (!ControlPanel)
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+
+	// 状态变化时自动刷新按钮（绑定一次）。
+	if (Account && !bTractionBound)
 	{
-		return;
+		Account->OnTractionChanged.AddUniqueDynamic(this, &UMyBondageLifeRestraintSlotsWidget::HandleTractionStateChanged);
+		bTractionBound = true;
 	}
 
-	const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
-		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	UWidget* ControlPanel = WidgetTree->FindWidget(TEXT("W_Overlay_SlaveControlPanel"));
+	UButton* TractionButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_ControlBtn_Traction")));
 
 	const bool bShow = !ViewAccount.IsEmpty() && Account
 		&& Account->GetContractRoleWith(ViewAccount) == EMyBondageLifeContractRole::Master;
 
-	UE_LOG(LogMyBondageLife, Log, TEXT("SlaveControl: panel found view=[%s] show=%d"), *ViewAccount, bShow ? 1 : 0);
-
-	ControlPanel->SetVisibility(bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
-
-	if (bShow && !bTractionBound)
+	if (ControlPanel)
 	{
-		if (UButton* TractionButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_ControlBtn_Traction"))))
+		ControlPanel->SetVisibility(bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	}
+
+	if (TractionButton)
+	{
+		const FString CollarId = Account ? Account->GetViewedRestraint(1) : FString();
+		const bool bHasCollar = !CollarId.IsEmpty();
+		const bool bTractioned = Account && !ViewAccount.IsEmpty() && Account->GetTractionFollowers().Contains(ViewAccount);
+
+		TractionButton->SetIsEnabled(bShow && bHasCollar);
+		TractionButton->SetToolTipText(FText::FromString(bHasCollar ? FString() : TEXT("需要目标穿戴项圈")));
+
+		if (UTextBlock* Label = Cast<UTextBlock>(TractionButton->GetChildAt(0)))
+		{
+			Label->SetText(FText::FromString(bTractioned ? TEXT("正在被牵引中") : TEXT("牵引")));
+		}
+
+		if (!TractionButton->OnClicked.IsAlreadyBound(this, &UMyBondageLifeRestraintSlotsWidget::HandleTractionClicked))
 		{
 			TractionButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeRestraintSlotsWidget::HandleTractionClicked);
-			bTractionBound = true;
 		}
 	}
 }
 
+void UMyBondageLifeRestraintSlotsWidget::HandleTractionStateChanged()
+{
+	RefreshSlaveControlPanel();
+}
+
 void UMyBondageLifeRestraintSlotsWidget::HandleTractionClicked()
 {
-	// 牵引效果下一版实现，先记录点击。
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	if (!Account || ViewAccount.IsEmpty())
+	{
+		return;
+	}
+
+	// 点击时再校验一次：必须是主人且目标戴项圈。
+	if (Account->GetContractRoleWith(ViewAccount) != EMyBondageLifeContractRole::Master)
+	{
+		return;
+	}
+
+	const bool bTractioned = Account->GetTractionFollowers().Contains(ViewAccount);
+	if (!bTractioned && Account->GetViewedRestraint(1).IsEmpty())
+	{
+		return;
+	}
+
 	if (AMyBondageLifePlayerController* PC = Cast<AMyBondageLifePlayerController>(GetOwningPlayer()))
 	{
 		PC->ToggleTractionFor(ViewAccount);
