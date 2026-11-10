@@ -4369,7 +4369,13 @@ void AMyBondageLifePlayerController::UpdateTractionChain()
 
 	while (ChainLinks.Num() < Segments)
 	{
-		UStaticMeshComponent* Link = NewObject<UStaticMeshComponent>(this);
+		// PlayerController 没有 RootComponent：组件必须挂到本地角色根节点才可见。
+		AActor* ChainOwner = GetPawn();
+		UStaticMeshComponent* Link = NewObject<UStaticMeshComponent>(ChainOwner ? ChainOwner : this);
+		if (ChainOwner && ChainOwner->GetRootComponent())
+		{
+			Link->SetupAttachment(ChainOwner->GetRootComponent());
+		}
 		Link->SetMobility(EComponentMobility::Movable);
 		Link->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		Link->SetStaticMesh(ChainMesh);
