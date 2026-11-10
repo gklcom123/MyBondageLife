@@ -964,6 +964,7 @@ void AMyBondageLifePlayerController::HandlePlayerInfoOpenChanged(bool bIsOpen)
 
 void AMyBondageLifePlayerController::HandlePlayerInfoKeyPressed()
 {
+	if (bTractionFollower) { return; }
 	// "C" belongs to the chat text while typing.
 	if (bChatTextInput || IsGameMenuOpen())
 	{
@@ -992,6 +993,7 @@ void AMyBondageLifePlayerController::HandlePlayerInfoKeyPressed()
 
 void AMyBondageLifePlayerController::HandleInspectPressed()
 {
+	if (bTractionFollower) { return; }
 	if (!PlayerInfoWidget)
 	{
 		return;
@@ -4254,6 +4256,15 @@ void AMyBondageLifePlayerController::HandleTractionChanged()
 
 	SetIgnoreMoveInput(bTractionFollower);
 
+	if (ACharacter* ControlledChar = Cast<ACharacter>(GetPawn()))
+	{
+		if (UCharacterMovementComponent* MoveComp = ControlledChar->GetCharacterMovement())
+		{
+			if (bTractionFollower) { MoveComp->DisableMovement(); }
+			else { MoveComp->SetMovementMode(MOVE_Walking); }
+	}
+	}
+
 	if (MainHudWidget)
 	{
 		MainHudWidget->SetTractionOverlayVisible(bTractionFollower);
@@ -4363,6 +4374,6 @@ void AMyBondageLifePlayerController::UpdateTractionChain()
 
 		ChainLinks[Index]->SetVisibility(true);
 		ChainLinks[Index]->SetWorldLocationAndRotation(Mid, Rot);
-		ChainLinks[Index]->SetWorldScale3D(FVector((B - A).Size() / 100.0f, 0.06f, 0.06f));
+		ChainLinks[Index]->SetWorldScale3D(FVector(0.06f, 0.06f, (B - A).Size() / 100.0f));
 	}
 }
