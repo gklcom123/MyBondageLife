@@ -4335,74 +4335,46 @@ void AMyBondageLifePlayerController::UpdateTractionChain()
 		}
 	}
 
-	if (!IsValid(LeaderChar) || !IsValid(FollowerChar)
-		|| !LeaderChar->GetMesh() || !FollowerChar->GetMesh())
+	if (!IsValid(LeaderChar) || !IsValid(FollowerChar))
 	{
-		for (UStaticMeshComponent* Link : ChainLinks)
+		if (IsValid(ChainCableActor))
 		{
-			if (IsValid(Link)) { Link->SetVisibility(false); }
+			ChainCableActor->Destroy();
+			ChainCableActor = nullptr;
 		}
 		return;
 	}
 
-	const bool bHasHand = LeaderChar->GetMesh()->DoesSocketExist(TEXT("hand_r"));
-	const bool bHasNeck = FollowerChar->GetMesh()->DoesSocketExist(TEXT("neck_01"));
-	const FVector Start = bHasHand
-		? LeaderChar->GetMesh()->GetSocketLocation(TEXT("hand_r"))
-		: LeaderChar->GetActorLocation() + FVector(0.0f, 0.0f, 90.0f);
-	const FVector End = bHasNeck
-		? FollowerChar->GetMesh()->GetSocketLocation(TEXT("neck_01"))
-		: FollowerChar->GetActorLocation() + FVector(0.0f, 0.0f, 150.0f);
-
-	static UStaticMesh* ChainMesh = LoadObject<UStaticMesh>(nullptr,
-		TEXT("/Game/Effects/Chain/SM_ChainLink.SM_ChainLink"));
-	if (!ChainMesh)
+	// 蓝图 ChainCable：创建一次并调用 CreateLink(Master, Slave)。
+	if (!IsValid(ChainCableActor))
 	{
-		ChainMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
-	}
-	if (!ChainMesh)
-	{
-		return;
-	}
-
-	const int32 Segments = FMath::Clamp(FMath::RoundToInt(FVector::Dist(Start, End) / 15.0f), 2, 60);
-
-	while (ChainLinks.Num() < Segments)
-	{
-		// PlayerController 没有 RootComponent：组件必须挂到本地角色根节点才可见。
-		AActor* ChainOwner = GetPawn();
-		UStaticMeshComponent* Link = NewObject<UStaticMeshComponent>(ChainOwner ? ChainOwner : this);
-		if (ChainOwner && ChainOwner->GetRootComponent())
+		UClass* CableClass = LoadClass<AActor>(nullptr, TEXT("/Game/BP/Chain/ChainCable.ChainCable_C"));
+		if (!CableClass)
 		{
-			Link->SetupAttachment(ChainOwner->GetRootComponent());
-		}
-		Link->SetMobility(EComponentMobility::Movable);
-		Link->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		Link->SetStaticMesh(ChainMesh);
-		Link->RegisterComponent();
-		ChainLinks.Add(Link);
-	}
-
-	for (int32 Index = 0; Index < ChainLinks.Num(); ++Index)
-	{
-		UStaticMeshComponent* Link = ChainLinks[Index];
-		if (!IsValid(Link))
-		{
-			continue;
+			UE_LOG(LogMyBondageLife, Warning, TEXT("Traction: ChainCable class not found"));
+			return;
 		}
 
-		if (Index >= Segments)
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		ChainCableActor = World->SpawnActor<AActor>(CableClass, LeaderChar->GetActorLocation(), FRotator::ZeroRotator, SpawnParams);
+
+		if (UFunction* CreateLink = ChainCableActor ? ChainCableActor->FindFunction(TEXT("CreateLink")) : nullptr)
 		{
-			Link->SetVisibility(false);
-			continue;
+			struct FCreateLinkParams
+			{
+				AActor* Master = nullptr;
+				AActor* Slave = nullptr;
+			};
+
+			FCreateLinkParams Params;
+			Params.Master = LeaderChar;
+			Params.Slave = FollowerChar;
+			ChainCableActor->ProcessEvent(CreateLink, &Params);
 		}
-
-		const FVector A = FMath::Lerp(Start, End, static_cast<float>(Index) / Segments);
-		const FVector B = FMath::Lerp(Start, End, static_cast<float>(Index + 1) / Segments);
-		const FVector Delta = B - A;
-
-		Link->SetVisibility(true);
-		Link->SetWorldLocationAndRotation((A + B) * 0.5f, Delta.Rotation());
-		Link->SetWorldScale3D(FVector(0.05f, 0.05f, FMath::Max(0.02f, Delta.Size() / 100.0f)));
+		else
+		{
+			UE_LOG(LogMyBondageLife, Warning, TEXT("Traction: ChainCable has no CreateLink"));
+		}
 	}
 }

@@ -581,6 +581,9 @@ public:
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UStaticMeshComponent>> ChainLinks;
 
+	UPROPERTY(Transient)
+	TObjectPtr<AActor> ChainCableActor;
+
 	/** 统一 UI 字体：把已创建控件树里的所有 TextBlock 换成 AlimamaFangYuanTiVF-Thin-2_Font。 */
 	void ApplyUIFontsPass();
 	FTimerHandle UIFontTimer;
