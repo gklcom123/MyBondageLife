@@ -1826,6 +1826,13 @@ void AMyBondageLifePlayerController::SetupInputComponent()
 
 void AMyBondageLifePlayerController::PlayerTick(float DeltaTime)
 {
+	// 蒙眼时看不到其他玩家头顶的名字。
+	if (NameplateLayer)
+	{
+		const AMyBondageLifeCharacter* LocalCharacter = Cast<AMyBondageLifeCharacter>(GetPawn());
+		const bool bBlind = LocalCharacter && LocalCharacter->GetBlindLevel() > 0;
+		NameplateLayer->SetVisibility(bBlind ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
+	}
 	Super::PlayerTick(DeltaTime);
 
 

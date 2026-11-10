@@ -1879,12 +1879,17 @@ void AMyBondageLifeCharacter::ServerStartBondage_Implementation(AMyBondageLifeCh
 	AMyBondageLifePlayerController* BinderPC = Cast<AMyBondageLifePlayerController>(GetController());
 	AMyBondageLifePlayerController* TargetPC = Cast<AMyBondageLifePlayerController>(Target->GetController());
 	// 服务器上的 AccountSubsystem 只代表主机玩家，不能用它取别人的账号；PlayerState 名字在登录时被 SetName 为账号。
-	FString BinderName = (BinderPC && BinderPC->PlayerState) ? BinderPC->PlayerState->GetPlayerName() : FString();
+	// 聊天文本用角色名（不是账号）。
+	FString BinderName = GetCharacterName().ToString();
 	if (BinderName.IsEmpty())
 	{
-		BinderName = GetAccountName().IsEmpty() ? GetName() : GetAccountName();
+		BinderName = GetAccountName();
 	}
-	FString TargetName = (TargetPC && TargetPC->PlayerState) ? TargetPC->PlayerState->GetPlayerName() : FString();
+	if (BinderName.IsEmpty())
+	{
+		BinderName = GetName();
+	}
+	FString TargetName = Target->GetCharacterName().ToString();
 	if (TargetName.IsEmpty())
 	{
 		TargetName = InTargetAccount.IsEmpty() ? Target->GetAccountName() : InTargetAccount;
@@ -1968,14 +1973,19 @@ void AMyBondageLifeCharacter::ServerCancelBondage_Implementation()
 
 	AMyBondageLifePlayerController* BinderPC = Cast<AMyBondageLifePlayerController>(GetController());
 	// 服务器上的 AccountSubsystem 只代表主机玩家，不能用它取别人的账号；PlayerState 名字在登录时被 SetName 为账号。
-	FString BinderName = (BinderPC && BinderPC->PlayerState) ? BinderPC->PlayerState->GetPlayerName() : FString();
+	// 聊天文本用角色名（不是账号）。
+	FString BinderName = GetCharacterName().ToString();
 	if (BinderName.IsEmpty())
 	{
-		BinderName = GetAccountName().IsEmpty() ? GetName() : GetAccountName();
+		BinderName = GetAccountName();
+	}
+	if (BinderName.IsEmpty())
+	{
+		BinderName = GetName();
 	}
 	AMyBondageLifeCharacter* TargetChar = BondageTarget.Get();
 	AMyBondageLifePlayerController* TargetPC = TargetChar ? Cast<AMyBondageLifePlayerController>(TargetChar->GetController()) : nullptr;
-	FString TargetName = (TargetPC && TargetPC->PlayerState) ? TargetPC->PlayerState->GetPlayerName() : FString();
+	FString TargetName = TargetChar ? TargetChar->GetCharacterName().ToString() : FString();
 	if (TargetName.IsEmpty())
 	{
 		TargetName = TargetChar ? (TargetChar->GetAccountName().IsEmpty() ? TargetChar->GetName() : TargetChar->GetAccountName()) : FString();
