@@ -4256,14 +4256,6 @@ void AMyBondageLifePlayerController::HandleTractionChanged()
 
 	SetIgnoreMoveInput(bTractionFollower);
 
-	if (ACharacter* ControlledChar = Cast<ACharacter>(GetPawn()))
-	{
-		if (UCharacterMovementComponent* MoveComp = ControlledChar->GetCharacterMovement())
-		{
-			if (bTractionFollower) { MoveComp->DisableMovement(); }
-			else { MoveComp->SetMovementMode(MOVE_Walking); }
-	}
-	}
 
 	if (MainHudWidget)
 	{
@@ -4285,27 +4277,34 @@ void AMyBondageLifePlayerController::UpdateTractionFollow(float DeltaTime)
 		return;
 	}
 
+	UCharacterMovementComponent* MoveComp = Follower->GetCharacterMovement();
+	if (!MoveComp)
+	{
+		return;
+	}
+
+	// 保持正常行走模式，但每帧覆盖速度：WASD 无法改变方向，跟随由牵引驱动。
+	MoveComp->SetMovementMode(MOVE_Walking);
+
 	const float Distance = FVector::Dist(Follower->GetActorLocation(), Leader->GetActorLocation());
 	if (Distance > 120.0f)
 	{
-		FVector Direction = (Leader->GetActorLocation() - Follower->GetActorLocation()).GetSafeNormal2D();
-		Follower->AddMovementInput(Direction, 1.0f);
+		const FVector Direction = (Leader->GetActorLocation() - Follower->GetActorLocation()).GetSafeNormal2D();
+		MoveComp->Velocity = Direction * FMath::Clamp(Distance * 3.0f, 200.0f, 600.0f);
 		Follower->SetActorRotation(FRotator(0.0f, Direction.Rotation().Yaw, 0.0f));
+	}
+	else
+	{
+		MoveComp->Velocity = FVector::ZeroVector;
 	}
 }
 
 void AMyBondageLifePlayerController::UpdateTractionChain()
 {
 	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return;
-	}
-
-	// 只有牵引方 / 被牵引方需要看到锁链。
 	const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
-	if (!Account)
+	if (!World || !Account)
 	{
 		return;
 	}
@@ -4324,7 +4323,7 @@ void AMyBondageLifePlayerController::UpdateTractionChain()
 		LeaderChar = Local;
 		for (TActorIterator<AMyBondageLifeCharacter> It(World); It; ++It)
 		{
-			if (*It && (*It)->GetAccountName() == Account->GetTractionFollowers()[0])
+			if (IsValid(*It) && (*It)->GetAccountName() == Account->GetTractionFollowers()[0])
 			{
 				FollowerChar = *It;
 				break;
@@ -4332,18 +4331,24 @@ void AMyBondageLifePlayerController::UpdateTractionChain()
 		}
 	}
 
-	if (!LeaderChar || !FollowerChar)
+	if (!IsValid(LeaderChar) || !IsValid(FollowerChar)
+		|| !LeaderChar->GetMesh() || !FollowerChar->GetMesh())
 	{
 		for (UStaticMeshComponent* Link : ChainLinks)
 		{
-			if (Link) { Link->SetVisibility(false); }
+			if (IsValid(Link)) { Link->SetVisibility(false); }
 		}
 		return;
 	}
 
-	const FVector Start = LeaderChar->GetMesh()->GetSocketLocation(TEXT("hand_r"));
-	const FVector End = FollowerChar->GetMesh()->GetSocketLocation(TEXT("neck_01"));
-	const int32 Segments = FMath::Clamp(FMath::RoundToInt(FVector::Dist(Start, End) / 12.0f), 2, 80);
+	const bool bHasHand = LeaderChar->GetMesh()->DoesSocketExist(TEXT("hand_r"));
+	const bool bHasNeck = FollowerChar->GetMesh()->DoesSocketExist(TEXT("neck_01"));
+	const FVector Start = bHasHand
+		? LeaderChar->GetMesh()->GetSocketLocation(TEXT("hand_r"))
+		: LeaderChar->GetActorLocation() + FVector(0.0f, 0.0f, 90.0f);
+	const FVector End = bHasNeck
+		? FollowerChar->GetMesh()->GetSocketLocation(TEXT("neck_01"))
+		: FollowerChar->GetActorLocation() + FVector(0.0f, 0.0f, 150.0f);
 
 	static UStaticMesh* ChainMesh = LoadObject<UStaticMesh>(nullptr,
 		TEXT("/Game/Effects/Chain/SM_ChainLink.SM_ChainLink"));
@@ -4351,29 +4356,43 @@ void AMyBondageLifePlayerController::UpdateTractionChain()
 	{
 		ChainMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
 	}
+	if (!ChainMesh)
+	{
+		return;
+	}
+
+	const int32 Segments = FMath::Clamp(FMath::RoundToInt(FVector::Dist(Start, End) / 15.0f), 2, 60);
 
 	while (ChainLinks.Num() < Segments)
 	{
 		UStaticMeshComponent* Link = NewObject<UStaticMeshComponent>(this);
-		Link->SetupAttachment(GetPawn() ? GetPawn()->GetRootComponent() : nullptr);
-		Link->RegisterComponent();
+		Link->SetMobility(EComponentMobility::Movable);
 		Link->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		if (ChainMesh) { Link->SetStaticMesh(ChainMesh); }
+		Link->SetStaticMesh(ChainMesh);
+		Link->RegisterComponent();
 		ChainLinks.Add(Link);
 	}
 
 	for (int32 Index = 0; Index < ChainLinks.Num(); ++Index)
 	{
-		if (!ChainLinks[Index]) continue;
-		if (Index >= Segments) { ChainLinks[Index]->SetVisibility(false); continue; }
+		UStaticMeshComponent* Link = ChainLinks[Index];
+		if (!IsValid(Link))
+		{
+			continue;
+		}
+
+		if (Index >= Segments)
+		{
+			Link->SetVisibility(false);
+			continue;
+		}
 
 		const FVector A = FMath::Lerp(Start, End, static_cast<float>(Index) / Segments);
 		const FVector B = FMath::Lerp(Start, End, static_cast<float>(Index + 1) / Segments);
-		const FVector Mid = (A + B) * 0.5f;
-		const FRotator Rot = (B - A).Rotation();
+		const FVector Delta = B - A;
 
-		ChainLinks[Index]->SetVisibility(true);
-		ChainLinks[Index]->SetWorldLocationAndRotation(Mid, Rot);
-		ChainLinks[Index]->SetWorldScale3D(FVector(0.06f, 0.06f, (B - A).Size() / 100.0f));
+		Link->SetVisibility(true);
+		Link->SetWorldLocationAndRotation((A + B) * 0.5f, Delta.Rotation());
+		Link->SetWorldScale3D(FVector(0.05f, 0.05f, FMath::Max(0.02f, Delta.Size() / 100.0f)));
 	}
 }
