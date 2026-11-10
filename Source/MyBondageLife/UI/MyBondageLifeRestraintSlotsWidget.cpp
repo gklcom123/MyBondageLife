@@ -50,6 +50,7 @@ void UMyBondageLifeRestraintSlotsWidget::NativeConstruct()
 	}
 
 	RefreshSlots();
+	RefreshSlaveControlPanel();
 }
 
 TSharedRef<SWidget> UMyBondageLifeRestraintSlotsWidget::RebuildWidget()
@@ -72,6 +73,7 @@ void UMyBondageLifeRestraintSlotsWidget::SetViewAccount(const FString& InAccount
 {
 	ViewAccount = InAccount;
 	RefreshSlots();
+	RefreshSlaveControlPanel();
 }
 
 void UMyBondageLifeRestraintSlotsWidget::BuildLayout()
@@ -237,6 +239,7 @@ void UMyBondageLifeRestraintSlotsWidget::BuildLayout()
 
 	OnLayoutBuilt();
 	RefreshSlots();
+	RefreshSlaveControlPanel();
 }
 
 void UMyBondageLifeRestraintSlotsWidget::RefreshSlots()
@@ -335,6 +338,7 @@ void UMyBondageLifeRestraintSlotsWidget::HandleSlotClicked(int32 SlotIndex)
 void UMyBondageLifeRestraintSlotsWidget::HandleRestraintsChanged()
 {
 	RefreshSlots();
+	RefreshSlaveControlPanel();
 }
 
 void UMyBondageLifeRestraintColorProxy::HandleClicked()
@@ -368,6 +372,8 @@ void UMyBondageLifeRestraintSlotsWidget::RefreshSlaveControlPanel()
 
 	const bool bShow = !ViewAccount.IsEmpty() && Account
 		&& Account->GetContractRoleWith(ViewAccount) == EMyBondageLifeContractRole::Master;
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("SlaveControl: panel found view=[%s] show=%d"), *ViewAccount, bShow ? 1 : 0);
 
 	ControlPanel->SetVisibility(bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 
