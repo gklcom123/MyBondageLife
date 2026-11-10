@@ -3758,10 +3758,15 @@ void AMyBondageLifePlayerController::TickSexLibido()
 	const float Sum = ComputeLibidoSum();
 	if (Sum <= 0.0f)
 	{
-		// 没有带 Libido 的拘束：不增长，也不播动画。
-		if (MainHudWidget)
+		// 没有带 Libido 的拘束：每 3 秒衰减 1.5%，直到 0。
+		if (SexValue > 0.0f)
 		{
-			MainHudWidget->SetSexProgress(SexValue / 100.0f, SexValue, false);
+			SexValue = FMath::Max(0.0f, SexValue - 1.5f);
+			if (MainHudWidget)
+			{
+				MainHudWidget->SetSexProgress(SexValue / 100.0f, SexValue, false);
+			}
+			UpdateLibidoEffects(SexValue);
 		}
 		return;
 	}

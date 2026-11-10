@@ -1901,14 +1901,25 @@ void AMyBondageLifeCharacter::ServerStartBondage_Implementation(AMyBondageLifeCh
 		TargetName = Target->GetName();
 	}
 
+	// 落地穿戴必须用账号，不能用角色名。
+	FString ResolvedTargetAccount = InTargetAccount;
+	if (ResolvedTargetAccount.IsEmpty())
+	{
+		ResolvedTargetAccount = Target->GetAccountName();
+	}
+	if (ResolvedTargetAccount.IsEmpty())
+	{
+		ResolvedTargetAccount = TargetName;
+	}
+
 	BondageBinderDisplayName = BinderName;
 	BondageTargetDisplayName = TargetName;
 	Target->BondageBinderDisplayName = BinderName;
 	Target->BondageTargetDisplayName = TargetName;
 
-	MulticastBondageStart(this, Target, Duration, SlotIndex, ItemId, bSelfTarget, BinderName, TargetName, TargetName);
+	MulticastBondageStart(this, Target, Duration, SlotIndex, ItemId, bSelfTarget, BinderName, TargetName, ResolvedTargetAccount);
 
-	GetWorldTimerManager().SetTimer(BondageTimer, [this, BinderName, TargetName]()
+	GetWorldTimerManager().SetTimer(BondageTimer, [this, BinderName, TargetName, ResolvedTargetAccount]()
 	{
 		if (bBondageInProgress)
 		{
@@ -1917,7 +1928,7 @@ void AMyBondageLifeCharacter::ServerStartBondage_Implementation(AMyBondageLifeCh
 			{
 				TargetChar->bBondageInProgress = false;
 			}
-			MulticastBondageEnd(true, false, BinderName, TargetName, TargetName);
+			MulticastBondageEnd(true, false, BinderName, TargetName, ResolvedTargetAccount);
 		}
 	}, FMath::Max(0.1f, Duration), false);
 }
