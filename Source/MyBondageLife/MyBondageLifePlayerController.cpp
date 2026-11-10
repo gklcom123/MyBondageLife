@@ -3001,6 +3001,21 @@ void AMyBondageLifePlayerController::HandleSitKeyPressed()
 		return;
 	}
 
+	// 靠近其他玩家时，G 打开对方的拘束页签（衣柜好友模式 → 拘束）。
+	if (NearbyCharacter.IsValid())
+	{
+		const FString NearbyAccount = NearbyCharacter->GetAccountName();
+		if (!NearbyAccount.IsEmpty())
+		{
+			OpenFriendWardrobe(NearbyAccount);
+			if (WardrobeWidget)
+			{
+				WardrobeWidget->SelectTab(2);
+			}
+			return;
+		}
+	}
+
 	// CantSit：规则开启时按 G 直接无效。
 	if (const UMyBondageLifeAccountSubsystem* SitAccount = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)

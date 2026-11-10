@@ -130,7 +130,10 @@ protected:
 	void OnLayoutBuilt();
 
 	/** Shows one of the three tabs (0 body, 1 appearance, 2 restraint). */
+public:
 	void SelectTab(int32 TabIndex);
+
+protected:
 
 	/** Moves the height selector by Delta steps and persists the new value. */
 	void StepHeight(int32 Delta);

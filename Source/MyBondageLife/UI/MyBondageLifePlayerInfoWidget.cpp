@@ -151,11 +151,10 @@ void UMyBondageLifePlayerInfoWidget::BuildLayout()
 	}
 
 	// -------------------------------------------------------- proximity hint
-	// "按[F]与[" + <character name, yellow> + "]进行交互"
+	// "[F]名字的个人信息" / "[G]名字的拘束信息" 两行。
 	InteractionHintRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("InteractionHintRow"));
 	if (UCanvasPanelSlot* HintSlot = RootCanvas->AddChildToCanvas(InteractionHintRow))
 	{
-		// Centre horizontally, a little below the middle of the screen.
 		HintSlot->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
 		HintSlot->SetAlignment(FVector2D(0.5f, 0.5f));
 		HintSlot->SetPosition(FVector2D(0.0f, 200.0f));
@@ -163,38 +162,25 @@ void UMyBondageLifePlayerInfoWidget::BuildLayout()
 		HintSlot->SetZOrder(25);
 	}
 
-	auto AddHintPart = [this](const TCHAR* PartText, const FLinearColor& PartColor, bool bIsName)
 	{
-		UTextBlock* Part = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-		Part->SetText(FText::FromString(PartText));
-		Part->SetColorAndOpacity(FSlateColor(PartColor));
-		Part->SetShadowOffset(FVector2D(1.5f, 1.5f));
-		Part->SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 1.0f));
-		{
-			FSlateFontInfo PartFont = Part->GetFont();
-			PartFont.Size = 24;
-			PartFont.FontObject = MyBondageLifeUI::LoadUIFont();
-			Part->SetFont(PartFont);
-		}
-		if (UHorizontalBoxSlot* PartSlot = InteractionHintRow->AddChildToHorizontalBox(Part))
+		UTextBlock* HintText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("InteractionHintText"));
+		HintText->SetText(FText::FromString(TEXT("[F]---的个人信息\n[G]---的拘束信息")));
+		HintText->SetColorAndOpacity(FSlateColor(FLinearColor(1.0f, 1.0f, 1.0f, 0.95f)));
+		HintText->SetShadowOffset(FVector2D(1.5f, 1.5f));
+		HintText->SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 1.0f));
+
+		FSlateFontInfo HintFont = HintText->GetFont();
+		HintFont.Size = 24;
+		HintFont.FontObject = MyBondageLifeUI::LoadUIFont();
+		HintText->SetFont(HintFont);
+
+		if (UHorizontalBoxSlot* PartSlot = InteractionHintRow->AddChildToHorizontalBox(HintText))
 		{
 			PartSlot->SetVerticalAlignment(VAlign_Center);
 		}
-		if (bIsName)
-		{
-			InteractionHintName = Part;
-		}
-		return Part;
-	};
 
-	// "按[F]与["
-	AddHintPart(TEXT("\u6309[F]\u4E0E["), FLinearColor(1.0f, 1.0f, 1.0f, 0.95f), false);
-	// The character name, highlighted in yellow.
-	AddHintPart(TEXT("---"), FLinearColor(1.0f, 0.86f, 0.18f, 1.0f), true);
-	// "]进行交互"
-	AddHintPart(TEXT("]\u8FDB\u884C\u4EA4\u4E92"), FLinearColor(1.0f, 1.0f, 1.0f, 0.95f), false);
-
-	InteractionHintRow->SetVisibility(ESlateVisibility::Collapsed);
+		InteractionHintName = HintText;
+	}
 
 	// ------------------------------------------------------------------ panel
 	PanelBorder = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("PlayerInfoPanel"));
@@ -730,7 +716,8 @@ void UMyBondageLifePlayerInfoWidget::SetInteractionHintTarget(const AMyBondageLi
 
 		if (InteractionHintName)
 		{
-			InteractionHintName->SetText(FText::FromString(TargetName));
+			InteractionHintName->SetText(FText::FromString(FString::Printf(
+				TEXT("[F]%s的个人信息\n[G]%s的拘束信息"), *TargetName, *TargetName)));
 		}
 	}
 
