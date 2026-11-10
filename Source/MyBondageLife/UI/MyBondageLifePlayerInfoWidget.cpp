@@ -1188,8 +1188,7 @@ void UMyBondageLifePlayerInfoWidget::BuildEntryButtonOnly()
 		return;
 	}
 
-	// Interaction prompt ("按[F]与[xxx]进行交互") lives here as well: the designed
-	// layout does not provide it, so build it once when it is missing.
+	// 交互提示（两行）：[F]xxx的个人信息 / [G]xxx的拘束信息。
 	if (!InteractionHintName)
 	{
 		InteractionHintRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("InteractionHintRow"));
@@ -1203,26 +1202,18 @@ void UMyBondageLifePlayerInfoWidget::BuildEntryButtonOnly()
 		}
 		InteractionHintRow->SetVisibility(ESlateVisibility::Collapsed);
 
-		UTextBlock* HintText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-		HintText->SetText(FText::FromString(TEXT("\u6309[F]\u4E0E")));
-		HintText->SetColorAndOpacity(FSlateColor(FLinearColor::White));
-		HintText->SetShadowOffset(FVector2D(1.0f, 1.0f));
-		HintText->SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.9f));
-		InteractionHintRow->AddChildToHorizontalBox(HintText);
-
-		InteractionHintName = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-		InteractionHintName->SetText(FText::FromString(TEXT("?")));
-		InteractionHintName->SetColorAndOpacity(FSlateColor(FLinearColor(0.45f, 0.2f, 0.6f)));
+		InteractionHintName = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("InteractionHintText"));
+		InteractionHintName->SetText(FText::FromString(TEXT("[F]---的个人信息\n[G]---的拘束信息")));
+		InteractionHintName->SetColorAndOpacity(FSlateColor(FLinearColor::White));
 		InteractionHintName->SetShadowOffset(FVector2D(1.0f, 1.0f));
 		InteractionHintName->SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.9f));
-		InteractionHintRow->AddChildToHorizontalBox(InteractionHintName);
 
-		UTextBlock* HintTail = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-		HintTail->SetText(FText::FromString(TEXT("\u8FDB\u884C\u4EA4\u4E92")));
-		HintTail->SetColorAndOpacity(FSlateColor(FLinearColor::White));
-		HintTail->SetShadowOffset(FVector2D(1.0f, 1.0f));
-		HintTail->SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.9f));
-		InteractionHintRow->AddChildToHorizontalBox(HintTail);
+		FSlateFontInfo HintFont = InteractionHintName->GetFont();
+		HintFont.Size = 24;
+		HintFont.FontObject = MyBondageLifeUI::LoadUIFont();
+		InteractionHintName->SetFont(HintFont);
+
+		InteractionHintRow->AddChildToHorizontalBox(InteractionHintName);
 	}
 
 	if (OpenButton)
