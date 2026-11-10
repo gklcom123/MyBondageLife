@@ -939,6 +939,7 @@ bool AMyBondageLifePlayerController::IsPlayerInfoOpen() const
 
 void AMyBondageLifePlayerController::TogglePlayerInfo()
 {
+	if (bTractionFollower) { return; }
 	if (bClimaxLocked)
 	{
 		return;
@@ -1127,6 +1128,7 @@ void AMyBondageLifePlayerController::HideFriendList()
 
 void AMyBondageLifePlayerController::ToggleFriendList()
 {
+	if (bTractionFollower) { return; }
 	if (bClimaxLocked)
 	{
 		return;
@@ -1843,6 +1845,9 @@ void AMyBondageLifePlayerController::PlayerTick(float DeltaTime)
 		NameplateLayer->UpdateNameplates();
 	}
 
+	UpdateTractionFollow(DeltaTime);
+	UpdateTractionChain();
+
 	UpdateNearbyCharacter();
 	TickRoomHeartbeat();
 }
@@ -2076,6 +2081,7 @@ void AMyBondageLifePlayerController::HideWardrobe()
 
 void AMyBondageLifePlayerController::ToggleWardrobe()
 {
+	if (bTractionFollower) { return; }
 	if (bClimaxLocked)
 	{
 		return;
@@ -2644,6 +2650,7 @@ void AMyBondageLifePlayerController::HandleNotificationAdded(const FMyBondageLif
 
 void AMyBondageLifePlayerController::ToggleMessageCenter()
 {
+	if (bTractionFollower) { return; }
 	if (bClimaxLocked)
 	{
 		return;
@@ -2996,6 +3003,7 @@ void AMyBondageLifePlayerController::HandleInteractPressed()
 
 void AMyBondageLifePlayerController::HandleSitKeyPressed()
 {
+	if (bTractionFollower) { return; }
 	if (bClimaxLocked)
 	{
 		return;
@@ -3275,6 +3283,7 @@ void AMyBondageLifePlayerController::PushRestraintColors()
 
 void AMyBondageLifePlayerController::HandleEmoteKeyPressed()
 {
+	if (bTractionFollower) { return; }
 	if (bClimaxLocked)
 	{
 		return;
@@ -3285,6 +3294,7 @@ void AMyBondageLifePlayerController::HandleEmoteKeyPressed()
 
 void AMyBondageLifePlayerController::ToggleEmoteList()
 {
+	if (bTractionFollower) { return; }
 	if (bClimaxLocked)
 	{
 		return;
@@ -3957,6 +3967,7 @@ void AMyBondageLifePlayerController::EndClimaxSequence()
 
 void AMyBondageLifePlayerController::ToggleSettings()
 {
+	if (bTractionFollower) { return; }
 	if (bClimaxLocked)
 	{
 		return;
@@ -4180,4 +4191,176 @@ void AMyBondageLifePlayerController::ApplyUIFontsPass()
 	ApplyTo(SeatHintWidget);
 
 	++UIFontPassCount;
+}
+
+void AMyBondageLifePlayerController::ToggleTractionFor(const FString& TargetAccount)
+{
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	if (!Account || TargetAccount.IsEmpty())
+	{
+		return;
+	}
+
+	const FString MyName = Account->GetCharacterName();
+	const bool bAlready = Account->GetTractionFollowers().Contains(TargetAccount);
+
+	// 聊天只由发起方广播一次，用角色名。
+	auto BroadcastOnce = [Account](const FString& Text)
+	{
+		Account->BroadcastSystemText(Text, FString());
+	};
+
+	if (bAlready)
+	{
+		Account->StopTraction(TargetAccount);
+		BroadcastOnce(FString::Printf(TEXT("%s结束了对%s的牵引。"), *MyName, *TargetAccount));
+	}
+	else
+	{
+		Account->StartTraction(TargetAccount);
+		BroadcastOnce(FString::Printf(TEXT("%s开始了对%s的牵引。"), *MyName, *TargetAccount));
+	}
+}
+
+void AMyBondageLifePlayerController::HandleTractionChanged()
+{
+	const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	if (!Account)
+	{
+		return;
+	}
+
+	TractionLeaderAccount = Account->GetTractionLeader();
+	bTractionFollower = !TractionLeaderAccount.IsEmpty();
+
+	// 找房间内的牵引者角色。
+	TractionLeaderActor = nullptr;
+	if (bTractionFollower && GetWorld())
+	{
+		for (TActorIterator<AMyBondageLifeCharacter> It(GetWorld()); It; ++It)
+		{
+			AMyBondageLifeCharacter* Candidate = *It;
+			if (Candidate && Candidate->GetAccountName().Equals(TractionLeaderAccount, ESearchCase::IgnoreCase))
+			{
+				TractionLeaderActor = Candidate;
+				break;
+			}
+		}
+	}
+
+	SetIgnoreMoveInput(bTractionFollower);
+
+	if (MainHudWidget)
+	{
+		MainHudWidget->SetTractionOverlayVisible(bTractionFollower);
+	}
+}
+
+void AMyBondageLifePlayerController::UpdateTractionFollow(float DeltaTime)
+{
+	if (!bTractionFollower || !TractionLeaderActor.IsValid())
+	{
+		return;
+	}
+
+	AMyBondageLifeCharacter* Follower = Cast<AMyBondageLifeCharacter>(GetPawn());
+	AMyBondageLifeCharacter* Leader = TractionLeaderActor.Get();
+	if (!Follower || !Leader || Follower == Leader)
+	{
+		return;
+	}
+
+	const float Distance = FVector::Dist(Follower->GetActorLocation(), Leader->GetActorLocation());
+	if (Distance > 120.0f)
+	{
+		FVector Direction = (Leader->GetActorLocation() - Follower->GetActorLocation()).GetSafeNormal2D();
+		Follower->AddMovementInput(Direction, 1.0f);
+		Follower->SetActorRotation(FRotator(0.0f, Direction.Rotation().Yaw, 0.0f));
+	}
+}
+
+void AMyBondageLifePlayerController::UpdateTractionChain()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	// 只有牵引方 / 被牵引方需要看到锁链。
+	const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	if (!Account)
+	{
+		return;
+	}
+
+	AMyBondageLifeCharacter* Local = Cast<AMyBondageLifeCharacter>(GetPawn());
+	AMyBondageLifeCharacter* LeaderChar = nullptr;
+	AMyBondageLifeCharacter* FollowerChar = nullptr;
+
+	if (bTractionFollower)
+	{
+		FollowerChar = Local;
+		LeaderChar = TractionLeaderActor.Get();
+	}
+	else if (Account->GetTractionFollowers().Num() > 0)
+	{
+		LeaderChar = Local;
+		for (TActorIterator<AMyBondageLifeCharacter> It(World); It; ++It)
+		{
+			if (*It && (*It)->GetAccountName() == Account->GetTractionFollowers()[0])
+			{
+				FollowerChar = *It;
+				break;
+			}
+		}
+	}
+
+	if (!LeaderChar || !FollowerChar)
+	{
+		for (UStaticMeshComponent* Link : ChainLinks)
+		{
+			if (Link) { Link->SetVisibility(false); }
+		}
+		return;
+	}
+
+	const FVector Start = LeaderChar->GetMesh()->GetSocketLocation(TEXT("hand_r"));
+	const FVector End = FollowerChar->GetMesh()->GetSocketLocation(TEXT("neck_01"));
+	const int32 Segments = FMath::Clamp(FMath::RoundToInt(FVector::Dist(Start, End) / 12.0f), 2, 80);
+
+	static UStaticMesh* ChainMesh = LoadObject<UStaticMesh>(nullptr,
+		TEXT("/Game/Effects/Chain/SM_ChainLink.SM_ChainLink"));
+	if (!ChainMesh)
+	{
+		ChainMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
+	}
+
+	while (ChainLinks.Num() < Segments)
+	{
+		UStaticMeshComponent* Link = NewObject<UStaticMeshComponent>(this);
+		Link->SetupAttachment(GetPawn() ? GetPawn()->GetRootComponent() : nullptr);
+		Link->RegisterComponent();
+		Link->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		if (ChainMesh) { Link->SetStaticMesh(ChainMesh); }
+		ChainLinks.Add(Link);
+	}
+
+	for (int32 Index = 0; Index < ChainLinks.Num(); ++Index)
+	{
+		if (!ChainLinks[Index]) continue;
+		if (Index >= Segments) { ChainLinks[Index]->SetVisibility(false); continue; }
+
+		const FVector A = FMath::Lerp(Start, End, static_cast<float>(Index) / Segments);
+		const FVector B = FMath::Lerp(Start, End, static_cast<float>(Index + 1) / Segments);
+		const FVector Mid = (A + B) * 0.5f;
+		const FRotator Rot = (B - A).Rotation();
+
+		ChainLinks[Index]->SetVisibility(true);
+		ChainLinks[Index]->SetWorldLocationAndRotation(Mid, Rot);
+		ChainLinks[Index]->SetWorldScale3D(FVector((B - A).Size() / 100.0f, 0.06f, 0.06f));
+	}
 }

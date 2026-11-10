@@ -55,6 +55,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "HUD")
 	void HideBondageProgress();
 
+	/** 被牵引时显示 W_TractionOverlay。 */
+	UFUNCTION(BlueprintCallable, Category = "HUD")
+	void SetTractionOverlayVisible(bool bVisible);
+
+	UPROPERTY(Transient)
+	TObjectPtr<UWidget> TractionOverlay;
+
 	UPROPERTY(Transient)
 	TObjectPtr<UWidget> BondageOverlay;
 

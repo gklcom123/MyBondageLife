@@ -161,6 +161,12 @@ void UMyBondageLifeAccountSubsystem::HandleRealtimeMessage(const FString& InMess
 
 	// 奴隶规则变化：重新拉取一次（主人也可能是别的客户端改的）
 	// 恋人/结婚
+	if (Type == TEXT("traction.started") || Type == TEXT("traction.ended"))
+	{
+		RefreshTractionState();
+		return;
+	}
+
 	if (Type == TEXT("romance_request") || Type == TEXT("marriage_request"))
 	{
 		RefreshNotifications();

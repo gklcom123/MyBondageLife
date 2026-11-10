@@ -49,6 +49,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeNotificationAdded, con
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeAuthSucceeded);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeRulesChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeRomanceChanged);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeTractionChanged);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FMyBondageLifeTractionFailed, const FString&, Code, const FString&, Message);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FMyBondageLifeRomanceFailed, const FString&, Code, const FString&, Message);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FMyBondageLifeRoomClosed, const FString&, const FString&);
 
@@ -482,6 +484,23 @@ public:
 	void RefreshRomances(const FString& InAccount = FString());
 
 	void RespondToRomanceRequest(const FString& RequestId, bool bAccept);
+
+	// ---- 牵引 ----
+	void StartTraction(const FString& TargetAccount);
+	void StopTraction(const FString& TargetAccount);
+	void RefreshTractionState();
+
+	const TArray<FString>& GetTractionFollowers() const { return TractionFollowers; }
+	FString GetTractionLeader() const { return TractionLeader; }
+
+	UPROPERTY(BlueprintAssignable, Category = "Traction")
+	FMyBondageLifeTractionChanged OnTractionChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Traction")
+	FMyBondageLifeTractionFailed OnTractionFailed;
+
+	TArray<FString> TractionFollowers;
+	FString TractionLeader;
 
 	UFUNCTION(BlueprintPure, Category = "Romance")
 	TArray<FMyBondageLifeRomanceEntry> GetOwnRomances() const { return OwnRomances; }

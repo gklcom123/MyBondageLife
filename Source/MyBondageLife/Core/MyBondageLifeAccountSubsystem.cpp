@@ -1866,6 +1866,7 @@ void UMyBondageLifeAccountSubsystem::ResolveNotification(const FString& Id, bool
 
 	RefreshNotifications();
 	RefreshRomances();
+	RefreshTractionState();
 	RefreshFriendsFromServer();
 	RefreshContractState();
 }
@@ -2958,5 +2959,85 @@ void UMyBondageLifeAccountSubsystem::RefreshRomances(const FString& InAccount)
 				Self->ViewedRomances = Parsed;
 			}
 			Self->OnRomancesChanged.Broadcast();
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::StartTraction(const FString& TargetAccount)
+{
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("targetAccount"), TargetAccount);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	SendFriendApiRequest(TEXT("POST"), TEXT("/traction/start"), Body,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self) return;
+			if (!bOk)
+			{
+				Self->OnTractionFailed.Broadcast(RomanceErrorCode(Json), FString());
+				return;
+			}
+			Self->RefreshTractionState();
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::StopTraction(const FString& TargetAccount)
+{
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("targetAccount"), TargetAccount);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	SendFriendApiRequest(TEXT("POST"), TEXT("/traction/stop"), Body,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self) return;
+			if (!bOk)
+			{
+				Self->OnTractionFailed.Broadcast(RomanceErrorCode(Json), FString());
+				return;
+			}
+			Self->RefreshTractionState();
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::RefreshTractionState()
+{
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	SendFriendApiRequest(TEXT("GET"), TEXT("/traction/state"), nullptr,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self || !bOk || !Json.IsValid()) return;
+
+			Self->TractionFollowers.Reset();
+			Self->TractionLeader.Reset();
+
+			const TArray<TSharedPtr<FJsonValue>>* AsLeader = nullptr;
+			if (Json->TryGetArrayField(TEXT("asLeader"), AsLeader) && AsLeader)
+			{
+				for (const TSharedPtr<FJsonValue>& V : *AsLeader)
+				{
+					const TSharedPtr<FJsonObject> O = V.IsValid() ? V->AsObject() : nullptr;
+					FString Follower;
+					if (O.IsValid() && O->TryGetStringField(TEXT("follower"), Follower))
+					{
+						Self->TractionFollowers.Add(Follower);
+					}
+				}
+			}
+
+			const TArray<TSharedPtr<FJsonValue>>* AsFollower = nullptr;
+			if (Json->TryGetArrayField(TEXT("asFollower"), AsFollower) && AsFollower && AsFollower->Num() > 0)
+			{
+				const TSharedPtr<FJsonObject> O = (*AsFollower)[0].IsValid() ? (*AsFollower)[0]->AsObject() : nullptr;
+				if (O.IsValid())
+				{
+					O->TryGetStringField(TEXT("leader"), Self->TractionLeader);
+				}
+			}
+
+			Self->OnTractionChanged.Broadcast();
 		});
 }

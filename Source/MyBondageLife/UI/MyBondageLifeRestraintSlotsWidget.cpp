@@ -18,6 +18,7 @@
 #include "Core/MyBondageLifeRestraintCatalog.h"
 #include "Engine/Texture2D.h"
 #include "MyBondageLife.h"
+#include "MyBondageLifePlayerController.h"
 
 namespace
 {
@@ -390,5 +391,10 @@ void UMyBondageLifeRestraintSlotsWidget::RefreshSlaveControlPanel()
 void UMyBondageLifeRestraintSlotsWidget::HandleTractionClicked()
 {
 	// 牵引效果下一版实现，先记录点击。
-	UE_LOG(LogMyBondageLife, Log, TEXT("SlaveControl: traction requested (view=%s)"), *ViewAccount);
+	if (AMyBondageLifePlayerController* PC = Cast<AMyBondageLifePlayerController>(GetOwningPlayer()))
+	{
+		PC->ToggleTractionFor(ViewAccount);
+	}
+
+	RefreshSlots();
 }

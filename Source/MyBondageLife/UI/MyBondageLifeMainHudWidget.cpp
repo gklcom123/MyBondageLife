@@ -311,3 +311,15 @@ void UMyBondageLifeMainHudWidget::HideBondageProgress()
 		BondageOverlay->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
+
+void UMyBondageLifeMainHudWidget::SetTractionOverlayVisible(bool bVisible)
+{
+	if (!TractionOverlay && WidgetTree)
+	{
+		TractionOverlay = WidgetTree->FindWidget(TEXT("W_TractionOverlay"));
+	}
+	if (TractionOverlay)
+	{
+		TractionOverlay->SetVisibility(bVisible ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	}
+}

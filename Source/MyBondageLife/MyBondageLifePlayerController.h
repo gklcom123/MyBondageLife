@@ -568,6 +568,19 @@ public:
 	/** 游戏设置（F10 打开，ESC 关闭）。 */
 	void ToggleSettings();
 
+	// ---- 牵引 ----
+	void ToggleTractionFor(const FString& TargetAccount);
+	UFUNCTION()
+	void HandleTractionChanged();
+	void UpdateTractionFollow(float DeltaTime);
+	void UpdateTractionChain();
+
+	bool bTractionFollower = false;
+	FString TractionLeaderAccount;
+	TWeakObjectPtr<AMyBondageLifeCharacter> TractionLeaderActor;
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UStaticMeshComponent>> ChainLinks;
+
 	/** 统一 UI 字体：把已创建控件树里的所有 TextBlock 换成 AlimamaFangYuanTiVF-Thin-2_Font。 */
 	void ApplyUIFontsPass();
 	FTimerHandle UIFontTimer;
