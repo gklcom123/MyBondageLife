@@ -166,6 +166,8 @@ void AMyBondageLifeCharacter::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(AMyBondageLifeCharacter, bRestraintArm);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bRestraintInGag);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bRestraintBlind);
+	DOREPLIFETIME(AMyBondageLifeCharacter, BondageBinderDisplayName);
+	DOREPLIFETIME(AMyBondageLifeCharacter, BondageTargetDisplayName);
 	DOREPLIFETIME(AMyBondageLifeCharacter, RestraintBlindLevel);
 	DOREPLIFETIME(AMyBondageLifeCharacter, OutfitSlots);
 	DOREPLIFETIME(AMyBondageLifeCharacter, OutfitItemIds);
@@ -1899,6 +1901,11 @@ void AMyBondageLifeCharacter::ServerStartBondage_Implementation(AMyBondageLifeCh
 		TargetName = Target->GetName();
 	}
 
+	BondageBinderDisplayName = BinderName;
+	BondageTargetDisplayName = TargetName;
+	Target->BondageBinderDisplayName = BinderName;
+	Target->BondageTargetDisplayName = TargetName;
+
 	MulticastBondageStart(this, Target, Duration, SlotIndex, ItemId, bSelfTarget, BinderName, TargetName, TargetName);
 
 	GetWorldTimerManager().SetTimer(BondageTimer, [this, BinderName, TargetName]()
@@ -1971,24 +1978,19 @@ void AMyBondageLifeCharacter::ServerCancelBondage_Implementation()
 		return;
 	}
 
-	AMyBondageLifePlayerController* BinderPC = Cast<AMyBondageLifePlayerController>(GetController());
-	// 服务器上的 AccountSubsystem 只代表主机玩家，不能用它取别人的账号；PlayerState 名字在登录时被 SetName 为账号。
-	// 聊天文本用角色名（不是账号）。
-	FString BinderName = GetCharacterName().ToString();
-	if (BinderName.IsEmpty())
-	{
-		BinderName = GetAccountName();
-	}
-	if (BinderName.IsEmpty())
-	{
-		BinderName = GetName();
-	}
+	// 双方在服务器上都存了名字，取消时直接用（谁按都一样）。
+	FString BinderName = BondageBinderDisplayName;
+	FString TargetName = BondageTargetDisplayName;
 	AMyBondageLifeCharacter* TargetChar = BondageTarget.Get();
-	AMyBondageLifePlayerController* TargetPC = TargetChar ? Cast<AMyBondageLifePlayerController>(TargetChar->GetController()) : nullptr;
-	FString TargetName = TargetChar ? TargetChar->GetCharacterName().ToString() : FString();
-	if (TargetName.IsEmpty())
+
+	if (BinderName.IsEmpty() || TargetName.IsEmpty())
 	{
-		TargetName = TargetChar ? (TargetChar->GetAccountName().IsEmpty() ? TargetChar->GetName() : TargetChar->GetAccountName()) : FString();
+		// 兜底：从双方角色补一次。
+		AMyBondageLifeCharacter* BinderChar = BondageBinder ? BondageBinder : this;
+		FString FallbackBinder = BinderChar ? BinderChar->GetCharacterName().ToString() : FString();
+		FString FallbackTarget = TargetChar ? TargetChar->GetCharacterName().ToString() : FString();
+		if (BinderName.IsEmpty()) { BinderName = FallbackBinder; }
+		if (TargetName.IsEmpty()) { TargetName = FallbackTarget; }
 	}
 
 	const bool bResisted = (BondageBinder != this);

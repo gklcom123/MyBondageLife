@@ -531,6 +531,12 @@ public:
 	int32 BondageSlot = -1;
 	FName BondageItem;
 
+	UPROPERTY(Replicated)
+	FString BondageBinderDisplayName;
+
+	UPROPERTY(Replicated)
+	FString BondageTargetDisplayName;
+
 	/** 0 = 无，1 = 40%+，2 = 70%+（仅本地玩家）。 */
 	int32 GetLibidoScreenLevel() const { return LibidoScreenLevel; }
 
