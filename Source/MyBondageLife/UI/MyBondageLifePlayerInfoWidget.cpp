@@ -150,20 +150,31 @@ void UMyBondageLifePlayerInfoWidget::BuildLayout()
 		LabelSlot->SetPadding(FMargin(0.0f, 4.0f, 0.0f, 0.0f));
 	}
 
-	// -------------------------------------------------------- proximity hint
-	// "[F]名字的个人信息" / "[G]名字的拘束信息" 两行。
-	InteractionHintRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("InteractionHintRow"));
-	if (UCanvasPanelSlot* HintSlot = RootCanvas->AddChildToCanvas(InteractionHintRow))
+	// 若设计版 WBP 里已经有 InteractionHintRow，就用它并清空原有分段文本，避免旧文案残留。
+	InteractionHintRow = Cast<UHorizontalBox>(WidgetTree->FindWidget(TEXT("InteractionHintRow")));
+	if (InteractionHintRow)
 	{
-		HintSlot->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
-		HintSlot->SetAlignment(FVector2D(0.5f, 0.5f));
-		HintSlot->SetPosition(FVector2D(0.0f, 200.0f));
-		HintSlot->SetAutoSize(true);
-		HintSlot->SetZOrder(25);
+		InteractionHintRow->ClearChildren();
+	}
+	else
+	{
+		InteractionHintRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("InteractionHintRow"));
+		if (UCanvasPanelSlot* HintSlot = RootCanvas->AddChildToCanvas(InteractionHintRow))
+		{
+			HintSlot->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
+			HintSlot->SetAlignment(FVector2D(0.5f, 0.5f));
+			HintSlot->SetPosition(FVector2D(0.0f, 200.0f));
+			HintSlot->SetAutoSize(true);
+			HintSlot->SetZOrder(25);
+		}
 	}
 
 	{
-		UTextBlock* HintText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("InteractionHintText"));
+		UTextBlock* HintText = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("InteractionHintText")));
+		if (!HintText)
+		{
+			HintText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("InteractionHintText"));
+		}
 		HintText->SetText(FText::FromString(TEXT("[F]---的个人信息\n[G]---的拘束信息")));
 		HintText->SetColorAndOpacity(FSlateColor(FLinearColor(1.0f, 1.0f, 1.0f, 0.95f)));
 		HintText->SetShadowOffset(FVector2D(1.5f, 1.5f));
@@ -180,6 +191,20 @@ void UMyBondageLifePlayerInfoWidget::BuildLayout()
 		}
 
 		InteractionHintName = HintText;
+
+		// 设计版里可能自带旧文案（“按[F]与…进行交互”），统一隐藏掉，避免两条提示同时出现。
+		{
+			TArray<UWidget*> AllWidgets;
+			WidgetTree->GetAllWidgets(AllWidgets);
+			for (UWidget* Candidate : AllWidgets)
+			{
+				UTextBlock* Legacy = Cast<UTextBlock>(Candidate);
+				if (Legacy && Legacy != HintText && Legacy->GetText().ToString().Contains(TEXT("进行交互")))
+				{
+					Legacy->SetVisibility(ESlateVisibility::Collapsed);
+				}
+			}
+		}
 	}
 
 	// ------------------------------------------------------------------ panel
