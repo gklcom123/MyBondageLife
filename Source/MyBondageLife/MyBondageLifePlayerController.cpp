@@ -4256,6 +4256,18 @@ void AMyBondageLifePlayerController::HandleTractionChanged()
 
 	SetIgnoreMoveInput(bTractionFollower);
 
+	if (!bTractionFollower && FollowerOriginalWalkSpeed >= 0.0f)
+	{
+		if (ACharacter* RestoreChar = Cast<ACharacter>(GetPawn()))
+		{
+			if (UCharacterMovementComponent* RestoreMove = RestoreChar->GetCharacterMovement())
+			{
+				RestoreMove->MaxWalkSpeed = FollowerOriginalWalkSpeed;
+			}
+		}
+		FollowerOriginalWalkSpeed = -1.0f;
+	}
+
 	if (AMyBondageLifeCharacter* Controlled = Cast<AMyBondageLifeCharacter>(GetPawn()))
 	{
 		Controlled->bBlockMoveInput = bTractionFollower;
@@ -4286,6 +4298,16 @@ void AMyBondageLifePlayerController::UpdateTractionFollow(float DeltaTime)
 	if (!MoveComp)
 	{
 		return;
+	}
+
+	// 跟随速度为牵引者的 0.9 倍。
+	if (const UCharacterMovementComponent* LeaderMove = Leader->GetCharacterMovement())
+	{
+		if (FollowerOriginalWalkSpeed < 0.0f)
+		{
+			FollowerOriginalWalkSpeed = MoveComp->MaxWalkSpeed;
+		}
+		MoveComp->MaxWalkSpeed = LeaderMove->MaxWalkSpeed * 0.9f;
 	}
 
 	const float Distance = FVector::Dist(Follower->GetActorLocation(), Leader->GetActorLocation());

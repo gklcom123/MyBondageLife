@@ -576,6 +576,7 @@ public:
 	void UpdateTractionChain();
 
 	bool bTractionFollower = false;
+	float FollowerOriginalWalkSpeed = -1.0f;
 	FString TractionLeaderAccount;
 	TWeakObjectPtr<AMyBondageLifeCharacter> TractionLeaderActor;
 	UPROPERTY(Transient)
