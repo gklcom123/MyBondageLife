@@ -349,3 +349,40 @@ void UMyBondageLifeRestraintSlotsWidget::HandleColorClicked(int32 SlotIndex, int
 {
 	OnColorRequested.Broadcast(SlotIndex, Channel);
 }
+
+void UMyBondageLifeRestraintSlotsWidget::RefreshSlaveControlPanel()
+{
+	if (!WidgetTree)
+	{
+		return;
+	}
+
+	UWidget* ControlPanel = WidgetTree->FindWidget(TEXT("W_Overlay_SlaveControlPanel"));
+	if (!ControlPanel)
+	{
+		return;
+	}
+
+	const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+
+	const bool bShow = !ViewAccount.IsEmpty() && Account
+		&& Account->GetContractRoleWith(ViewAccount) == EMyBondageLifeContractRole::Master;
+
+	ControlPanel->SetVisibility(bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+
+	if (bShow && !bTractionBound)
+	{
+		if (UButton* TractionButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_ControlBtn_Traction"))))
+		{
+			TractionButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeRestraintSlotsWidget::HandleTractionClicked);
+			bTractionBound = true;
+		}
+	}
+}
+
+void UMyBondageLifeRestraintSlotsWidget::HandleTractionClicked()
+{
+	// 牵引效果下一版实现，先记录点击。
+	UE_LOG(LogMyBondageLife, Log, TEXT("SlaveControl: traction requested (view=%s)"), *ViewAccount);
+}

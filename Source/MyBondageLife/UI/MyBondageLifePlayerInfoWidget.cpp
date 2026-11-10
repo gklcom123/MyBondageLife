@@ -150,62 +150,9 @@ void UMyBondageLifePlayerInfoWidget::BuildLayout()
 		LabelSlot->SetPadding(FMargin(0.0f, 4.0f, 0.0f, 0.0f));
 	}
 
-	// 若设计版 WBP 里已经有 InteractionHintRow，就用它并清空原有分段文本，避免旧文案残留。
-	InteractionHintRow = Cast<UHorizontalBox>(WidgetTree->FindWidget(TEXT("InteractionHintRow")));
-	if (InteractionHintRow)
-	{
-		InteractionHintRow->ClearChildren();
-	}
-	else
-	{
-		InteractionHintRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("InteractionHintRow"));
-		if (UCanvasPanelSlot* HintSlot = RootCanvas->AddChildToCanvas(InteractionHintRow))
-		{
-			HintSlot->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
-			HintSlot->SetAlignment(FVector2D(0.5f, 0.5f));
-			HintSlot->SetPosition(FVector2D(0.0f, 200.0f));
-			HintSlot->SetAutoSize(true);
-			HintSlot->SetZOrder(25);
-		}
-	}
+	// 两行交互提示（名字绿色）。
+	BuildInteractionHintWidgets(RootCanvas, false);
 
-	{
-		UTextBlock* HintText = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("InteractionHintText")));
-		if (!HintText)
-		{
-			HintText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("InteractionHintText"));
-		}
-		HintText->SetText(FText::FromString(TEXT("[F]---的个人信息\n[G]---的拘束信息")));
-		HintText->SetColorAndOpacity(FSlateColor(FLinearColor(1.0f, 1.0f, 1.0f, 0.95f)));
-		HintText->SetShadowOffset(FVector2D(1.5f, 1.5f));
-		HintText->SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 1.0f));
-
-		FSlateFontInfo HintFont = HintText->GetFont();
-		HintFont.Size = 24;
-		HintFont.FontObject = MyBondageLifeUI::LoadUIFont();
-		HintText->SetFont(HintFont);
-
-		if (UHorizontalBoxSlot* PartSlot = InteractionHintRow->AddChildToHorizontalBox(HintText))
-		{
-			PartSlot->SetVerticalAlignment(VAlign_Center);
-		}
-
-		InteractionHintName = HintText;
-
-		// 设计版里可能自带旧文案（“按[F]与…进行交互”），统一隐藏掉，避免两条提示同时出现。
-		{
-			TArray<UWidget*> AllWidgets;
-			WidgetTree->GetAllWidgets(AllWidgets);
-			for (UWidget* Candidate : AllWidgets)
-			{
-				UTextBlock* Legacy = Cast<UTextBlock>(Candidate);
-				if (Legacy && Legacy != HintText && Legacy->GetText().ToString().Contains(TEXT("进行交互")))
-				{
-					Legacy->SetVisibility(ESlateVisibility::Collapsed);
-				}
-			}
-		}
-	}
 
 	// ------------------------------------------------------------------ panel
 	PanelBorder = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("PlayerInfoPanel"));
@@ -739,7 +686,15 @@ void UMyBondageLifePlayerInfoWidget::SetInteractionHintTarget(const AMyBondageLi
 		HintTarget = Character;
 		HintName = TargetName;
 
-		if (InteractionHintName)
+		for (UTextBlock* NameBlock : HintNameBlocks)
+		{
+			if (NameBlock)
+			{
+				NameBlock->SetText(FText::FromString(TargetName));
+			}
+		}
+
+		if (HintNameBlocks.Num() == 0 && InteractionHintName)
 		{
 			InteractionHintName->SetText(FText::FromString(FString::Printf(
 				TEXT("[F]%s的个人信息\n[G]%s的拘束信息"), *TargetName, *TargetName)));
@@ -1188,32 +1143,10 @@ void UMyBondageLifePlayerInfoWidget::BuildEntryButtonOnly()
 		return;
 	}
 
-	// 交互提示（两行）：[F]xxx的个人信息 / [G]xxx的拘束信息。
+	// 交互提示（两行，名字绿色）。
 	if (!InteractionHintName)
 	{
-		InteractionHintRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("InteractionHintRow"));
-		if (UCanvasPanelSlot* HintSlot = Canvas->AddChildToCanvas(InteractionHintRow))
-		{
-			HintSlot->SetAnchors(FAnchors(0.5f, 1.0f, 0.5f, 1.0f));
-			HintSlot->SetAlignment(FVector2D(0.5f, 1.0f));
-			HintSlot->SetPosition(FVector2D(0.0f, -150.0f));
-			HintSlot->SetAutoSize(true);
-			HintSlot->SetZOrder(25);
-		}
-		InteractionHintRow->SetVisibility(ESlateVisibility::Collapsed);
-
-		InteractionHintName = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("InteractionHintText"));
-		InteractionHintName->SetText(FText::FromString(TEXT("[F]---的个人信息\n[G]---的拘束信息")));
-		InteractionHintName->SetColorAndOpacity(FSlateColor(FLinearColor::White));
-		InteractionHintName->SetShadowOffset(FVector2D(1.0f, 1.0f));
-		InteractionHintName->SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.9f));
-
-		FSlateFontInfo HintFont = InteractionHintName->GetFont();
-		HintFont.Size = 24;
-		HintFont.FontObject = MyBondageLifeUI::LoadUIFont();
-		InteractionHintName->SetFont(HintFont);
-
-		InteractionHintRow->AddChildToHorizontalBox(InteractionHintName);
+		BuildInteractionHintWidgets(Canvas, true);
 	}
 
 	if (OpenButton)
@@ -1591,5 +1524,68 @@ void UMyBondageLifePlayerInfoWidget::RefreshLoveButton()
 		AddFriendLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.02f, 0.02f, 0.02f)));
 		AddFriendLabel->SetJustification(ETextJustify::Center);
 		AddFriendButton->SetIsEnabled(true);
+	}
+}
+
+void UMyBondageLifePlayerInfoWidget::BuildInteractionHintWidgets(UCanvasPanel* Canvas, bool bBottomAnchor)
+{
+	InteractionHintRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("InteractionHintRow"));
+	if (UCanvasPanelSlot* HintSlot = Canvas->AddChildToCanvas(InteractionHintRow))
+	{
+		if (bBottomAnchor)
+		{
+			HintSlot->SetAnchors(FAnchors(0.5f, 1.0f, 0.5f, 1.0f));
+			HintSlot->SetAlignment(FVector2D(0.5f, 1.0f));
+			HintSlot->SetPosition(FVector2D(0.0f, -150.0f));
+		}
+		else
+		{
+			HintSlot->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
+			HintSlot->SetAlignment(FVector2D(0.5f, 0.5f));
+			HintSlot->SetPosition(FVector2D(0.0f, 140.0f));
+		}
+		HintSlot->SetAutoSize(true);
+		HintSlot->SetZOrder(25);
+	}
+	InteractionHintRow->SetVisibility(ESlateVisibility::Collapsed);
+
+	UVerticalBox* Lines = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	InteractionHintRow->AddChildToHorizontalBox(Lines);
+
+	auto MakePart = [this](const FString& Text, const FLinearColor& Color, bool bIsName)
+	{
+		UTextBlock* Part = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		Part->SetText(FText::FromString(Text));
+		Part->SetColorAndOpacity(FSlateColor(Color));
+		Part->SetShadowOffset(FVector2D(1.0f, 1.0f));
+		Part->SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.9f));
+
+		FSlateFontInfo Font = Part->GetFont();
+		Font.Size = 24;
+		Font.FontObject = MyBondageLifeUI::LoadUIFont();
+		Part->SetFont(Font);
+
+		if (bIsName)
+		{
+			HintNameBlocks.Add(Part);
+			if (!InteractionHintName)
+			{
+				InteractionHintName = Part;
+			}
+		}
+		return Part;
+	};
+
+	const FLinearColor White(1.0f, 1.0f, 1.0f, 0.95f);
+	const FLinearColor Green(0.35f, 0.9f, 0.4f, 1.0f);
+
+	for (int32 Line = 0; Line < 2; ++Line)
+	{
+		UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		Lines->AddChildToVerticalBox(Row);
+
+		Row->AddChildToHorizontalBox(MakePart(Line == 0 ? TEXT("[F]") : TEXT("[G]"), White, false));
+		Row->AddChildToHorizontalBox(MakePart(TEXT("---"), Green, true));
+		Row->AddChildToHorizontalBox(MakePart(Line == 0 ? TEXT("的个人信息") : TEXT("的拘束信息"), White, false));
 	}
 }

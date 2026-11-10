@@ -65,6 +65,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Restraint")
 	void SetViewAccount(const FString& InAccount);
 
+	/** 奴隶控制面板：仅主人查看奴隶时显示。 */
+	void RefreshSlaveControlPanel();
+
+	UFUNCTION()
+	void HandleTractionClicked();
+
+	bool bTractionBound = false;
+
 	/** Re-reads the equipment and repaints every slot. */
 	UFUNCTION(BlueprintCallable, Category = "Restraint")
 	void RefreshSlots();

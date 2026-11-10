@@ -135,6 +135,9 @@ protected:
 
 	void BuildLayout();
 
+	/** 两行交互提示（[F]xxx的个人信息 / [G]xxx的拘束信息），名字为绿色。 */
+	void BuildInteractionHintWidgets(UCanvasPanel* Canvas, bool bBottomAnchor);
+
 	/** Rewrites the three lines from the cached character. */
 
 	UFUNCTION()
@@ -255,6 +258,9 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UTextBlock> InteractionHintName;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UTextBlock>> HintNameBlocks;
 
 	/** 交互提示整体上移一次（避免每次刷新都叠加位移）。 */
 	bool bHintRaised = false;
