@@ -153,6 +153,16 @@ bool UMyBondageLifeSessionSubsystem::HostRoomWithEOS(const FString& InRoomName, 
 		return false;
 	}
 
+	// Hosting from a client world (for example right after a failed join) has no
+	// game mode and ends in "Couldn't spawn player". Require returning to the
+	// menu/standalone world first.
+	if (World->GetNetMode() == NM_Client)
+	{
+		UE_LOG(LogMyBondageLife, Warning,
+			TEXT("HostRoomWithEOS: refused to host while the world is still a client."));
+		return false;
+	}
+
 	RoomName = InRoomName.IsEmpty() ? FString(TEXT("Room")) : InRoomName;
 	RoomId.Reset();
 	HostIp = HostPuid;

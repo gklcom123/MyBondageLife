@@ -856,8 +856,16 @@ void UMainSceneWidget::HandleRoomsFailed(const FText& ErrorMessage)
 
 void UMainSceneWidget::HandleRoomJoined(const FMyBondageLifeServerRoom& Room)
 {
+	// Stays true until travel succeeds or OnRoomsFailed fires. Resetting it here
+	// (before ClientTravel) lets a second click tear down the pending EOS
+	// connection while ICE is still checking.
+	if (!bJoinInProgress)
+	{
+		UE_LOG(LogMyBondageLife, Warning, TEXT("MainScene: duplicate room-joined event ignored."));
+		return;
+	}
+
 	HideConnecting();
-	bJoinInProgress = false;
 	CloseRoomBrowser();
 
 	UGameInstance* GameInstance = GetGameInstance();
@@ -867,11 +875,16 @@ void UMainSceneWidget::HandleRoomJoined(const FMyBondageLifeServerRoom& Room)
 
 	if (!Session)
 	{
+		bJoinInProgress = false;
 		UE_LOG(LogMyBondageLife, Error, TEXT("MainScene: session subsystem unavailable."));
 		return;
 	}
 
-	Session->JoinServerRoom(Room);
+	if (!Session->JoinServerRoom(Room))
+	{
+		bJoinInProgress = false;
+		UE_LOG(LogMyBondageLife, Error, TEXT("MainScene: JoinServerRoom rejected the travel."));
+	}
 }
 
 // ---------------------------------------------------------------------------

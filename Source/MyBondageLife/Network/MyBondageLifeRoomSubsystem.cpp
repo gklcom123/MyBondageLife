@@ -257,21 +257,27 @@ bool UMyBondageLifeRoomSubsystem::TickConnectingOverlay(float DeltaSeconds)
 		if (World && World->HasBegunPlay() && World->GetNetMode() == NM_Standalone &&
 			Now - TravelStartedSeconds > 8.0)
 		{
+			ReportUnreachable(JoiningRoomId);
 			HideConnectingOverlay();
 			OnRoomsFailed.Broadcast(FText::FromString(TEXT("\u8FDE\u63A5\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5")));
 			return true;
 		}
 
-		if (Now - TravelStartedSeconds > 45.0)
+		if (Now - TravelStartedSeconds > 20.0)
 		{
+			ReportUnreachable(JoiningRoomId);
 			HideConnectingOverlay();
+			if (GEngine && World)
+			{
+				GEngine->CancelPending(World);
+			}
 			OnRoomsFailed.Broadcast(FText::FromString(TEXT("\u8FDE\u63A5\u8D85\u65F6\uFF0C\u8BF7\u91CD\u8BD5")));
 		}
 
 		return true;
 	}
 
-	if (Now - ConnectStartedSeconds > 45.0)
+	if (Now - ConnectStartedSeconds > 20.0)
 	{
 		ReportUnreachable(JoiningRoomId);
 		CancelJoin();
