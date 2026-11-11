@@ -176,6 +176,26 @@ bool UMyBondageLifeSessionSubsystem::HostRoomWithEOS(const FString& InRoomName, 
 		2.0f,
 		false);
 
+	// 若还有未完成的加入/连接（PendingNetGame），直接 OpenLevel(?listen) 会让世界停留在 Client 模式，
+	// 导致 "No game mode set" / "Couldn't spawn player" 致命错误；先单独重载当前地图清掉连接，再延迟托管。
+	if (World->GetNetMode() == NM_Client || World->GetNetDriver())
+	{
+		UE_LOG(LogMyBondageLife, Warning, TEXT("HostRoomWithEOS: clearing pending client connection before hosting."));
+
+		const FString MapToReload = PendingMapName;
+		UGameplayStatics::OpenLevel(World, FName(*MapToReload), true);
+
+		TWeakObjectPtr<UMyBondageLifeSessionSubsystem> WeakThis(this);
+		GameInstance->GetTimerManager().SetTimer(RehostTimer, FTimerDelegate::CreateWeakLambda(this, [WeakThis, InRoomName, HostPuid]()
+		{
+			if (UMyBondageLifeSessionSubsystem* Self = WeakThis.Get())
+			{
+				Self->HostRoomWithEOS(InRoomName, HostPuid);
+			}
+		}), 1.5f, false);
+		return true;
+	}
+
 	// Cloud rooms go through EOS P2P.
 	ForceGameNetDriverClass(EOSNetDriverClass);
 

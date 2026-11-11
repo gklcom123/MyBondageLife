@@ -115,4 +115,7 @@ private:
 	FString PendingHostPuid;
 	FString PendingMapName;
 	FTimerHandle PendingRoomTimer;
+
+	/** 托管前若存在未完成的连接，用它延迟重试。 */
+	FTimerHandle RehostTimer;
 };

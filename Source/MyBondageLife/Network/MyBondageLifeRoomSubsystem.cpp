@@ -244,8 +244,10 @@ bool UMyBondageLifeRoomSubsystem::TickConnectingOverlay(float DeltaSeconds)
 	if (bTravelStarted)
 	{
 		// Success: the client world is up and the local player exists.
-		if (World && World->HasBegunPlay() && World->GetNetMode() == NM_Client &&
-			GameInstance->GetFirstLocalPlayerController())
+		// 必须有 Pawn 才算真正进入（仅 NM_Client 会在 ClientTravel 刚开始时就成立，导致等待框一闪而过）。
+		APlayerController* LocalPC = GameInstance->GetFirstLocalPlayerController();
+	if (World && World->HasBegunPlay() && World->GetNetMode() == NM_Client &&
+		LocalPC && LocalPC->GetPawn())
 		{
 			HideConnectingOverlay();
 			return true;
