@@ -114,6 +114,13 @@ void UMyBondageLifeChatWidget::BuildLayout()
 	}
 
 	ChatInput = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass(), TEXT("ChatInput"));
+
+	// 输入框字体（EditableTextBox 用 WidgetStyle.TextStyle，不走 TextBlock 的 Font）。
+	{
+		FEditableTextBoxStyle InputStyle = ChatInput->WidgetStyle;
+		InputStyle.SetFont(FSlateFontInfo(MyBondageLifeUI::LoadUIFont(), 18));
+		ChatInput->SetWidgetStyle(InputStyle);
+	}
 	ChatInput->SetHintText(FText::FromString(TEXT("\u6309 Enter \u8F93\u5165\u804A\u5929")));
 	MyBondageLifeUI::ApplyReadableTextInputStyle(ChatInput);
 	ChatInput->SetIsReadOnly(true);

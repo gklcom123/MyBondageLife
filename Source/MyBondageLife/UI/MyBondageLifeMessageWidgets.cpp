@@ -497,6 +497,56 @@ void UMyBondageLifeMessageCenterWidget::RefreshList()
 			break;
 		}
 
+		// 优先使用设计好的 WBP_MessageRow：找到文本控件写入文案，按名字识别同意/拒绝按钮。
+		{
+			static UClass* MessageRowClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_MessageRow.WBP_MessageRow_C"));
+			if (MessageRowClass)
+			{
+				if (UUserWidget* WbpRow = CreateWidget<UUserWidget>(GetOwningPlayer(), MessageRowClass))
+				{
+					if (WbpRow->WidgetTree)
+					{
+						TArray<UWidget*> AllWidgets;
+						WbpRow->WidgetTree->GetAllWidgets(AllWidgets);
+
+						for (UWidget* Candidate : AllWidgets)
+						{
+							if (UTextBlock* Label = Cast<UTextBlock>(Candidate))
+							{
+								Label->SetText(FText::FromString(RowText));
+								break;
+							}
+						}
+
+						if (UMyBondageLifeAccountSubsystem* Subsystem = GetGameInstance()
+							? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+						{
+							for (UWidget* Candidate : AllWidgets)
+							{
+								UButton* Button = Cast<UButton>(Candidate);
+								if (!Button) { continue; }
+
+								const FString Name = Button->GetName();
+								bool bAccept = false;
+								if (Name.Contains(TEXT("Accept")) || Name.Contains(TEXT("Agree")) || Name.Contains(TEXT("同意"))) { bAccept = true; }
+								else if (Name.Contains(TEXT("Decline")) || Name.Contains(TEXT("Reject")) || Name.Contains(TEXT("拒绝"))) { bAccept = false; }
+								else { continue; }
+
+								UMyBondageLifeMessageButtonProxy* Proxy = NewObject<UMyBondageLifeMessageButtonProxy>(this);
+								Proxy->Subsystem = Subsystem;
+								Proxy->NotificationId = Item.Id;
+								Proxy->bAccept = bAccept;
+								RowProxies.Add(Proxy);
+								Button->OnClicked.AddDynamic(Proxy, &UMyBondageLifeMessageButtonProxy::HandleClicked);
+							}
+						}
+					}
+
+					ListBox->AddChild(WbpRow);
+					continue;
+				}
+			}
+		}
 		// Rows are built in code: the designed row prototype could not be resolved
 		// reliably (its labels are unnamed), and a broken list is worse than a plain one.
 		UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
