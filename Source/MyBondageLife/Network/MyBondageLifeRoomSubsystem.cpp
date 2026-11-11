@@ -295,7 +295,7 @@ bool UMyBondageLifeRoomSubsystem::TickConnectingOverlay(float DeltaSeconds)
 			return true;
 		}
 
-		if (Now - TravelStartedSeconds > 20.0)
+		if (Now - TravelStartedSeconds > 60.0)
 		{
 			ReportUnreachable(JoiningRoomId);
 			HideConnectingOverlay();
@@ -309,7 +309,7 @@ bool UMyBondageLifeRoomSubsystem::TickConnectingOverlay(float DeltaSeconds)
 		return true;
 	}
 
-	if (Now - ConnectStartedSeconds > 20.0)
+	if (Now - ConnectStartedSeconds > 60.0)
 	{
 		ReportUnreachable(JoiningRoomId);
 		CancelJoin();
