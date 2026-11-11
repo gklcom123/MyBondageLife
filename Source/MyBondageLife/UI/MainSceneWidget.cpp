@@ -865,7 +865,7 @@ void UMainSceneWidget::HandleRoomJoined(const FMyBondageLifeServerRoom& Room)
 		return;
 	}
 
-	HideConnecting();
+	// 等待框保持到 travel 成功或失败（成功时地图切换会销毁本控件）。
 	CloseRoomBrowser();
 
 	UGameInstance* GameInstance = GetGameInstance();

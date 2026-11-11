@@ -159,6 +159,18 @@ void UMyBondageLifeRoomSubsystem::CancelJoin()
 	++JoinGeneration;
 	bRequestInFlight = false;
 	HideConnectingOverlay();
+
+	// 清掉未完成的 travel，否则世界会停留在 Client（之后无法创建房间）。
+	if (UWorld* World = GetWorld())
+	{
+		if (GEngine)
+		{
+			GEngine->CancelPending(World);
+		}
+	}
+
+	JoiningRoomId.Reset();
+	bTravelStarted = false;
 }
 
 void UMyBondageLifeRoomSubsystem::ShowConnectingOverlay(const FText& Text)
