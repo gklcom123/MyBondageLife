@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "MyBondageLifeRoomSubsystem.h"
+#include "MyBondageLifeRoomSubsystem.h"
+
 #include "Engine/NetConnection.h"
 #include "UI/MyBondageLifeUIStyle.h"
 
@@ -270,7 +271,17 @@ bool UMyBondageLifeRoomSubsystem::TickConnectingOverlay(float DeltaSeconds)
 	UWorld* World = GameInstance->GetWorld();
 	const double Now = FPlatformTime::Seconds();
 
-	if (bTravelStarted)
+	// 倒计时：等待框显示剩余秒数（总时长 20 秒）。
+	{
+		const int32 Remaining = FMath::Max(0, 20 - FMath::FloorToInt(static_cast<float>(Now - ConnectStartedSeconds)));
+		if (Remaining != LastCountdownSeconds)
+		{
+			LastCountdownSeconds = Remaining;
+			SetConnectingText(FText::FromString(FString::Printf(TEXT("正在连接房间… 剩余 %d 秒"), Remaining)));
+		}
+	}
+
+if (bTravelStarted)
 	{
 		// Success: the client world is up and the local player exists.
 		// 必须有 Pawn 才算真正进入（仅 NM_Client 会在 ClientTravel 刚开始时就成立，导致等待框一闪而过）。
@@ -295,7 +306,7 @@ bool UMyBondageLifeRoomSubsystem::TickConnectingOverlay(float DeltaSeconds)
 			return true;
 		}
 
-		if (Now - TravelStartedSeconds > 60.0)
+		if (Now - TravelStartedSeconds > 20.0)
 		{
 			ReportUnreachable(JoiningRoomId);
 			HideConnectingOverlay();
@@ -309,7 +320,7 @@ bool UMyBondageLifeRoomSubsystem::TickConnectingOverlay(float DeltaSeconds)
 		return true;
 	}
 
-	if (Now - ConnectStartedSeconds > 60.0)
+	if (Now - ConnectStartedSeconds > 20.0)
 	{
 		ReportUnreachable(JoiningRoomId);
 		CancelJoin();

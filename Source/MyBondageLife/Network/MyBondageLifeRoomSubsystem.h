@@ -128,6 +128,8 @@ private:
 	bool bOverlayVisible = false;
 	bool bTravelStarted = false;
 	double ConnectStartedSeconds = 0.0;
+
+	int32 LastCountdownSeconds = -1;
 	double TravelStartedSeconds = 0.0;
 	FString MenuMapName;
 };
