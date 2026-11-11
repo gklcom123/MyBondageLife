@@ -47,6 +47,7 @@ void UMyBondageLifeRoomSubsystem::Initialize(FSubsystemCollectionBase& Collectio
 
 void UMyBondageLifeRoomSubsystem::Deinitialize()
 {
+	UE_LOG(LogMyBondageLife, Log, TEXT("Connect: hide (deinit)"));
 	HideConnectingOverlay();
 	FTSTicker::GetCoreTicker().RemoveTicker(ConnectingTickerHandle);
 
@@ -146,6 +147,7 @@ void UMyBondageLifeRoomSubsystem::JoinRoom(const FString& RoomId)
 			bRequestInFlight = false;
 			if (!bSuccess)
 			{
+				UE_LOG(LogMyBondageLife, Log, TEXT("Connect: hide (join http failed)"));
 				HideConnectingOverlay();
 				OnRoomsFailed.Broadcast(MakeErrorText(StatusCode, Body));
 				return;
@@ -157,6 +159,7 @@ void UMyBondageLifeRoomSubsystem::JoinRoom(const FString& RoomId)
 void UMyBondageLifeRoomSubsystem::CancelJoin()
 {
 	++JoinGeneration;
+	UE_LOG(LogMyBondageLife, Log, TEXT("Connect: hide (CancelJoin)"));
 	bRequestInFlight = false;
 	HideConnectingOverlay();
 
@@ -171,6 +174,19 @@ void UMyBondageLifeRoomSubsystem::CancelJoin()
 
 	JoiningRoomId.Reset();
 	bTravelStarted = false;
+
+	// 失败后若世界仍停留在 Client，回到菜单世界（standalone），否则无法再创建房间。
+	if (UWorld* World = GetWorld())
+	{
+		if (World->GetNetMode() == NM_Client)
+		{
+			if (APlayerController* PC = GetGameInstance() ? GetGameInstance()->GetFirstLocalPlayerController() : nullptr)
+			{
+				UE_LOG(LogMyBondageLife, Warning, TEXT("Connect: leaving client world back to menu (%s)"), *MenuMapName);
+				PC->ClientTravel(MenuMapName.IsEmpty() ? FString(TEXT("/Game/ThirdPerson/Lvl_ThirdPerson")) : MenuMapName, ETravelType::TRAVEL_Absolute);
+			}
+		}
+	}
 }
 
 void UMyBondageLifeRoomSubsystem::ShowConnectingOverlay(const FText& Text)
