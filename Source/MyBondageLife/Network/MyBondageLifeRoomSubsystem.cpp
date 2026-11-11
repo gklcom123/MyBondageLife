@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "MyBondageLifeRoomSubsystem.h"
+#include "MyBondageLifeRoomSubsystem.h"
+#include "Engine/NetConnection.h"
 #include "UI/MyBondageLifeUIStyle.h"
 
 #include "Core/MyBondageLifeAccountSubsystem.h"
@@ -274,8 +275,11 @@ bool UMyBondageLifeRoomSubsystem::TickConnectingOverlay(float DeltaSeconds)
 		// Success: the client world is up and the local player exists.
 		// 必须有 Pawn 才算真正进入（仅 NM_Client 会在 ClientTravel 刚开始时就成立，导致等待框一闪而过）。
 		APlayerController* LocalPC = GameInstance->GetFirstLocalPlayerController();
-	if (World && World->HasBegunPlay() && World->GetNetMode() == NM_Client &&
-		LocalPC && LocalPC->GetPawn())
+	UNetDriver* Driver = World ? World->GetNetDriver() : nullptr;
+	if (World && World->HasBegunPlay() && World->GetNetMode() == NM_Client
+		&& Driver && Driver->ServerConnection
+		&& Driver->ServerConnection->GetConnectionState() == USOCK_Open
+		&& LocalPC && LocalPC->GetPawn())
 		{
 			HideConnectingOverlay();
 			return true;
