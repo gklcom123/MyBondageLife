@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "MyBondageLifeRoomSubsystem.h"
+#include "UI/MyBondageLifeUIStyle.h"
 
 #include "Core/MyBondageLifeAccountSubsystem.h"
 #include "Core/MyBondageLifeEOSSubsystem.h"
@@ -172,7 +173,7 @@ void UMyBondageLifeRoomSubsystem::ShowConnectingOverlay(const FText& Text)
 		SAssignNew(ConnectingTextBlock, STextBlock)
 			.Text(Text)
 			.ColorAndOpacity(FSlateColor(FLinearColor::White))
-			.Font(FCoreStyle::GetDefaultFontStyle("Bold", 32))
+			.Font(FSlateFontInfo(MyBondageLifeUI::LoadUIFont(), 32))
 			.Justification(ETextJustify::Center);
 
 		ConnectingOverlay = SNew(SBorder)
@@ -197,8 +198,9 @@ void UMyBondageLifeRoomSubsystem::ShowConnectingOverlay(const FText& Text)
 		SetConnectingText(Text);
 	}
 
+	UE_LOG(LogMyBondageLife, Log, TEXT("Connect: overlay shown valid=%d text=%s"), ConnectingOverlay.IsValid() ? 1 : 0, *Text.ToString());
 	bOverlayVisible = true;
-}
+	bOverlayVisible = true;
 
 void UMyBondageLifeRoomSubsystem::SetConnectingText(const FText& Text)
 {
@@ -214,6 +216,8 @@ void UMyBondageLifeRoomSubsystem::HideConnectingOverlay()
 	{
 		GEngine->GameViewport->RemoveViewportWidgetContent(ConnectingOverlay.ToSharedRef());
 	}
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("Connect: overlay hidden"));
 
 	ConnectingOverlay.Reset();
 	ConnectingTextBlock.Reset();
@@ -265,7 +269,7 @@ bool UMyBondageLifeRoomSubsystem::TickConnectingOverlay(float DeltaSeconds)
 		return true;
 	}
 
-	if (Now - ConnectStartedSeconds > 15.0)
+	if (Now - ConnectStartedSeconds > 45.0)
 	{
 		ReportUnreachable(JoiningRoomId);
 		CancelJoin();
