@@ -135,7 +135,7 @@ void UMyBondageLifeRoomSubsystem::JoinRoom(const FString& RoomId)
 			MenuMapName = World->GetMapName();
 		}
 	}
-	ShowConnectingOverlay(FText::FromString(TEXT("\u6B63\u5728\u8FDE\u63A5\u623F\u95F4\u2026")));
+	ShowConnectingOverlay(FText::FromString(TEXT("正在进入房间…")));
 
 	SendRequest(FString::Printf(TEXT("/rooms/%s/join"), *RoomId), TEXT("POST"), nullptr,
 		[this, Generation](bool bSuccess, int32 StatusCode, const FString& Body)
@@ -277,7 +277,7 @@ bool UMyBondageLifeRoomSubsystem::TickConnectingOverlay(float DeltaSeconds)
 		if (Remaining != LastCountdownSeconds)
 		{
 			LastCountdownSeconds = Remaining;
-			SetConnectingText(FText::FromString(FString::Printf(TEXT("正在连接房间… 剩余 %d 秒"), Remaining)));
+			SetConnectingText(FText::FromString(FString::Printf(TEXT("正在进入房间… 剩余 %d 秒"), Remaining)));
 		}
 	}
 

@@ -397,20 +397,8 @@ void UMainSceneWidget::BuildConnectingOverlay()
 
 void UMainSceneWidget::ShowConnecting()
 {
-	if (ConnectingOverlay)
-	{
-		ConnectingOverlay->SetVisibility(ESlateVisibility::Visible);
-	}
-
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().ClearTimer(JoinTimeoutTimer);
-		World->GetTimerManager().SetTimer(
-			JoinTimeoutTimer,
-			FTimerDelegate::CreateUObject(this, &UMainSceneWidget::HandleJoinTimeout),
-			15.0f,
-			false);
-	}
+	// 统一由 UMyBondageLifeRoomSubsystem 的 Slate 覆层显示连接进度（带 45 秒倒计时），
+	// 这里不再弹自己的 UMG 面板，避免两套等待界面互相覆盖。
 }
 
 void UMainSceneWidget::HideConnecting()
