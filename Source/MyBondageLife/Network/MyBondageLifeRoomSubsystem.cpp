@@ -199,9 +199,9 @@ void UMyBondageLifeRoomSubsystem::ShowConnectingOverlay(const FText& Text)
 	}
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("Connect: overlay shown valid=%d text=%s"), ConnectingOverlay.IsValid() ? 1 : 0, *Text.ToString());
-	bOverlayVisible = true;
-	bOverlayVisible = true;
 
+	bOverlayVisible = true;
+}
 void UMyBondageLifeRoomSubsystem::SetConnectingText(const FText& Text)
 {
 	if (ConnectingTextBlock.IsValid())
