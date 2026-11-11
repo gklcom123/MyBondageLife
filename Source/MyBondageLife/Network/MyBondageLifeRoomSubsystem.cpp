@@ -170,7 +170,7 @@ void UMyBondageLifeRoomSubsystem::CancelJoin()
 	{
 		if (GEngine)
 		{
-			GEngine->CancelPending(World);
+			// 临时回滚：不主动取消在途连接。
 		}
 	}
 
@@ -300,7 +300,7 @@ if (bTravelStarted)
 		if (World && World->HasBegunPlay() && World->GetNetMode() == NM_Standalone &&
 			Now - TravelStartedSeconds > 8.0)
 		{
-			ReportUnreachable(JoiningRoomId);
+			// 临时回滚：不上报 unreachable，避免服务端删房。
 			HideConnectingOverlay();
 			OnRoomsFailed.Broadcast(FText::FromString(TEXT("\u8FDE\u63A5\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5")));
 			return true;
@@ -308,12 +308,8 @@ if (bTravelStarted)
 
 		if (Now - TravelStartedSeconds > 45.0)
 		{
-			ReportUnreachable(JoiningRoomId);
+			// 临时回滚：不上报 unreachable，避免服务端删房。
 			HideConnectingOverlay();
-			if (GEngine && World)
-			{
-				GEngine->CancelPending(World);
-			}
 			OnRoomsFailed.Broadcast(FText::FromString(TEXT("\u8FDE\u63A5\u8D85\u65F6\uFF0C\u8BF7\u91CD\u8BD5")));
 		}
 
@@ -322,7 +318,7 @@ if (bTravelStarted)
 
 	if (Now - ConnectStartedSeconds > 45.0)
 	{
-		ReportUnreachable(JoiningRoomId);
+		// 临时回滚：不上报 unreachable。
 		CancelJoin();
 		OnRoomsFailed.Broadcast(FText::FromString(TEXT("\u8FDE\u63A5\u8D85\u65F6\uFF0C\u8BF7\u91CD\u8BD5")));
 	}
