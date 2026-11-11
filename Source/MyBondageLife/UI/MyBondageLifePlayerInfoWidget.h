@@ -260,6 +260,9 @@ protected:
 	TObjectPtr<UTextBlock> InteractionHintName;
 
 	UPROPERTY(Transient)
+	TObjectPtr<UWidget> HintRowG;
+
+	UPROPERTY(Transient)
 	TArray<TObjectPtr<UTextBlock>> HintNameBlocks;
 
 	/** 交互提示整体上移一次（避免每次刷新都叠加位移）。 */

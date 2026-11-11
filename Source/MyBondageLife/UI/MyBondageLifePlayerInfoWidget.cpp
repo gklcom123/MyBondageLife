@@ -677,6 +677,22 @@ void UMyBondageLifePlayerInfoWidget::SetInteractionHintTarget(const AMyBondageLi
 
 	// The replicated name can arrive after the target is first seen, so refresh the
 	// text whenever either the target or its name changes.
+	// 是否好友：决定是否显示 G 行。
+	bool bIsFriend = false;
+	if (const UMyBondageLifeAccountSubsystem* FriendAccount = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		const FString TargetAccount = Character->GetAccountName();
+		for (const FMyBondageLifeFriendEntry& Entry : FriendAccount->GetFriends())
+		{
+			if (!TargetAccount.IsEmpty() && Entry.AccountName.Equals(TargetAccount, ESearchCase::IgnoreCase))
+			{
+				bIsFriend = true;
+				break;
+			}
+		}
+	}
+
 	const FString TargetName = Character->GetCharacterName().IsEmpty()
 		? FString(TEXT("---"))
 		: Character->GetCharacterName().ToString();
@@ -686,7 +702,13 @@ void UMyBondageLifePlayerInfoWidget::SetInteractionHintTarget(const AMyBondageLi
 		HintTarget = Character;
 		HintName = TargetName;
 
-		for (UTextBlock* NameBlock : HintNameBlocks)
+		// G 行仅对好友显示。
+		if (HintRowG)
+	{
+		HintRowG->SetVisibility(bIsFriend ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	}
+
+	for (UTextBlock* NameBlock : HintNameBlocks)
 		{
 			if (NameBlock)
 			{
@@ -1583,6 +1605,12 @@ void UMyBondageLifePlayerInfoWidget::BuildInteractionHintWidgets(UCanvasPanel* C
 	{
 		UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 		Lines->AddChildToVerticalBox(Row);
+
+		if (Line == 1)
+		{
+			HintRowG = Row;
+			Row->SetVisibility(ESlateVisibility::Collapsed);
+	}
 
 		Row->AddChildToHorizontalBox(MakePart(Line == 0 ? TEXT("[F]") : TEXT("[G]"), White, false));
 		Row->AddChildToHorizontalBox(MakePart(TEXT("---"), Green, true));

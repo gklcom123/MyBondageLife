@@ -3017,15 +3017,37 @@ void AMyBondageLifePlayerController::HandleSitKeyPressed()
 	if (NearbyCharacter.IsValid())
 	{
 		const FString NearbyAccount = NearbyCharacter->GetAccountName();
-		if (!NearbyAccount.IsEmpty())
+		if (NearbyAccount.IsEmpty())
 		{
-			OpenFriendWardrobe(NearbyAccount);
-			if (WardrobeWidget)
-			{
-				WardrobeWidget->SelectTab(2);
-			}
 			return;
 		}
+
+		// 只有好友才能用 G 打开对方拘束页。
+		bool bIsFriend = false;
+		if (const UMyBondageLifeAccountSubsystem* FriendAccount = GetGameInstance()
+			? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+		{
+		for (const FMyBondageLifeFriendEntry& Entry : FriendAccount->GetFriends())
+		{
+			if (Entry.AccountName.Equals(NearbyAccount, ESearchCase::IgnoreCase))
+			{
+				bIsFriend = true;
+				break;
+			}
+	}
+	}
+
+	if (!bIsFriend)
+	{
+		return;
+	}
+
+	OpenFriendWardrobe(NearbyAccount);
+	if (WardrobeWidget)
+	{
+		WardrobeWidget->SelectTab(2);
+	}
+	return;
 	}
 
 	// CantSit：规则开启时按 G 直接无效。
