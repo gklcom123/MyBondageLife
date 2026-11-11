@@ -205,6 +205,14 @@ void UMyBondageLifeEOSSubsystem::SetupSocketSubsystem()
 		return;
 	}
 
+	// 记录中继策略，便于排查 EOS P2P ICE 失败。
+	{
+		FString RelayControl;
+		GConfig->GetString(TEXT("SocketSubsystemEOS"), TEXT("RelayControl"), RelayControl, GEngineIni);
+		UE_LOG(LogMyBondageLife, Log, TEXT("EOS: RelayControl=%s"),
+			RelayControl.IsEmpty() ? TEXT("(default)") : *RelayControl);
+	}
+
 	// In PIE, GetWorldForOnline needs the world context handle to find the right
 	// world; in a packaged game NAME_None resolves to the game world.
 	FName InstanceName = NAME_None;
