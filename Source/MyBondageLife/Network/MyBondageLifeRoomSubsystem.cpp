@@ -271,9 +271,9 @@ bool UMyBondageLifeRoomSubsystem::TickConnectingOverlay(float DeltaSeconds)
 	UWorld* World = GameInstance->GetWorld();
 	const double Now = FPlatformTime::Seconds();
 
-	// 倒计时：等待框显示剩余秒数（总时长 20 秒）。
+	// 倒计时：等待框显示剩余秒数（总时长 45 秒）。
 	{
-		const int32 Remaining = FMath::Max(0, 20 - FMath::FloorToInt(static_cast<float>(Now - ConnectStartedSeconds)));
+		const int32 Remaining = FMath::Max(0, 45 - FMath::FloorToInt(static_cast<float>(Now - ConnectStartedSeconds)));
 		if (Remaining != LastCountdownSeconds)
 		{
 			LastCountdownSeconds = Remaining;
@@ -306,7 +306,7 @@ if (bTravelStarted)
 			return true;
 		}
 
-		if (Now - TravelStartedSeconds > 20.0)
+		if (Now - TravelStartedSeconds > 45.0)
 		{
 			ReportUnreachable(JoiningRoomId);
 			HideConnectingOverlay();
@@ -320,7 +320,7 @@ if (bTravelStarted)
 		return true;
 	}
 
-	if (Now - ConnectStartedSeconds > 20.0)
+	if (Now - ConnectStartedSeconds > 45.0)
 	{
 		ReportUnreachable(JoiningRoomId);
 		CancelJoin();
