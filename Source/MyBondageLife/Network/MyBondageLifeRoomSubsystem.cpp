@@ -491,6 +491,7 @@ void UMyBondageLifeRoomSubsystem::HandleCreateResponse(int32 StatusCode, const F
 
 void UMyBondageLifeRoomSubsystem::HandleJoinResponse(int32 StatusCode, const FString& Body)
 {
+	UE_LOG(LogMyBondageLife, Log, TEXT("Rooms: join body=%s"), *Body.Left(600));
 	TSharedPtr<FJsonObject> Root;
 	const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Body);
 	if (!FJsonSerializer::Deserialize(Reader, Root) || !Root.IsValid())
