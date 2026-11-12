@@ -4821,6 +4821,10 @@ void AMyBondageLifePlayerController::AttachToFurniture(AMyBondageLifeFurnitureBa
 	OwnPawn->ApplyFullAnmi(true);
 	OwnPawn->ServerSetFullAnmi(true);
 	FTransform SocketTransform = Furniture->GetInteractionTransform();
+	if (const UCapsuleComponent* Capsule = OwnPawn->GetCapsuleComponent())
+	{
+		SocketTransform.AddToTranslation(FVector(0.0f, 0.0f, Capsule->GetScaledCapsuleHalfHeight()));
+	}
 	OwnPawn->SetActorTransform(SocketTransform, false, nullptr, ETeleportType::TeleportPhysics);
 	// 服务器也要传送，否则客机会被服务器位置纠正回原地。
 	OwnPawn->ServerTeleportToFurniture(SocketTransform.GetLocation(), SocketTransform.Rotator());
@@ -4847,6 +4851,8 @@ void AMyBondageLifePlayerController::DetachFromFurniture(bool bMoveForward)
 		{
 			CharMesh->SetCollisionProfileName(TEXT("CharacterMesh"));
 		}
+
+		OwnPawn->ServerLeaveFurniture();
 
 		OwnPawn->ApplyFullAnmi(false);
 		OwnPawn->ServerSetFullAnmi(false);

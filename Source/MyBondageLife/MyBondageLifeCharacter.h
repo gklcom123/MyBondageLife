@@ -541,6 +541,9 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerTeleportToFurniture(FVector Location, FRotator Rotation);
 
+	UFUNCTION(Server, Reliable)
+	void ServerLeaveFurniture();
+
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastSetFullAnmi(bool bEnabled);
 

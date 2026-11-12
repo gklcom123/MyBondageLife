@@ -2101,5 +2101,35 @@ void AMyBondageLifeCharacter::MulticastSetFullAnmi_Implementation(bool bEnabled)
 
 void AMyBondageLifeCharacter::ServerTeleportToFurniture_Implementation(FVector Location, FRotator Rotation)
 {
+	// 服务器也要关碰撞与移动，否则胶囊与笼子碰撞会把角色挤出去（水平偏移）。
+	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+	if (USkeletalMeshComponent* CharMesh = GetMesh())
+	{
+		CharMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->DisableMovement();
+	}
+
 	SetActorLocationAndRotation(Location, Rotation, false, nullptr, ETeleportType::TeleportPhysics);
+}
+
+void AMyBondageLifeCharacter::ServerLeaveFurniture_Implementation()
+{
+	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		Capsule->SetCollisionProfileName(TEXT("Pawn"));
+	}
+	if (USkeletalMeshComponent* CharMesh = GetMesh())
+	{
+		CharMesh->SetCollisionProfileName(TEXT("CharacterMesh"));
+	}
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->SetMovementMode(MOVE_Walking);
+	}
 }
