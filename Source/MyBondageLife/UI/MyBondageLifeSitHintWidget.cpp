@@ -35,7 +35,7 @@ TSharedRef<SWidget> UMyBondageLifeSitHintWidget::RebuildWidget()
 
 		if (UCanvasPanelSlot* TextSlot = Canvas->AddChildToCanvas(HintText))
 		{
-			TextSlot->SetAnchors(FAnchors(0.5f, 0.78f, 0.5f, 0.78f));
+			TextSlot->SetAnchors(FAnchors(0.3f, 0.5f, 0.3f, 0.5f));
 			TextSlot->SetAlignment(FVector2D(0.5f, 0.5f));
 			TextSlot->SetAutoSize(true);
 		}
