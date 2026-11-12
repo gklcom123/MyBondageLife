@@ -7,12 +7,7 @@
 AMyBondageLifeFurnitureBase::AMyBondageLifeFurnitureBase()
 {
 	PrimaryActorTick.bCanEverTick = false;
-
-	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
-	SetRootComponent(SceneRoot);
-
-	InteractionPoint = CreateDefaultSubobject<USceneComponent>(TEXT("InteractionPoint"));
-	InteractionPoint->SetupAttachment(SceneRoot);
+	// 父类不创建任何组件：InteractionPoint 由子蓝图放置后赋给变量。
 }
 
 FTransform AMyBondageLifeFurnitureBase::GetInteractionTransform() const

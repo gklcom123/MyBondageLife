@@ -45,11 +45,11 @@ public:
 	FVector GetInteractionLocation() const;
 
 public:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Furniture")
-	TObjectPtr<USceneComponent> SceneRoot;
-
-	/** 人物固定点：位置 + 朝向。 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Furniture")
+	/**
+	 * 人物固定点：在**子蓝图**里自己放一个 SceneComponent（名字随意），
+	 * 然后把它的引用赋给这个变量即可。父类不创建任何组件，避免与子蓝图同名冲突。
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Furniture")
 	TObjectPtr<USceneComponent> InteractionPoint;
 
 	/** 交互期间循环播放的蒙太奇。 */
