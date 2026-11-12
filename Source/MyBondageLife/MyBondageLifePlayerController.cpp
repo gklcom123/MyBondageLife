@@ -4956,6 +4956,12 @@ void AMyBondageLifePlayerController::SyncFurnitureCameraPostProcess()
 		return;
 	}
 
+	// 重新进房自动吸附时，视角可能被 Possess 重置：这里保证始终看家具相机。
+	if (GetViewTarget() != CamActor)
+	{
+		SetViewTargetWithBlend(CamActor, 0.25f);
+	}
+
 	// 家具相机沿用角色相机的全部后期处理（盲视/性欲粉雾/景深等）。
 	TargetCam->PostProcessSettings = SourceCam->PostProcessSettings;
 	TargetCam->PostProcessBlendWeight = SourceCam->PostProcessBlendWeight;
