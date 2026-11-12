@@ -4727,7 +4727,7 @@ void AMyBondageLifePlayerController::AttachToFurniture(AMyBondageLifeFurnitureBa
 
 	if (UAnimMontage* Montage = Furniture->GetInteractionMontage())
 	{
-		OwnPawn->MulticastPlayFurnitureMontage(Montage);
+		OwnPawn->ServerPlayFurnitureMontage(Montage);
 	}
 }
 
@@ -4737,7 +4737,7 @@ void AMyBondageLifePlayerController::DetachFromFurniture(bool bMoveForward)
 	if (OwnPawn)
 	{
 		OwnPawn->bBlockMoveInput = false;
-		OwnPawn->MulticastStopFurnitureMontage();
+		OwnPawn->ServerStopFurnitureMontage();
 		if (bMoveForward)
 		{
 			OwnPawn->SetActorLocation(OwnPawn->GetActorLocation() + OwnPawn->GetActorForwardVector() * 150.0f, false);

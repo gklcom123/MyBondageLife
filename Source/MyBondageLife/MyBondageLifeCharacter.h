@@ -525,6 +525,12 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastPlayFurnitureMontage(UAnimMontage* Montage);
 
+	UFUNCTION(Server, Reliable)
+	void ServerPlayFurnitureMontage(UAnimMontage* Montage);
+
+	UFUNCTION(Server, Reliable)
+	void ServerStopFurnitureMontage();
+
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastStopFurnitureMontage();
 

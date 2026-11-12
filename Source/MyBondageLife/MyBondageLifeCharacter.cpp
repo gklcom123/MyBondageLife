@@ -2060,3 +2060,13 @@ void AMyBondageLifeCharacter::MulticastStopFurnitureMontage_Implementation()
 		ActiveFurnitureMontage = nullptr;
 	}
 }
+
+void AMyBondageLifeCharacter::ServerPlayFurnitureMontage_Implementation(UAnimMontage* Montage)
+{
+	MulticastPlayFurnitureMontage(Montage);
+}
+
+void AMyBondageLifeCharacter::ServerStopFurnitureMontage_Implementation()
+{
+	MulticastStopFurnitureMontage();
+}
