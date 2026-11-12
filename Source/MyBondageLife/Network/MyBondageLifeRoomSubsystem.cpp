@@ -470,6 +470,14 @@ void UMyBondageLifeRoomSubsystem::HandleCreateResponse(int32 StatusCode, const F
 	}
 
 	HostedRoomId = Room.RoomId;
+	if (CurrentRoomHostAccount.IsEmpty())
+	{
+		if (const UMyBondageLifeAccountSubsystem* Acc = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+		{
+			CurrentRoomHostAccount = Acc->GetAccountName();
+		}
+	}
+
 	HostedRoomName = Room.RoomName;
 	HostedRoomPuid = Room.HostPuid;
 	HostedRoomMap = Room.MapName;

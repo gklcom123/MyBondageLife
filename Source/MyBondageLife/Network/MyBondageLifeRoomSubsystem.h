@@ -114,8 +114,13 @@ private:
 	/** 加入房间时房主账号（家具状态查询用）。 */
 	FString JoinedHostAccount;
 
+	/** 当前所在房间的房主账号（托管=自己；加入=房间房主）。空表示尚未确定。 */
+	FString CurrentRoomHostAccount;
+
 public:
 	const FString& GetJoinedHostAccount() const { return JoinedHostAccount; }
+
+	const FString& GetCurrentRoomHostAccount() const { return CurrentRoomHostAccount; }
 protected:
 
 	FTimerHandle HeartbeatTimer;

@@ -4487,33 +4487,36 @@ void AMyBondageLifePlayerController::HandleFriendInteractKeyPressed()
 // ---------------------------------------------------------------------------
 FString AMyBondageLifePlayerController::GetFurnitureHostAccount() const
 {
-	if (const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
-		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	// 家具归属永远是「当前房间的房主」：托管时就是自己，加入时是房主账号。
+	// 绝不使用本机账号兜底，否则会把占用写到自己的房间（曾经的严重 bug）。
+	const UMyBondageLifeRoomSubsystem* Rooms = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeRoomSubsystem>() : nullptr;
+	if (!Rooms)
 	{
-		if (const UMyBondageLifeSessionSubsystem* Session = GetGameInstance()
-			? GetGameInstance()->GetSubsystem<UMyBondageLifeSessionSubsystem>() : nullptr)
+		return FString();
+	}
+
+	const FString Host = Rooms->GetCurrentRoomHostAccount();
+	if (!Host.IsEmpty())
+	{
+		return Host;
+	}
+
+	// 兜底：托管时用自己的账号（加入房间但房主账号缺失时不猜）。
+	if (const UMyBondageLifeSessionSubsystem* Session = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeSessionSubsystem>() : nullptr)
+	{
+		if (Session->IsHosting())
 		{
-			if (Session->IsHosting())
+			if (const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+				? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
 			{
 				return Account->GetAccountName();
 			}
 		}
-
-		if (const UMyBondageLifeRoomSubsystem* Rooms = GetGameInstance()
-			? GetGameInstance()->GetSubsystem<UMyBondageLifeRoomSubsystem>() : nullptr)
-		{
-			const FString Host = Rooms->GetJoinedHostAccount();
-			if (!Host.IsEmpty())
-			{
-				return Host;
-			}
-		}
-
-		return Account->GetAccountName();
 	}
 	return FString();
 }
-
 void AMyBondageLifePlayerController::RefreshFurnitureStatePeriodic()
 {
 	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
@@ -4721,6 +4724,8 @@ bool AMyBondageLifePlayerController::HandleFurnitureInteraction()
 	const FString Host = GetFurnitureHostAccount();
 	if (Host.IsEmpty())
 	{
+		// 房间信息还没到：不要发请求，避免把占用写到自己的房间。
+		UE_LOG(LogMyBondageLife, Warning, TEXT("Furniture: skip interaction, room host unknown"));
 		return false;
 	}
 
