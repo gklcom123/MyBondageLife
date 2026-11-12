@@ -93,6 +93,11 @@ bool UMyBondageLifeSessionSubsystem::HostRoom(const FString& InRoomName)
 		Room.Port = GamePort;
 		Room.CurrentPlayers = 1;
 		Room.MaxPlayers = DefaultMaxPlayers;
+		if (const UMyBondageLifeAccountSubsystem* Acc = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
+		{
+			Room.HostAccount = Acc->GetAccountName();
+	}
+		UE_LOG(LogMyBondageLife, Log, TEXT("HostRoom: announce hostAccount=[%s]"), *Room.HostAccount);
 		Discovery->StartAnnouncing(Room);
 	}
 
