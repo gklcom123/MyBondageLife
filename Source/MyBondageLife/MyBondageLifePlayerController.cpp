@@ -1,7 +1,9 @@
 
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "MyBondageLifePlayerController.h"
+#include "MyBondageLifePlayerController.h"
+
+
 #include "Network/MyBondageLifeRoomSubsystem.h"
 #include "Core/MyBondageLifeFurnitureBase.h"
 
@@ -4630,6 +4632,16 @@ void AMyBondageLifePlayerController::UpdateFurnitureProximity()
 
 	const bool bMine = State && !State->Occupant.IsEmpty()
 		&& State->Occupant.Equals(Account->GetAccountName(), ESearchCase::IgnoreCase);
+	// 服务端已记录我在使用该家具但本地还没吸附：立即补上（避免事件竞态导致只变 UI 不动人）。
+	if (bMine && (!bInFurniture || ActiveFurniture.Get() != Furniture))
+	{
+		AttachToFurniture(Furniture);
+	}
+	else if (!bMine && bInFurniture && ActiveFurniture.Get() == Furniture)
+	{
+		DetachFromFurniture(false);
+	}
+	
 
 	if (bInFurniture && bMine)
 	{
@@ -4727,7 +4739,8 @@ void AMyBondageLifePlayerController::AttachToFurniture(AMyBondageLifeFurnitureBa
 
 	if (UAnimMontage* Montage = Furniture->GetInteractionMontage())
 	{
-		OwnPawn->ServerPlayFurnitureMontage(Montage);
+		OwnPawn->PlayAnimMontage(Montage);            // 本地立即播放
+		OwnPawn->ServerPlayFurnitureMontage(Montage); // 同步给其他人
 	}
 }
 
