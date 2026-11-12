@@ -341,7 +341,7 @@ void UMyBondageLifeMainHudWidget::SetInterFurnitureInfo(bool bVisible, const FSt
 	if (InterFurnitureOverlay)
 	{
 		InterFurnitureOverlay->SetVisibility(bVisible ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
-	}
+
 	if (InterFurnitureNameText)
 	{
 		InterFurnitureNameText->SetText(FText::FromString(FurnitureName));

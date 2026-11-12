@@ -721,6 +721,8 @@ public:
 	FString PendingFurnitureKey;
 
 	FString LastFurnitureHint;
+
+	TObjectPtr<class UMyBondageLifeSitHintWidget> FurnitureHintWidget;
 	FTimerHandle FurnitureRefreshTimer;
 
 	UFUNCTION()

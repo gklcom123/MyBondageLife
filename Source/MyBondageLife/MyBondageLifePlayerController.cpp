@@ -1,7 +1,8 @@
 
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "MyBondageLifePlayerController.h"
+#include "MyBondageLifePlayerController.h"
+#include "Components/CapsuleComponent.h"
 #include "Camera/CameraActor.h"
 
 
@@ -4580,27 +4581,27 @@ bool AMyBondageLifePlayerController::CanUnlockOccupant(const FMyBondageLifeFurni
 
 void AMyBondageLifePlayerController::ShowFurnitureHint(const FString& Text)
 {
-	if (!SeatHintWidget)
+	if (!FurnitureHintWidget)
 	{
 		UClass* HintClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_SitHint.WBP_SitHint_C"));
 		if (!HintClass)
 		{
 			HintClass = UMyBondageLifeSitHintWidget::StaticClass();
 		}
-		SeatHintWidget = CreateWidget<UMyBondageLifeSitHintWidget>(this, HintClass);
-		if (SeatHintWidget)
+		FurnitureHintWidget = CreateWidget<UMyBondageLifeSitHintWidget>(this, HintClass);
+		if (FurnitureHintWidget)
 		{
-			SeatHintWidget->AddToViewport(35);
+			FurnitureHintWidget->AddToViewport(36);
 		}
 	}
-	if (SeatHintWidget)
+	if (FurnitureHintWidget)
 	{
 		if (LastFurnitureHint != Text)
 		{
 			LastFurnitureHint = Text;
-			SeatHintWidget->SetHintText(Text);
+			FurnitureHintWidget->SetHintText(Text);
 		}
-		SeatHintWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+		FurnitureHintWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
 	}
 }
 
@@ -4796,7 +4797,12 @@ void AMyBondageLifePlayerController::AttachToFurniture(AMyBondageLifeFurnitureBa
 	OwnPawn->bBlockMoveInput = true;
 	OwnPawn->ApplyFullAnmi(true);
 	OwnPawn->ServerSetFullAnmi(true);
-	OwnPawn->SetActorTransform(Furniture->GetInteractionTransform(), false, nullptr, ETeleportType::TeleportPhysics);
+	FTransform SocketTransform = Furniture->GetInteractionTransform();
+	if (const UCapsuleComponent* Capsule = OwnPawn->GetCapsuleComponent())
+	{
+		SocketTransform.AddToTranslation(FVector(0.0f, 0.0f, Capsule->GetScaledCapsuleHalfHeight()));
+	}
+	OwnPawn->SetActorTransform(SocketTransform, false, nullptr, ETeleportType::TeleportPhysics);
 
 	if (UAnimMontage* Montage = Furniture->GetInteractionMontage())
 	{
