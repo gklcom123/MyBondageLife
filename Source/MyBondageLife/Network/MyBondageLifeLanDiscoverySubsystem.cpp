@@ -353,14 +353,15 @@ void UMyBondageLifeLanDiscoverySubsystem::ClearDiscoveredRooms()
 
 FString UMyBondageLifeLanDiscoverySubsystem::SerializeRoom(const FMyBondageLifeRoomInfo& Room)
 {
-	return FString::Printf(TEXT("%s|%s|%s|%s|%d|%d|%d"),
+	return FString::Printf(TEXT("%s|%s|%s|%s|%d|%d|%d|%s"),
 		RoomPacketTag,
 		*SanitizeField(Room.RoomId),
 		*SanitizeField(Room.RoomName),
 		*SanitizeField(Room.HostAddress),
 		Room.Port,
 		Room.CurrentPlayers,
-		Room.MaxPlayers);
+		Room.MaxPlayers,
+		*SanitizeField(Room.HostAccount));
 }
 
 bool UMyBondageLifeLanDiscoverySubsystem::DeserializeRoom(const FString& Payload, FMyBondageLifeRoomInfo& OutRoom)
@@ -379,6 +380,10 @@ bool UMyBondageLifeLanDiscoverySubsystem::DeserializeRoom(const FString& Payload
 	OutRoom.Port = FCString::Atoi(*Fields[4]);
 	OutRoom.CurrentPlayers = FCString::Atoi(*Fields[5]);
 	OutRoom.MaxPlayers = FCString::Atoi(*Fields[6]);
+	if (Fields.Num() >= 8)
+	{
+		OutRoom.HostAccount = Fields[7];
+	}
 
 	if (OutRoom.RoomId.IsEmpty() || OutRoom.Port <= 0 || OutRoom.HostAddress.IsEmpty())
 	{

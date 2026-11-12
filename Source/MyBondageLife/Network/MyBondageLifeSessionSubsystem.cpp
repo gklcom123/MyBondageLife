@@ -75,6 +75,14 @@ bool UMyBondageLifeSessionSubsystem::HostRoom(const FString& InRoomName)
 	bInSession = true;
 	bHosting = true;
 
+	if (UMyBondageLifeRoomSubsystem* Rooms = GameInstance->GetSubsystem<UMyBondageLifeRoomSubsystem>())
+	{
+		if (const UMyBondageLifeAccountSubsystem* Acc = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
+		{
+			Rooms->SetCurrentRoomHostAccount(Acc->GetAccountName());
+		}
+	}
+
 	// Start beaconing before the travel: the discovery subsystem survives ServerTravel.
 	if (UMyBondageLifeLanDiscoverySubsystem* Discovery = GameInstance->GetSubsystem<UMyBondageLifeLanDiscoverySubsystem>())
 	{
@@ -121,6 +129,11 @@ bool UMyBondageLifeSessionSubsystem::JoinRoom(const FMyBondageLifeRoomInfo& Room
 
 	RoomId = Room.RoomId;
 	RoomName = Room.RoomName;
+	if (UMyBondageLifeRoomSubsystem* Rooms = GameInstance->GetSubsystem<UMyBondageLifeRoomSubsystem>())
+	{
+		Rooms->SetCurrentRoomHostAccount(Room.HostAccount);
+		UE_LOG(LogMyBondageLife, Log, TEXT("LAN join: hostAccount=[%s]"), *Room.HostAccount);
+	}
 	HostIp = Room.HostAddress;
 	GamePort = Room.Port;
 
@@ -257,6 +270,11 @@ bool UMyBondageLifeSessionSubsystem::JoinServerRoom(const FMyBondageLifeServerRo
 
 	RoomId = Room.RoomId;
 	RoomName = Room.RoomName;
+	if (UMyBondageLifeRoomSubsystem* Rooms = GameInstance->GetSubsystem<UMyBondageLifeRoomSubsystem>())
+	{
+		Rooms->SetCurrentRoomHostAccount(Room.HostAccount);
+		UE_LOG(LogMyBondageLife, Log, TEXT("LAN join: hostAccount=[%s]"), *Room.HostAccount);
+	}
 	HostIp = Room.HostPuid;
 	MaxPlayers = Room.MaxPlayers > 0 ? Room.MaxPlayers : DefaultMaxPlayers;
 	bInSession = true;

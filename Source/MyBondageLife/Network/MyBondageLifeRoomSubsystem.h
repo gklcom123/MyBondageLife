@@ -121,6 +121,8 @@ public:
 	const FString& GetJoinedHostAccount() const { return JoinedHostAccount; }
 
 	const FString& GetCurrentRoomHostAccount() const { return CurrentRoomHostAccount; }
+
+	void SetCurrentRoomHostAccount(const FString& InHost) { CurrentRoomHostAccount = InHost; }
 protected:
 
 	FTimerHandle HeartbeatTimer;

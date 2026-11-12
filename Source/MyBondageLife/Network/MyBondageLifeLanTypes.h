@@ -25,6 +25,10 @@ struct FMyBondageLifeRoomInfo
 	UPROPERTY(BlueprintReadOnly, Category = "Room")
 	FString RoomName;
 
+	/** 房主账号（家具归属判定用）。 */
+	UPROPERTY(BlueprintReadOnly, Category = "Room")
+	FString HostAccount;
+
 	/** Host address as announced by the host (IPv4 dotted string). */
 	UPROPERTY(BlueprintReadOnly, Category = "Room")
 	FString HostAddress;
