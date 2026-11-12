@@ -718,6 +718,12 @@ public:
 	/** 家具自动释放：上一次是否处于上锁状态。 */
 	bool bWasLockedFurniture = false;
 
+	void AlignFurnitureFacingTick();
+	void StartFurnitureFacingTimer();
+
+	FTimerHandle FurnitureFacingTimer;
+	int32 FurnitureFacingTicks = 0;
+
 	UPROPERTY(Transient)
 	TObjectPtr<AActor> FurnitureCameraActor;
 
