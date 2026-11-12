@@ -718,12 +718,6 @@ public:
 	/** 家具自动释放：上一次是否处于上锁状态。 */
 	bool bWasLockedFurniture = false;
 
-	void StartFurnitureTractionCheck();
-	void CheckFollowersInFurniture();
-
-	FTimerHandle FurnitureTractionCheckTimer;
-	int32 FurnitureTractionCheckTicks = 0;
-
 	UPROPERTY(Transient)
 	TObjectPtr<AActor> FurnitureCameraActor;
 
