@@ -4249,6 +4249,25 @@ void AMyBondageLifePlayerController::ToggleTractionFor(const FString& TargetAcco
 	}
 
 	const FString MyName = Account->GetCharacterName();
+
+	// 聊天用角色名（不是账号）：在房间里找目标角色。
+	FString TargetName = TargetAccount;
+	if (GetWorld())
+	{
+		for (TActorIterator<AMyBondageLifeCharacter> It(GetWorld()); It; ++It)
+		{
+			if (IsValid(*It) && (*It)->GetAccountName().Equals(TargetAccount, ESearchCase::IgnoreCase))
+			{
+				const FString FoundName = (*It)->GetCharacterName().ToString();
+				if (!FoundName.IsEmpty())
+				{
+					TargetName = FoundName;
+				}
+				break;
+			}
+		}
+	}
+
 	const bool bAlready = Account->GetTractionFollowers().Contains(TargetAccount);
 
 	// 聊天只由发起方广播一次，用角色名。
@@ -4260,12 +4279,12 @@ void AMyBondageLifePlayerController::ToggleTractionFor(const FString& TargetAcco
 	if (bAlready)
 	{
 		Account->StopTraction(TargetAccount);
-		BroadcastOnce(FString::Printf(TEXT("%s结束了对%s的牵引。"), *MyName, *TargetAccount));
+		BroadcastOnce(FString::Printf(TEXT("%s结束了对%s的牵引。"), *MyName, *TargetName));
 	}
 	else
 	{
 		Account->StartTraction(TargetAccount);
-		BroadcastOnce(FString::Printf(TEXT("%s开始了对%s的牵引。"), *MyName, *TargetAccount));
+		BroadcastOnce(FString::Printf(TEXT("%s开始了对%s的牵引。"), *MyName, *TargetName));
 	}
 }
 
