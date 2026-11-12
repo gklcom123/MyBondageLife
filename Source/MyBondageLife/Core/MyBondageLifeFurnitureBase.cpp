@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "Core/MyBondageLifeFurnitureBase.h"
+#include "Camera/CameraComponent.h"
 
 #include "Components/SceneComponent.h"
 
@@ -17,17 +18,30 @@ USceneComponent* AMyBondageLifeFurnitureBase::GetInteractionCameraComponent() co
 		return InteractionCameraOverride;
 	}
 
-	// 蓝图里把组件命名为 InteractionCamera 也能直接用。
-	TArray<USceneComponent*> Components;
-	GetComponents<USceneComponent>(Components);
-	for (USceneComponent* Component : Components)
+	// 优先：组件名包含 InteractionCamera；否则用第一个 CameraComponent 兜底。
+	TArray<UActorComponent*> AllComponents;
+	GetComponents(AllComponents);
+
+	USceneComponent* FirstCamera = nullptr;
+	for (UActorComponent* Component : AllComponents)
 	{
-		if (Component && Component->GetName().Equals(TEXT("InteractionCamera"), ESearchCase::IgnoreCase))
+		USceneComponent* Scene = Cast<USceneComponent>(Component);
+		if (!Scene)
 		{
-			return Component;
+			continue;
+		}
+
+		if (Scene->GetName().Contains(TEXT("InteractionCamera"), ESearchCase::IgnoreCase))
+		{
+			return Scene;
+		}
+		if (!FirstCamera && Scene->IsA<UCameraComponent>())
+		{
+			FirstCamera = Scene;
 		}
 	}
-	return nullptr;
+
+	return FirstCamera;
 }
 
 FTransform AMyBondageLifeFurnitureBase::GetInteractionTransform() const
