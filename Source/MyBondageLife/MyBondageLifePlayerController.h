@@ -695,6 +695,9 @@ public:
 
 	void HandleSitKeyPressed();
 
+	/** G：靠近好友时打开对方拘束页。 */
+	void HandleFriendInteractKeyPressed();
+
 	UFUNCTION()
 	void HandleStandUpOnMove();
 

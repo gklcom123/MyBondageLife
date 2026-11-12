@@ -1768,9 +1768,13 @@ void AMyBondageLifePlayerController::SetupInputComponent()
 		return;
 	}
 
-	// G：靠近椅子时坐下 / 起身
-	InputComponent->BindKey(EKeys::G, IE_Pressed, this,
+	// R：靠近椅子时坐下 / 起身（家具相关交互统一用 R）
+	InputComponent->BindKey(EKeys::R, IE_Pressed, this,
 		&AMyBondageLifePlayerController::HandleSitKeyPressed);
+
+	// G：靠近好友时打开对方拘束页（人际交互，保持不变）
+	InputComponent->BindKey(EKeys::G, IE_Pressed, this,
+		&AMyBondageLifePlayerController::HandleFriendInteractKeyPressed);
 
 	// Space：取消拘束穿戴
 	InputComponent->BindKey(EKeys::SpaceBar, IE_Pressed, this,
@@ -3013,44 +3017,8 @@ void AMyBondageLifePlayerController::HandleSitKeyPressed()
 		return;
 	}
 
-	// 靠近其他玩家时，G 打开对方的拘束页签（衣柜好友模式 → 拘束）。
-	if (NearbyCharacter.IsValid())
-	{
-		const FString NearbyAccount = NearbyCharacter->GetAccountName();
-		if (NearbyAccount.IsEmpty())
-		{
-			return;
-		}
 
-		// 只有好友才能用 G 打开对方拘束页。
-		bool bIsFriend = false;
-		if (const UMyBondageLifeAccountSubsystem* FriendAccount = GetGameInstance()
-			? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
-		{
-		for (const FMyBondageLifeFriendEntry& Entry : FriendAccount->GetFriends())
-		{
-			if (Entry.AccountName.Equals(NearbyAccount, ESearchCase::IgnoreCase))
-			{
-				bIsFriend = true;
-				break;
-			}
-	}
-	}
-
-	if (!bIsFriend)
-	{
-		return;
-	}
-
-	OpenFriendWardrobe(NearbyAccount);
-	if (WardrobeWidget)
-	{
-		WardrobeWidget->SelectTab(2);
-	}
-	return;
-	}
-
-	// CantSit：规则开启时按 G 直接无效。
+	// CantSit：规则开启时按 R 直接无效。
 	if (const UMyBondageLifeAccountSubsystem* SitAccount = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
 	{
@@ -3229,7 +3197,7 @@ void AMyBondageLifePlayerController::UpdateSeatProximity()
 
 	NearSeatActor = Best;
 
-	// UI 提示："按[G]坐下"
+	// UI 提示："按[R]坐下"
 	const bool bShowHint = Best != nullptr;
 	if (bShowHint && !SeatHintWidget)
 	{
@@ -4426,5 +4394,48 @@ void AMyBondageLifePlayerController::UpdateTractionChain()
 		{
 			UE_LOG(LogMyBondageLife, Warning, TEXT("Traction: ChainCable has no CreateLink"));
 		}
+	}
+}
+
+void AMyBondageLifePlayerController::HandleFriendInteractKeyPressed()
+{
+	if (bTractionFollower) { return; }
+	if (bClimaxLocked) { return; }
+
+	// 靠近其他玩家时，G 打开对方的拘束页签（衣柜好友模式 → 拘束）。
+	if (NearbyCharacter.IsValid())
+	{
+		const FString NearbyAccount = NearbyCharacter->GetAccountName();
+		if (NearbyAccount.IsEmpty())
+		{
+			return;
+		}
+
+		// 只有好友才能用 G 打开对方拘束页。
+		bool bIsFriend = false;
+		if (const UMyBondageLifeAccountSubsystem* FriendAccount = GetGameInstance()
+			? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+		{
+		for (const FMyBondageLifeFriendEntry& Entry : FriendAccount->GetFriends())
+		{
+			if (Entry.AccountName.Equals(NearbyAccount, ESearchCase::IgnoreCase))
+			{
+				bIsFriend = true;
+				break;
+			}
+	}
+	}
+
+	if (!bIsFriend)
+	{
+		return;
+	}
+
+	OpenFriendWardrobe(NearbyAccount);
+	if (WardrobeWidget)
+	{
+		WardrobeWidget->SelectTab(2);
+	}
+	return;
 	}
 }

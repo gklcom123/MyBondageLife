@@ -24,7 +24,7 @@ TSharedRef<SWidget> UMyBondageLifeSitHintWidget::RebuildWidget()
 		Canvas->SetVisibility(ESlateVisibility::HitTestInvisible);
 
 		HintText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("W_SitHint_Text"));
-		HintText->SetText(FText::FromString(TEXT("\u6309[G]\u5750\u4E0B")));
+		HintText->SetText(FText::FromString(TEXT("\u6309[R]\u5750\u4E0B")));
 		HintText->SetColorAndOpacity(FSlateColor(FLinearColor(1.0f, 0.95f, 0.6f)));
 		{
 			FSlateFontInfo Font = HintText->GetFont();
