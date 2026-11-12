@@ -2070,3 +2070,31 @@ void AMyBondageLifeCharacter::ServerStopFurnitureMontage_Implementation()
 {
 	MulticastStopFurnitureMontage();
 }
+
+void AMyBondageLifeCharacter::ApplyFullAnmi(bool bEnabled)
+{
+	if (!GetMesh())
+	{
+		return;
+	}
+	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
+	{
+		if (FBoolProperty* Property = FindFProperty<FBoolProperty>(AnimInstance->GetClass(), TEXT("FullAnmi")))
+		{
+			Property->SetPropertyValue_InContainer(AnimInstance, bEnabled);
+			return;
+		}
+	}
+
+	UE_LOG(LogMyBondageLife, Warning, TEXT("Furniture: anim variable FullAnmi not found on %s"), *GetName());
+}
+
+void AMyBondageLifeCharacter::ServerSetFullAnmi_Implementation(bool bEnabled)
+{
+	MulticastSetFullAnmi(bEnabled);
+}
+
+void AMyBondageLifeCharacter::MulticastSetFullAnmi_Implementation(bool bEnabled)
+{
+	ApplyFullAnmi(bEnabled);
+}

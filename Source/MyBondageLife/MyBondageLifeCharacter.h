@@ -531,6 +531,16 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerStopFurnitureMontage();
 
+	/** 家具交互：切换动画蓝图里的 FullAnmi 布尔。 */
+	UFUNCTION(BlueprintCallable, Category = "Furniture")
+	void ApplyFullAnmi(bool bEnabled);
+
+	UFUNCTION(Server, Reliable)
+	void ServerSetFullAnmi(bool bEnabled);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastSetFullAnmi(bool bEnabled);
+
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastStopFurnitureMontage();
 

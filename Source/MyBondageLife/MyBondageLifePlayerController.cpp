@@ -4794,6 +4794,8 @@ void AMyBondageLifePlayerController::AttachToFurniture(AMyBondageLifeFurnitureBa
 	}
 
 	OwnPawn->bBlockMoveInput = true;
+	OwnPawn->ApplyFullAnmi(true);
+	OwnPawn->ServerSetFullAnmi(true);
 	OwnPawn->SetActorTransform(Furniture->GetInteractionTransform(), false, nullptr, ETeleportType::TeleportPhysics);
 
 	if (UAnimMontage* Montage = Furniture->GetInteractionMontage())
@@ -4809,6 +4811,8 @@ void AMyBondageLifePlayerController::DetachFromFurniture(bool bMoveForward)
 	if (OwnPawn)
 	{
 		OwnPawn->bBlockMoveInput = false;
+		OwnPawn->ApplyFullAnmi(false);
+		OwnPawn->ServerSetFullAnmi(false);
 		OwnPawn->ServerStopFurnitureMontage();
 		if (bMoveForward)
 		{
