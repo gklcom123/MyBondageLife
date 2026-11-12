@@ -4795,6 +4795,16 @@ void AMyBondageLifePlayerController::AttachToFurniture(AMyBondageLifeFurnitureBa
 	}
 
 	OwnPawn->bBlockMoveInput = true;
+	// 交互期间关闭角色碰撞（含自定义 Fur 通道），避免卡进家具模型/坐在笼子上。
+	if (UCapsuleComponent* Capsule = OwnPawn->GetCapsuleComponent())
+	{
+		Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+	if (USkeletalMeshComponent* CharMesh = OwnPawn->GetMesh())
+	{
+		CharMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
 	OwnPawn->ApplyFullAnmi(true);
 	OwnPawn->ServerSetFullAnmi(true);
 	FTransform SocketTransform = Furniture->GetInteractionTransform();
@@ -4817,6 +4827,16 @@ void AMyBondageLifePlayerController::DetachFromFurniture(bool bMoveForward)
 	if (OwnPawn)
 	{
 		OwnPawn->bBlockMoveInput = false;
+		// 恢复碰撞。
+		if (UCapsuleComponent* Capsule = OwnPawn->GetCapsuleComponent())
+		{
+			Capsule->SetCollisionProfileName(TEXT("Pawn"));
+		}
+		if (USkeletalMeshComponent* CharMesh = OwnPawn->GetMesh())
+		{
+			CharMesh->SetCollisionProfileName(TEXT("CharacterMesh"));
+		}
+
 		OwnPawn->ApplyFullAnmi(false);
 		OwnPawn->ServerSetFullAnmi(false);
 		OwnPawn->ServerStopFurnitureMontage();
