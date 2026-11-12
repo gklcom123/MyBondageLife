@@ -38,7 +38,15 @@ namespace
 			return;
 		}
 
-		for (FNetDriverDefinition& Definition : GEngine->NetDriverDefinitions)
+		// 编辑器（含 PIE）里不强制 EOS NetDriver：PIE 结束时 SocketSubsystemEOS
+	// 模块可能已被卸载，OnlineSubsystemUtils 拆除驱动会空指针崩溃（EXCEPTION_ACCESS_VIOLATION 0x0）。
+	if (GIsEditor)
+	{
+		UE_LOG(LogMyBondageLife, Log, TEXT("NetDriver: force skipped in editor (%s)"), DriverClassName);
+		return;
+	}
+
+	for (FNetDriverDefinition& Definition : GEngine->NetDriverDefinitions)
 		{
 			if (Definition.DefName == FName(TEXT("GameNetDriver")))
 			{
