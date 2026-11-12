@@ -1,7 +1,9 @@
 
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "MyBondageLifePlayerController.h"
+#include "MyBondageLifePlayerController.h"
+
+
 #include "Components/CapsuleComponent.h"
 #include "Camera/CameraActor.h"
 
@@ -4521,22 +4523,6 @@ void AMyBondageLifePlayerController::RefreshFurnitureStatePeriodic()
 {
 	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
-	// 若我的某个被牵引者已进入家具，自动结束该条牵引（服务端只允许 leader 停止）。
-	if (Account)
-	{
-		for (const FString& Follower : Account->GetTractionFollowers())
-		{
-			for (const FMyBondageLifeFurnitureState& F : Account->GetFurnitureStates())
-			{
-				if (!F.Occupant.IsEmpty() && F.Occupant.Equals(Follower, ESearchCase::IgnoreCase))
-				{
-					Account->StopTraction(Follower);
-					break;
-				}
-			}
-		}
-	}
-
 	const FString Host = GetFurnitureHostAccount();
 	if (Account && !Host.IsEmpty())
 	{
@@ -4756,22 +4742,6 @@ bool AMyBondageLifePlayerController::HandleFurnitureInteraction()
 		return false;
 	}
 
-	// 若我的某个被牵引者已进入家具，自动结束该条牵引（服务端只允许 leader 停止）。
-	if (Account)
-	{
-		for (const FString& Follower : Account->GetTractionFollowers())
-		{
-			for (const FMyBondageLifeFurnitureState& F : Account->GetFurnitureStates())
-			{
-				if (!F.Occupant.IsEmpty() && F.Occupant.Equals(Follower, ESearchCase::IgnoreCase))
-				{
-					Account->StopTraction(Follower);
-					break;
-				}
-			}
-		}
-	}
-
 	const FString Host = GetFurnitureHostAccount();
 	if (Host.IsEmpty())
 	{
@@ -4938,8 +4908,51 @@ void AMyBondageLifePlayerController::DetachFromFurniture(bool bMoveForward)
 	LastFurnitureHint.Reset();
 }
 
+
+void AMyBondageLifePlayerController::StartFurnitureTractionCheck()
+{
+	if (GetWorldTimerManager().IsTimerActive(FurnitureTractionCheckTimer)) { return; }
+
+	FurnitureTractionCheckTicks = 0;
+	GetWorldTimerManager().SetTimer(FurnitureTractionCheckTimer, this,
+		&AMyBondageLifePlayerController::CheckFollowersInFurniture, 3.0f, true);
+	CheckFollowersInFurniture();
+}
+
+void AMyBondageLifePlayerController::CheckFollowersInFurniture()
+{
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	if (!Account)
+	{
+		GetWorldTimerManager().ClearTimer(FurnitureTractionCheckTimer);
+		return;
+	}
+
+	// 最多检测 20 秒（3 秒一次，约 7 次）。
+	if (++FurnitureTractionCheckTicks > 7)
+	{
+		GetWorldTimerManager().ClearTimer(FurnitureTractionCheckTimer);
+		return;
+	}
+
+	for (const FString& Follower : Account->GetTractionFollowers())
+	{
+		for (const FMyBondageLifeFurnitureState& F : Account->GetFurnitureStates())
+		{
+			if (!F.Occupant.IsEmpty() && F.Occupant.Equals(Follower, ESearchCase::IgnoreCase))
+			{
+				Account->StopTraction(Follower);
+				GetWorldTimerManager().ClearTimer(FurnitureTractionCheckTimer);
+				return;
+			}
+		}
+	}
+}
 void AMyBondageLifePlayerController::ApplyFurnitureState()
 {
+	StartFurnitureTractionCheck();
+
 	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
 	if (!Account)
