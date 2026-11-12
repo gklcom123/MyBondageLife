@@ -265,7 +265,16 @@ void UMyBondageLifeRestraintPickerWidget::RefreshContents()
 			Title += TEXT(" ：已上锁");
 			if ((Lock.LockType == 2 || Lock.LockType == 5) && Lock.ExpiresAt.GetTicks() > 0)
 			{
-				const FTimespan Remaining = Lock.ExpiresAt - FDateTime::UtcNow();
+				// 服务端时间可能是本地时间字符串：先用 UTC 计算，若已过期再用本地时间兜底。
+				FTimespan Remaining = Lock.ExpiresAt - FDateTime::UtcNow();
+				if (Remaining.GetTicks() <= 0)
+				{
+					const FTimespan LocalRemaining = Lock.ExpiresAt - FDateTime::Now();
+					if (LocalRemaining.GetTicks() > 0)
+					{
+						Remaining = LocalRemaining;
+					}
+				}
 				if (Remaining.GetTicks() > 0)
 				{
 					Title += FString::Printf(TEXT("（剩余 %02d:%02d:%02d）"),

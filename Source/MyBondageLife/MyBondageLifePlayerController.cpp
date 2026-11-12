@@ -3938,8 +3938,12 @@ void AMyBondageLifePlayerController::BeginClimaxSequence()
 	}
 
 	DisableInput(this);
-	// 只锁移动，保留鼠标旋转视角。
+	// 只锁移动，保留鼠标旋转视角；同时让角色 Move() 直接返回，防止 EnhancedInput 绕过忽略标记。
 	SetIgnoreMoveInput(true);
+	if (AMyBondageLifeCharacter* ClimaxPawn = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		ClimaxPawn->bBlockMoveInput = true;
+	}
 
 	// 临时隐藏 HUD / 聊天。
 	ClimaxHiddenHud = MainHudWidget;
@@ -3979,6 +3983,10 @@ void AMyBondageLifePlayerController::EndClimaxSequence()
 
 	EnableInput(this);
 	SetIgnoreMoveInput(false);
+	if (AMyBondageLifeCharacter* ClimaxPawn = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		ClimaxPawn->bBlockMoveInput = false;
+	}
 
 	if (ClimaxHiddenHud)
 	{
