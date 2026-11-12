@@ -59,6 +59,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "HUD")
 	void SetTractionOverlayVisible(bool bVisible);
 
+	/** 靠近固定式家具时显示 W_InterFurniture。 */
+	UFUNCTION(BlueprintCallable, Category = "HUD")
+	void SetInterFurnitureInfo(bool bVisible, const FString& FurnitureName, const FString& OccupantText);
+
+	UPROPERTY(Transient)
+	TObjectPtr<UWidget> InterFurnitureOverlay;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> InterFurnitureNameText;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> InterFurniturePlayerText;
+
 	UPROPERTY(Transient)
 	TObjectPtr<UWidget> TractionOverlay;
 

@@ -3041,3 +3041,145 @@ void UMyBondageLifeAccountSubsystem::RefreshTractionState()
 			Self->OnTractionChanged.Broadcast();
 		});
 }
+
+// ---------------------------------------------------------------------------
+// 固定式家具
+// ---------------------------------------------------------------------------
+const FMyBondageLifeFurnitureState* UMyBondageLifeAccountSubsystem::FindFurniture(const FString& FurnitureId) const
+{
+	return FurnitureStates.FindByPredicate([&FurnitureId](const FMyBondageLifeFurnitureState& Item)
+	{
+		return Item.FurnitureId.Equals(FurnitureId, ESearchCase::IgnoreCase);
+	});
+}
+
+void UMyBondageLifeAccountSubsystem::RefreshFurnitureState(const FString& HostAccount)
+{
+	if (HostAccount.IsEmpty())
+	{
+		return;
+	}
+
+	FurnitureHostAccount = HostAccount;
+	const FString Path = FString::Printf(TEXT("/furniture/state?hostAccount=%s"), *HostAccount);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	SendFriendApiRequest(TEXT("GET"), Path, nullptr,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self || !bOk || !Json.IsValid())
+			{
+				return;
+			}
+
+			Self->FurnitureStates.Reset();
+			const TArray<TSharedPtr<FJsonValue>>* Items = nullptr;
+			if (Json->TryGetArrayField(TEXT("items"), Items) && Items)
+			{
+				for (const TSharedPtr<FJsonValue>& Value : *Items)
+				{
+					const TSharedPtr<FJsonObject> Object = Value.IsValid() ? Value->AsObject() : nullptr;
+					if (!Object.IsValid())
+					{
+						continue;
+					}
+
+					FMyBondageLifeFurnitureState State;
+					Object->TryGetStringField(TEXT("furnitureId"), State.FurnitureId);
+					Object->TryGetStringField(TEXT("occupant"), State.Occupant);
+					Object->TryGetStringField(TEXT("occupantName"), State.OccupantName);
+					Object->TryGetStringField(TEXT("lockedBy"), State.LockedBy);
+					Object->TryGetBoolField(TEXT("locked"), State.bLocked);
+					State.HostAccount = Self->FurnitureHostAccount;
+					Self->FurnitureStates.Add(State);
+				}
+			}
+
+			Self->OnFurnitureChanged.Broadcast();
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::EnterFurniture(const FString& FurnitureId, const FString& HostAccount)
+{
+	const TSharedRef<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("hostAccount"), HostAccount);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	const FString Path = FString::Printf(TEXT("/furniture/%s/enter"), *FurnitureId);
+	SendFriendApiRequest(TEXT("POST"), Path, Body,
+		[WeakThis, HostAccount](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self) { return; }
+			if (!bOk)
+			{
+				Self->OnFurnitureFailed.Broadcast(RomanceErrorCode(Json), FString());
+				return;
+			}
+			Self->RefreshFurnitureState(HostAccount);
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::ExitFurniture(const FString& FurnitureId, const FString& HostAccount)
+{
+	const TSharedRef<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("hostAccount"), HostAccount);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	const FString Path = FString::Printf(TEXT("/furniture/%s/exit"), *FurnitureId);
+	SendFriendApiRequest(TEXT("POST"), Path, Body,
+		[WeakThis, HostAccount](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self) { return; }
+			if (!bOk)
+			{
+				Self->OnFurnitureFailed.Broadcast(RomanceErrorCode(Json), FString());
+				return;
+			}
+			Self->RefreshFurnitureState(HostAccount);
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::LockFurniture(const FString& FurnitureId, const FString& HostAccount)
+{
+	const TSharedRef<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("hostAccount"), HostAccount);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	const FString Path = FString::Printf(TEXT("/furniture/%s/lock"), *FurnitureId);
+	SendFriendApiRequest(TEXT("POST"), Path, Body,
+		[WeakThis, HostAccount](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self) { return; }
+			if (!bOk)
+			{
+				Self->OnFurnitureFailed.Broadcast(RomanceErrorCode(Json), FString());
+				return;
+			}
+			Self->RefreshFurnitureState(HostAccount);
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::UnlockFurniture(const FString& FurnitureId, const FString& HostAccount)
+{
+	const TSharedRef<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("hostAccount"), HostAccount);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	const FString Path = FString::Printf(TEXT("/furniture/%s/unlock"), *FurnitureId);
+	SendFriendApiRequest(TEXT("POST"), Path, Body,
+		[WeakThis, HostAccount](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self) { return; }
+			if (!bOk)
+			{
+				Self->OnFurnitureFailed.Broadcast(RomanceErrorCode(Json), FString());
+				return;
+			}
+			Self->RefreshFurnitureState(HostAccount);
+		});
+}

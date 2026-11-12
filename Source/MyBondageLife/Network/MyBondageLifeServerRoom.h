@@ -22,6 +22,8 @@ struct FMyBondageLifeServerRoom
 	FString HostPuid;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Room")
+	FString HostAccount;
+
 	FString HostCharacterName;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Room")

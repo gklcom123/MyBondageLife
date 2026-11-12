@@ -1,7 +1,9 @@
 
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "MyBondageLifePlayerController.h"
+#include "MyBondageLifePlayerController.h"
+#include "Network/MyBondageLifeRoomSubsystem.h"
+#include "Core/MyBondageLifeFurnitureBase.h"
 
 #include "Components/AudioComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -993,6 +995,8 @@ void AMyBondageLifePlayerController::HandlePlayerInfoKeyPressed()
 
 void AMyBondageLifePlayerController::HandleInspectPressed()
 {
+	if (bInFurniture) { return; }
+
 	if (bTractionFollower) { return; }
 	if (!PlayerInfoWidget)
 	{
@@ -1851,6 +1855,7 @@ void AMyBondageLifePlayerController::PlayerTick(float DeltaTime)
 		NameplateLayer->UpdateNameplates();
 	}
 
+	UpdateFurnitureProximity();
 	UpdateTractionFollow(DeltaTime);
 	UpdateTractionChain();
 
@@ -2772,6 +2777,9 @@ void AMyBondageLifePlayerController::ShowHudEntries()
 		HudRuleAccount->RefreshRules();
 		HudRuleAccount->OnRomanceActionFailed.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleRomanceFailed);
 		HudRuleAccount->OnTractionChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleTractionChanged);
+	HudRuleAccount->OnFurnitureChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::ApplyFurnitureState);
+	GetWorldTimerManager().SetTimer(FurnitureRefreshTimer, this, &AMyBondageLifePlayerController::RefreshFurnitureStatePeriodic, 5.0f, true);
+	RefreshFurnitureStatePeriodic();
 		HudRuleAccount->RefreshTractionState();
 	}
 
@@ -3011,6 +3019,11 @@ void AMyBondageLifePlayerController::HandleInteractPressed()
 
 void AMyBondageLifePlayerController::HandleSitKeyPressed()
 {
+	if (HandleFurnitureInteraction())
+	{
+		return;
+	}
+
 	if (bTractionFollower) { return; }
 	if (bClimaxLocked)
 	{
@@ -4399,6 +4412,8 @@ void AMyBondageLifePlayerController::UpdateTractionChain()
 
 void AMyBondageLifePlayerController::HandleFriendInteractKeyPressed()
 {
+	if (bInFurniture) { return; }
+
 	if (bTractionFollower) { return; }
 	if (bClimaxLocked) { return; }
 
@@ -4437,5 +4452,341 @@ void AMyBondageLifePlayerController::HandleFriendInteractKeyPressed()
 		WardrobeWidget->SelectTab(2);
 	}
 	return;
+	}
+}
+
+// ---------------------------------------------------------------------------
+// 固定式家具
+// ---------------------------------------------------------------------------
+FString AMyBondageLifePlayerController::GetFurnitureHostAccount() const
+{
+	if (const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		if (const UMyBondageLifeSessionSubsystem* Session = GetGameInstance()
+			? GetGameInstance()->GetSubsystem<UMyBondageLifeSessionSubsystem>() : nullptr)
+		{
+			if (Session->IsHosting())
+			{
+				return Account->GetAccountName();
+			}
+		}
+
+		if (const UMyBondageLifeRoomSubsystem* Rooms = GetGameInstance()
+			? GetGameInstance()->GetSubsystem<UMyBondageLifeRoomSubsystem>() : nullptr)
+		{
+			const FString Host = Rooms->GetJoinedHostAccount();
+			if (!Host.IsEmpty())
+			{
+				return Host;
+			}
+		}
+
+		return Account->GetAccountName();
+	}
+	return FString();
+}
+
+void AMyBondageLifePlayerController::RefreshFurnitureStatePeriodic()
+{
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	const FString Host = GetFurnitureHostAccount();
+	if (Account && !Host.IsEmpty())
+	{
+		Account->RefreshFurnitureState(Host);
+	}
+}
+
+bool AMyBondageLifePlayerController::CanLockOccupant(const FMyBondageLifeFurnitureState& State) const
+{
+	const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	if (!Account || State.Occupant.IsEmpty())
+	{
+		return false;
+	}
+
+	const FString Me = Account->GetAccountName();
+	// 占用者自己不能上锁。
+	if (State.Occupant.Equals(Me, ESearchCase::IgnoreCase))
+	{
+		return false;
+	}
+
+	// 房主或被占用者的契约主人。
+	if (State.HostAccount.Equals(Me, ESearchCase::IgnoreCase))
+	{
+		return true;
+	}
+	return Account->GetContractRoleWith(State.Occupant) == EMyBondageLifeContractRole::Master;
+}
+
+bool AMyBondageLifePlayerController::CanUnlockOccupant(const FMyBondageLifeFurnitureState& State) const
+{
+	const UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	if (!Account)
+	{
+		return false;
+	}
+
+	const FString Me = Account->GetAccountName();
+	const bool bIOccupy = State.Occupant.Equals(Me, ESearchCase::IgnoreCase);
+	const bool bIHost = State.HostAccount.Equals(Me, ESearchCase::IgnoreCase);
+
+	// 房主被锁在自己家具里：不能自解（只能安全词/其主人）。
+	if (bIHost && bIOccupy)
+	{
+		return false;
+	}
+	if (bIHost)
+	{
+		return true;
+	}
+	if (!State.Occupant.IsEmpty()
+		&& Account->GetContractRoleWith(State.Occupant) == EMyBondageLifeContractRole::Master)
+	{
+		return true;
+	}
+	return false;
+}
+
+void AMyBondageLifePlayerController::ShowFurnitureHint(const FString& Text)
+{
+	if (!SeatHintWidget)
+	{
+		UClass* HintClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_SitHint.WBP_SitHint_C"));
+		if (!HintClass)
+		{
+			HintClass = UMyBondageLifeSitHintWidget::StaticClass();
+		}
+		SeatHintWidget = CreateWidget<UMyBondageLifeSitHintWidget>(this, HintClass);
+		if (SeatHintWidget)
+		{
+			SeatHintWidget->AddToViewport(35);
+		}
+	}
+	if (SeatHintWidget)
+	{
+		SeatHintWidget->SetHintText(Text);
+		SeatHintWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+	}
+}
+
+void AMyBondageLifePlayerController::UpdateFurnitureProximity()
+{
+	UWorld* World = GetWorld();
+	AMyBondageLifeCharacter* OwnPawn = Cast<AMyBondageLifeCharacter>(GetPawn());
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+
+	NearbyFurniture = nullptr;
+	if (World && OwnPawn && Account)
+	{
+		float Best = 260.0f;
+		for (TActorIterator<AMyBondageLifeFurnitureBase> It(World); It; ++It)
+		{
+			AMyBondageLifeFurnitureBase* Furniture = *It;
+			if (!IsValid(Furniture))
+			{
+				continue;
+			}
+			const float Distance = FVector::Dist(OwnPawn->GetActorLocation(), Furniture->GetInteractionLocation());
+			if (Distance <= FMath::Min(Best, Furniture->InteractRange))
+			{
+				Best = Distance;
+				NearbyFurniture = Furniture;
+			}
+		}
+	}
+
+	AMyBondageLifeFurnitureBase* Furniture = NearbyFurniture.Get();
+	const FMyBondageLifeFurnitureState* State = (Furniture && Account)
+		? Account->FindFurniture(Furniture->GetFurnitureKey()) : nullptr;
+
+	const bool bShow = Furniture != nullptr;
+	const FString Occupant = State ? State->Occupant : FString();
+	const FString OccupantName = State && !State->OccupantName.IsEmpty()
+		? State->OccupantName : Occupant;
+	const FString OccupantText = Occupant.IsEmpty()
+		? FString(TEXT("空闲中"))
+		: FString::Printf(TEXT("%s正在使用中..."), *OccupantName);
+
+	if (MainHudWidget && Furniture)
+	{
+		MainHudWidget->SetInterFurnitureInfo(bShow, Furniture->GetFurnitureDisplayName(), OccupantText);
+
+	}
+	else if (MainHudWidget)
+	{
+		MainHudWidget->SetInterFurnitureInfo(false, FString(), FString());
+	}
+
+	if (!bShow)
+	{
+		return;
+	}
+
+	const bool bMine = State && !State->Occupant.IsEmpty()
+		&& State->Occupant.Equals(Account->GetAccountName(), ESearchCase::IgnoreCase);
+
+	if (bInFurniture && bMine)
+	{
+		ShowFurnitureHint(State->bLocked ? TEXT("已被锁，无法逃脱") : TEXT("按[R]退出"));
+	}
+	else if (Occupant.IsEmpty())
+	{
+		ShowFurnitureHint(TEXT("按[R]进入"));
+	}
+	else if (State && !State->bLocked && CanLockOccupant(*State))
+	{
+		ShowFurnitureHint(TEXT("按[R]上锁"));
+	}
+	else if (State && State->bLocked && CanUnlockOccupant(*State))
+	{
+		ShowFurnitureHint(TEXT("按[R]解锁"));
+	}
+}
+
+bool AMyBondageLifePlayerController::HandleFurnitureInteraction()
+{
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	if (!Account)
+	{
+		return false;
+	}
+
+	const FString Host = GetFurnitureHostAccount();
+	if (Host.IsEmpty())
+	{
+		return false;
+	}
+
+	// 已经在家具里：只能退出（被锁时不行）。
+	if (bInFurniture)
+	{
+		AMyBondageLifeFurnitureBase* Active = ActiveFurniture.Get();
+		const FMyBondageLifeFurnitureState* State = Active ? Account->FindFurniture(Active->GetFurnitureKey()) : nullptr;
+		if (!Active)
+		{
+			DetachFromFurniture(false);
+			return true;
+		}
+		if (State && State->bLocked)
+		{
+			ShowFurnitureHint(TEXT("已被锁，无法逃脱"));
+			return true;
+		}
+		Account->ExitFurniture(Active->GetFurnitureKey(), Host);
+		return true;
+	}
+
+	AMyBondageLifeFurnitureBase* Furniture = NearbyFurniture.Get();
+	if (!Furniture)
+	{
+		return false;
+	}
+
+	const FMyBondageLifeFurnitureState* State = Account->FindFurniture(Furniture->GetFurnitureKey());
+	const FString Key = Furniture->GetFurnitureKey();
+
+	if (!State || State->Occupant.IsEmpty())
+	{
+		Account->EnterFurniture(Key, Host);
+		return true;
+	}
+
+	if (!State->bLocked && CanLockOccupant(*State))
+	{
+		Account->LockFurniture(Key, Host);
+		return true;
+	}
+	if (State->bLocked && CanUnlockOccupant(*State))
+	{
+		Account->UnlockFurniture(Key, Host);
+		return true;
+	}
+
+	return true;
+}
+
+void AMyBondageLifePlayerController::AttachToFurniture(AMyBondageLifeFurnitureBase* Furniture)
+{
+	AMyBondageLifeCharacter* OwnPawn = Cast<AMyBondageLifeCharacter>(GetPawn());
+	if (!Furniture || !OwnPawn)
+	{
+		return;
+	}
+
+	ActiveFurniture = Furniture;
+	bInFurniture = true;
+	OwnPawn->bBlockMoveInput = true;
+	OwnPawn->SetActorTransform(Furniture->GetInteractionTransform(), false, nullptr, ETeleportType::TeleportPhysics);
+
+	if (UAnimMontage* Montage = Furniture->GetInteractionMontage())
+	{
+		OwnPawn->MulticastPlayFurnitureMontage(Montage);
+	}
+}
+
+void AMyBondageLifePlayerController::DetachFromFurniture(bool bMoveForward)
+{
+	AMyBondageLifeCharacter* OwnPawn = Cast<AMyBondageLifeCharacter>(GetPawn());
+	if (OwnPawn)
+	{
+		OwnPawn->bBlockMoveInput = false;
+		OwnPawn->MulticastStopFurnitureMontage();
+		if (bMoveForward)
+		{
+			OwnPawn->SetActorLocation(OwnPawn->GetActorLocation() + OwnPawn->GetActorForwardVector() * 150.0f, false);
+		}
+	}
+	ActiveFurniture = nullptr;
+	bInFurniture = false;
+}
+
+void AMyBondageLifePlayerController::ApplyFurnitureState()
+{
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	if (!Account)
+	{
+		return;
+	}
+
+	const FString Me = Account->GetAccountName();
+	const FMyBondageLifeFurnitureState* MyState = nullptr;
+	for (const FMyBondageLifeFurnitureState& Item : Account->GetFurnitureStates())
+	{
+		if (!Item.Occupant.IsEmpty() && Item.Occupant.Equals(Me, ESearchCase::IgnoreCase))
+		{
+			MyState = &Item;
+			break;
+		}
+	}
+
+	if (MyState)
+	{
+		if (!bInFurniture || !ActiveFurniture.IsValid())
+		{
+			UWorld* World = GetWorld();
+			if (World)
+			{
+				for (TActorIterator<AMyBondageLifeFurnitureBase> It(World); It; ++It)
+				{
+					if (IsValid(*It) && (*It)->GetFurnitureKey().Equals(MyState->FurnitureId, ESearchCase::IgnoreCase))
+					{
+						AttachToFurniture(*It);
+						break;
+					}
+				}
+			}
+		}
+	}
+	else if (bInFurniture)
+	{
+		DetachFromFurniture(true);
 	}
 }

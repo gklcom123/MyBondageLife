@@ -323,3 +323,31 @@ void UMyBondageLifeMainHudWidget::SetTractionOverlayVisible(bool bVisible)
 		TractionOverlay->SetVisibility(bVisible ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 	}
 }
+void UMyBondageLifeMainHudWidget::SetInterFurnitureInfo(bool bVisible, const FString& FurnitureName, const FString& OccupantText)
+{
+	if (!InterFurnitureOverlay && WidgetTree)
+	{
+		InterFurnitureOverlay = WidgetTree->FindWidget(TEXT("W_InterFurniture"));
+	}
+	if (!InterFurnitureNameText && WidgetTree)
+	{
+		InterFurnitureNameText = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_InterFurniture_Name")));
+	}
+	if (!InterFurniturePlayerText && WidgetTree)
+	{
+		InterFurniturePlayerText = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_InterFurniture_PlayerName")));
+	}
+
+	if (InterFurnitureOverlay)
+	{
+		InterFurnitureOverlay->SetVisibility(bVisible ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	}
+	if (InterFurnitureNameText)
+	{
+		InterFurnitureNameText->SetText(FText::FromString(FurnitureName));
+	}
+	if (InterFurniturePlayerText)
+	{
+		InterFurniturePlayerText->SetText(FText::FromString(OccupantText));
+	}
+}

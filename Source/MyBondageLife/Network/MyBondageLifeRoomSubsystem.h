@@ -111,6 +111,13 @@ private:
 	/** 加入成功后所在的房间（房主关闭/失效时用来退回主菜单）。 */
 	FString CurrentRoomId;
 
+	/** 加入房间时房主账号（家具状态查询用）。 */
+	FString JoinedHostAccount;
+
+public:
+	const FString& GetJoinedHostAccount() const { return JoinedHostAccount; }
+protected:
+
 	FTimerHandle HeartbeatTimer;
 	bool bRequestInFlight = false;
 	int32 JoinGeneration = 0;

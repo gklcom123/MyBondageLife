@@ -2040,3 +2040,23 @@ FString AMyBondageLifeCharacter::GetAccountName() const
 	}
 	return FString();
 }
+
+void AMyBondageLifeCharacter::MulticastPlayFurnitureMontage_Implementation(UAnimMontage* Montage)
+{
+	if (!Montage || !GetMesh())
+	{
+		return;
+	}
+
+	ActiveFurnitureMontage = Montage;
+	PlayAnimMontage(Montage);
+}
+
+void AMyBondageLifeCharacter::MulticastStopFurnitureMontage_Implementation()
+{
+	if (ActiveFurnitureMontage)
+	{
+		StopAnimMontage(ActiveFurnitureMontage);
+		ActiveFurnitureMontage = nullptr;
+	}
+}

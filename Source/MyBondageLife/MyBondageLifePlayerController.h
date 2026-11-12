@@ -698,6 +698,23 @@ public:
 	/** G：靠近好友时打开对方拘束页。 */
 	void HandleFriendInteractKeyPressed();
 
+	// ---- 固定式家具（牢笼等） ----
+	bool HandleFurnitureInteraction();
+	void UpdateFurnitureProximity();
+	void ApplyFurnitureState();
+	void RefreshFurnitureStatePeriodic();
+	void AttachToFurniture(class AMyBondageLifeFurnitureBase* Furniture);
+	void DetachFromFurniture(bool bMoveForward);
+	FString GetFurnitureHostAccount() const;
+	bool CanLockOccupant(const struct FMyBondageLifeFurnitureState& State) const;
+	bool CanUnlockOccupant(const struct FMyBondageLifeFurnitureState& State) const;
+	void ShowFurnitureHint(const FString& Text);
+
+	TWeakObjectPtr<class AMyBondageLifeFurnitureBase> NearbyFurniture;
+	TWeakObjectPtr<class AMyBondageLifeFurnitureBase> ActiveFurniture;
+	bool bInFurniture = false;
+	FTimerHandle FurnitureRefreshTimer;
+
 	UFUNCTION()
 	void HandleStandUpOnMove();
 

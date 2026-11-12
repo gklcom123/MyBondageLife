@@ -673,6 +673,7 @@ bool UMyBondageLifeRoomSubsystem::ParseRoom(const TSharedPtr<FJsonObject>& Objec
 	Object->TryGetStringField(TEXT("socketName"), OutRoom.SocketName);
 	Object->TryGetStringField(TEXT("mapName"), OutRoom.MapName);
 	Object->TryGetStringField(TEXT("version"), OutRoom.Version);
+	Object->TryGetStringField(TEXT("hostAccount"), OutRoom.HostAccount);
 
 	double Number = 0.0;
 	if (Object->TryGetNumberField(TEXT("playerCount"), Number))
@@ -688,6 +689,8 @@ bool UMyBondageLifeRoomSubsystem::ParseRoom(const TSharedPtr<FJsonObject>& Objec
 	if (Object->TryGetObjectField(TEXT("host"), HostObject) && HostObject && HostObject->IsValid())
 	{
 		(*HostObject)->TryGetStringField(TEXT("characterName"), OutRoom.HostCharacterName);
+		(*HostObject)->TryGetStringField(TEXT("account"), OutRoom.HostAccount);
+		(*HostObject)->TryGetStringField(TEXT("accountName"), OutRoom.HostAccount);
 	}
 
 	return !OutRoom.HostPuid.IsEmpty();

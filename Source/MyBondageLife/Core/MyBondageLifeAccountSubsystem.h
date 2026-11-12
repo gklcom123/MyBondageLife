@@ -50,6 +50,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeAuthSucceeded);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeRulesChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeRomanceChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeTractionChanged);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeFurnitureChanged);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FMyBondageLifeFurnitureFailed, const FString&, Code, const FString&, Message);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FMyBondageLifeTractionFailed, const FString&, Code, const FString&, Message);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FMyBondageLifeRomanceFailed, const FString&, Code, const FString&, Message);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FMyBondageLifeRoomClosed, const FString&, const FString&);
@@ -126,6 +128,33 @@ struct FMyBondageLifeRomanceEntry
 
 	UPROPERTY(BlueprintReadOnly, Category = "Romance")
 	FDateTime MarryAvailableAt;
+};
+
+
+
+/** 固定式家具（牢笼等）的运行时状态，来自 /furniture/state。 */
+USTRUCT(BlueprintType)
+struct FMyBondageLifeFurnitureState
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Furniture")
+	FString FurnitureId;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Furniture")
+	FString Occupant;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Furniture")
+	FString OccupantName;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Furniture")
+	bool bLocked = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Furniture")
+	FString LockedBy;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Furniture")
+	FString HostAccount;
 };
 
 /** One entry of the friend list, as returned by GET /friends. */
@@ -491,6 +520,26 @@ public:
 	void RefreshTractionState();
 
 	const TArray<FString>& GetTractionFollowers() const { return TractionFollowers; }
+
+	// ---- 固定式家具 ----
+	void RefreshFurnitureState(const FString& HostAccount);
+	void EnterFurniture(const FString& FurnitureId, const FString& HostAccount);
+	void ExitFurniture(const FString& FurnitureId, const FString& HostAccount);
+	void LockFurniture(const FString& FurnitureId, const FString& HostAccount);
+	void UnlockFurniture(const FString& FurnitureId, const FString& HostAccount);
+
+	const TArray<FMyBondageLifeFurnitureState>& GetFurnitureStates() const { return FurnitureStates; }
+	const FMyBondageLifeFurnitureState* FindFurniture(const FString& FurnitureId) const;
+	const FString& GetFurnitureHostAccount() const { return FurnitureHostAccount; }
+
+	UPROPERTY(BlueprintAssignable, Category = "Furniture")
+	FMyBondageLifeFurnitureChanged OnFurnitureChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Furniture")
+	FMyBondageLifeFurnitureFailed OnFurnitureFailed;
+
+	TArray<FMyBondageLifeFurnitureState> FurnitureStates;
+	FString FurnitureHostAccount;
 	FString GetTractionLeader() const { return TractionLeader; }
 
 	UPROPERTY(BlueprintAssignable, Category = "Traction")

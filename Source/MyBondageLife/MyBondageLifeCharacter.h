@@ -521,6 +521,16 @@ public:
 
 	void PlayBondageMontage();
 
+	/** 家具交互动画（所有客户端可见）。 */
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastPlayFurnitureMontage(UAnimMontage* Montage);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastStopFurnitureMontage();
+
+	UPROPERTY(Transient)
+	TObjectPtr<UAnimMontage> ActiveFurnitureMontage;
+
 	UPROPERTY(Transient)
 	TObjectPtr<UAnimMontage> ActiveBondageMontage;
 
