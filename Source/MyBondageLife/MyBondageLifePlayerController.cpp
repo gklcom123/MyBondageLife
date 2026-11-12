@@ -4596,11 +4596,8 @@ void AMyBondageLifePlayerController::ShowFurnitureHint(const FString& Text)
 	}
 	if (FurnitureHintWidget)
 	{
-		if (LastFurnitureHint != Text)
-		{
-			LastFurnitureHint = Text;
-			FurnitureHintWidget->SetHintText(Text);
-		}
+		// 每次都写：使用独立控件，不会与椅子提示互相覆盖；避免首帧 HintText 尚未创建导致文本为空。
+		FurnitureHintWidget->SetHintText(Text);
 		FurnitureHintWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
 	}
 }
