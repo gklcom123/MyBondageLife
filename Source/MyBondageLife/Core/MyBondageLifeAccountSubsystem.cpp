@@ -2249,7 +2249,9 @@ void UMyBondageLifeAccountSubsystem::RequestSafeword()
 			}
 			else
 			{
-				Self->OnFurnitureChanged.Broadcast();
+				UE_LOG(LogMyBondageLife, Log, TEXT("Furniture: fetched host=%s count=%d"), *Self->FurnitureHostAccount, Self->FurnitureStates.Num());
+
+			Self->OnFurnitureChanged.Broadcast();
 			}
 		});
 }
@@ -3105,6 +3107,8 @@ void UMyBondageLifeAccountSubsystem::RefreshFurnitureState(const FString& HostAc
 					Self->FurnitureStates.Add(State);
 				}
 			}
+
+			UE_LOG(LogMyBondageLife, Log, TEXT("Furniture: fetched host=%s count=%d"), *Self->FurnitureHostAccount, Self->FurnitureStates.Num());
 
 			Self->OnFurnitureChanged.Broadcast();
 		});

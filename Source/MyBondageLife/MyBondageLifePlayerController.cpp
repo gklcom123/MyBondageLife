@@ -4521,7 +4521,17 @@ void AMyBondageLifePlayerController::RefreshFurnitureStatePeriodic()
 	const FString Host = GetFurnitureHostAccount();
 	if (Account && !Host.IsEmpty())
 	{
-		UE_LOG(LogMyBondageLife, Log, TEXT("Furniture: host=[%s]"), *Host);
+		if (!Account->GetFurnitureHostAccount().Equals(Host, ESearchCase::IgnoreCase))
+		{
+			// 换了房间：清掉旧房间的家具占用，防止把别人房间的锁带过来。
+			Account->FurnitureStates.Reset();
+			PendingFurnitureKey.Reset();
+			if (bInFurniture)
+			{
+				DetachFromFurniture(false);
+			}
+		bInFurniture = false;
+		}
 		Account->RefreshFurnitureState(Host);
 	}
 }
@@ -4811,10 +4821,6 @@ void AMyBondageLifePlayerController::AttachToFurniture(AMyBondageLifeFurnitureBa
 	OwnPawn->ApplyFullAnmi(true);
 	OwnPawn->ServerSetFullAnmi(true);
 	FTransform SocketTransform = Furniture->GetInteractionTransform();
-	if (const UCapsuleComponent* Capsule = OwnPawn->GetCapsuleComponent())
-	{
-		SocketTransform.AddToTranslation(FVector(0.0f, 0.0f, Capsule->GetScaledCapsuleHalfHeight()));
-	}
 	OwnPawn->SetActorTransform(SocketTransform, false, nullptr, ETeleportType::TeleportPhysics);
 	// 服务器也要传送，否则客机会被服务器位置纠正回原地。
 	OwnPawn->ServerTeleportToFurniture(SocketTransform.GetLocation(), SocketTransform.Rotator());
@@ -4868,6 +4874,12 @@ void AMyBondageLifePlayerController::ApplyFurnitureState()
 	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
 	if (!Account)
+	{
+		return;
+	}
+
+	// 数据必须属于当前房间，否则忽略（防止旧房间数据带回自己家）。
+	if (!Account->GetFurnitureHostAccount().Equals(GetFurnitureHostAccount(), ESearchCase::IgnoreCase))
 	{
 		return;
 	}
