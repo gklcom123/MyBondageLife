@@ -2239,8 +2239,18 @@ void UMyBondageLifeAccountSubsystem::RequestSafeword()
 				return;
 			}
 
-			// 服务端已经清空拘束并广播消息，这里只刷新本地状态。
+			// 服务端已经清空拘束/家具并广播消息，这里刷新本地状态。
 			Self->RefreshRestraints();
+
+			// 安全词同时解除家具占用与锁：立即重拉，让被锁玩家马上脱出。
+			if (!Self->FurnitureHostAccount.IsEmpty())
+			{
+				Self->RefreshFurnitureState(Self->FurnitureHostAccount);
+			}
+			else
+			{
+				Self->OnFurnitureChanged.Broadcast();
+			}
 		});
 }
 
