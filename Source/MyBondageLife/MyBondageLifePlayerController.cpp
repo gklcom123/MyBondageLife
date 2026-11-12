@@ -4521,6 +4521,7 @@ void AMyBondageLifePlayerController::RefreshFurnitureStatePeriodic()
 	const FString Host = GetFurnitureHostAccount();
 	if (Account && !Host.IsEmpty())
 	{
+		UE_LOG(LogMyBondageLife, Log, TEXT("Furniture: host=[%s]"), *Host);
 		Account->RefreshFurnitureState(Host);
 	}
 }
@@ -4653,6 +4654,11 @@ void AMyBondageLifePlayerController::UpdateFurnitureProximity()
 
 	if (!bShow)
 	{
+		if (FurnitureHintWidget)
+		{
+			FurnitureHintWidget->SetVisibility(ESlateVisibility::Collapsed);
+		}
+
 		return;
 	}
 
