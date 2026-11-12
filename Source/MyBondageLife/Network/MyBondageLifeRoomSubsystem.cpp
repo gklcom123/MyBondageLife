@@ -470,12 +470,11 @@ void UMyBondageLifeRoomSubsystem::HandleCreateResponse(int32 StatusCode, const F
 	}
 
 	HostedRoomId = Room.RoomId;
-	if (CurrentRoomHostAccount.IsEmpty())
+	// 自己开的房间：房主永远是自己（覆盖之前加入别人房间时留下的值）。
+	if (const UMyBondageLifeAccountSubsystem* Acc = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
 	{
-		if (const UMyBondageLifeAccountSubsystem* Acc = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
-		{
-			CurrentRoomHostAccount = Acc->GetAccountName();
-		}
+		CurrentRoomHostAccount = Acc->GetAccountName();
+		UE_LOG(LogMyBondageLife, Log, TEXT("Rooms: hosting, hostAccount=[%s]"), *CurrentRoomHostAccount);
 	}
 
 	HostedRoomName = Room.RoomName;
@@ -522,6 +521,9 @@ void UMyBondageLifeRoomSubsystem::HandleJoinResponse(int32 StatusCode, const FSt
 	bTravelStarted = true;
 	TravelStartedSeconds = FPlatformTime::Seconds();
 	SetConnectingText(FText::FromString(TEXT("\u6B63\u5728\u8FDB\u5165\u623F\u95F4\u2026")));
+
+	CurrentRoomHostAccount = Room.HostAccount;
+	UE_LOG(LogMyBondageLife, Log, TEXT("Rooms: joined hostAccount=[%s]"), *CurrentRoomHostAccount);
 
 	OnRoomJoined.Broadcast(Room);
 }
