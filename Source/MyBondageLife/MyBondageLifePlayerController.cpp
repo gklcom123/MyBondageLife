@@ -1,7 +1,8 @@
 
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "MyBondageLifePlayerController.h"
+#include "MyBondageLifePlayerController.h"
+#include "Camera/CameraComponent.h"
 
 
 #include "Components/CapsuleComponent.h"
@@ -1879,6 +1880,7 @@ void AMyBondageLifePlayerController::PlayerTick(float DeltaTime)
 		}
 	}
 
+	SyncFurnitureCameraPostProcess();
 	UpdateFurnitureProximity();
 	UpdateTractionFollow(DeltaTime);
 	UpdateTractionChain();
@@ -4937,6 +4939,27 @@ void AMyBondageLifePlayerController::DetachFromFurniture(bool bMoveForward)
 }
 
 
+
+void AMyBondageLifePlayerController::SyncFurnitureCameraPostProcess()
+{
+	ACameraActor* CamActor = Cast<ACameraActor>(FurnitureCameraActor);
+	AMyBondageLifeCharacter* OwnPawn = Cast<AMyBondageLifeCharacter>(GetPawn());
+	if (!CamActor || !OwnPawn)
+	{
+		return;
+	}
+
+	UCameraComponent* TargetCam = CamActor->GetCameraComponent();
+	UCameraComponent* SourceCam = OwnPawn->FindComponentByClass<UCameraComponent>();
+	if (!TargetCam || !SourceCam)
+	{
+		return;
+	}
+
+	// 家具相机沿用角色相机的全部后期处理（盲视/性欲粉雾/景深等）。
+	TargetCam->PostProcessSettings = SourceCam->PostProcessSettings;
+	TargetCam->PostProcessBlendWeight = SourceCam->PostProcessBlendWeight;
+}
 void AMyBondageLifePlayerController::AlignFurnitureFacingTick()
 {
 	AMyBondageLifeCharacter* OwnPawn = Cast<AMyBondageLifeCharacter>(GetPawn());
