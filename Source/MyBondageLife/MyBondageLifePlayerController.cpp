@@ -4521,6 +4521,22 @@ void AMyBondageLifePlayerController::RefreshFurnitureStatePeriodic()
 {
 	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	// 若我的某个被牵引者已进入家具，自动结束该条牵引（服务端只允许 leader 停止）。
+	if (Account)
+	{
+		for (const FString& Follower : Account->GetTractionFollowers())
+		{
+			for (const FMyBondageLifeFurnitureState& F : Account->GetFurnitureStates())
+			{
+				if (!F.Occupant.IsEmpty() && F.Occupant.Equals(Follower, ESearchCase::IgnoreCase))
+				{
+					Account->StopTraction(Follower);
+					break;
+				}
+			}
+		}
+	}
+
 	const FString Host = GetFurnitureHostAccount();
 	if (Account && !Host.IsEmpty())
 	{
@@ -4680,6 +4696,14 @@ void AMyBondageLifePlayerController::UpdateFurnitureProximity()
 	// 服务端已记录我在使用该家具但本地还没吸附：立即补上（避免事件竞态导致只变 UI 不动人）。
 	if (bMine && OwnPawn)
 	{
+		// 客机本地控制器的控制旋转会覆盖角色朝向：这里每帧强制回到家具朝向。
+		if (Furniture)
+		{
+			const FRotator FaceRotation(0.0f, Furniture->GetInteractionTransform().Rotator().Yaw, 0.0f);
+			OwnPawn->SetActorRotation(FaceRotation);
+			SetControlRotation(FaceRotation);
+	}
+
 		bInFurniture = true;
 		OwnPawn->bBlockMoveInput = true;   // 每帧强制，家具交互期间禁止移动
 	}
@@ -4730,6 +4754,22 @@ bool AMyBondageLifePlayerController::HandleFurnitureInteraction()
 	if (!Account)
 	{
 		return false;
+	}
+
+	// 若我的某个被牵引者已进入家具，自动结束该条牵引（服务端只允许 leader 停止）。
+	if (Account)
+	{
+		for (const FString& Follower : Account->GetTractionFollowers())
+		{
+			for (const FMyBondageLifeFurnitureState& F : Account->GetFurnitureStates())
+			{
+				if (!F.Occupant.IsEmpty() && F.Occupant.Equals(Follower, ESearchCase::IgnoreCase))
+				{
+					Account->StopTraction(Follower);
+					break;
+				}
+			}
+		}
 	}
 
 	const FString Host = GetFurnitureHostAccount();
