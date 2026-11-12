@@ -719,6 +719,8 @@ public:
 	TObjectPtr<AActor> FurnitureCameraActor;
 
 	FString PendingFurnitureKey;
+
+	FString LastFurnitureHint;
 	FTimerHandle FurnitureRefreshTimer;
 
 	UFUNCTION()

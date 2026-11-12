@@ -4595,7 +4595,11 @@ void AMyBondageLifePlayerController::ShowFurnitureHint(const FString& Text)
 	}
 	if (SeatHintWidget)
 	{
-		SeatHintWidget->SetHintText(Text);
+		if (LastFurnitureHint != Text)
+		{
+			LastFurnitureHint = Text;
+			SeatHintWidget->SetHintText(Text);
+		}
 		SeatHintWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
 	}
 }
@@ -4667,7 +4671,7 @@ void AMyBondageLifePlayerController::UpdateFurnitureProximity()
 	{
 		AttachToFurniture(Furniture);
 	}
-	else if (!bMine && bInFurniture && ActiveFurniture.Get() == Furniture)
+	else if (!bMine && bInFurniture && ActiveFurniture.Get() == Furniture && Account->GetFurnitureStates().Num() > 0)
 	{
 		DetachFromFurniture(false);
 	}
@@ -4769,6 +4773,15 @@ void AMyBondageLifePlayerController::AttachToFurniture(AMyBondageLifeFurnitureBa
 	bInFurniture = true;
 
 	// 视角接管：若家具配置了相机点，用它生成临时 CameraActor。
+	if (USceneComponent* CamPoint = Furniture->GetInteractionCameraComponent())
+	{
+		UE_LOG(LogMyBondageLife, Log, TEXT("Furniture: camera=%s"), *CamPoint->GetName());
+	}
+	else
+	{
+		UE_LOG(LogMyBondageLife, Warning, TEXT("Furniture: InteractionCamera not found (name it exactly InteractionCamera)"));
+	}
+
 	if (USceneComponent* CamPoint = Furniture->GetInteractionCameraComponent())
 	{
 		FActorSpawnParameters Params;
