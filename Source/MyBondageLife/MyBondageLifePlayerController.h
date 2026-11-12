@@ -715,6 +715,9 @@ public:
 	TWeakObjectPtr<class AMyBondageLifeFurnitureBase> ActiveFurniture;
 	bool bInFurniture = false;
 
+	/** 家具自动释放：上一次是否处于上锁状态。 */
+	bool bWasLockedFurniture = false;
+
 	UPROPERTY(Transient)
 	TObjectPtr<AActor> FurnitureCameraActor;
 

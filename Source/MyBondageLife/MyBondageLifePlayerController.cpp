@@ -4696,6 +4696,17 @@ void AMyBondageLifePlayerController::UpdateFurnitureProximity()
 
 	if (bInFurniture && bMine)
 	{
+		// 解锁后自动释放：避免被离线的人占住。
+		if (bWasLockedFurniture && State && !State->bLocked)
+		{
+			bWasLockedFurniture = false;
+		const FString KeyToRelease = Furniture->GetFurnitureKey();
+		DetachFromFurniture(true);
+		Account->ExitFurniture(KeyToRelease, GetFurnitureHostAccount());
+		return;
+	}
+		bWasLockedFurniture = State && State->bLocked;
+
 		ShowFurnitureHint(State->bLocked ? TEXT("已被锁，无法逃脱") : TEXT("按[R]退出"));
 	}
 	else if (Occupant.IsEmpty())
@@ -4762,6 +4773,13 @@ bool AMyBondageLifePlayerController::HandleFurnitureInteraction()
 
 	if (!State || State->Occupant.IsEmpty())
 	{
+		// 被牵引时进入家具：先结束牵引。
+		const FString Leader = Account->GetTractionLeader();
+		if (!Leader.IsEmpty())
+		{
+			Account->StopTraction(Leader);
+		}
+
 		Account->EnterFurniture(Key, Host);
 		return true;
 	}

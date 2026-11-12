@@ -387,9 +387,25 @@ void UMyBondageLifeRestraintSlotsWidget::RefreshSlaveControlPanel()
 	{
 		const FString CollarId = Account ? Account->GetViewedRestraint(1) : FString();
 		const bool bHasCollar = !CollarId.IsEmpty();
+
+		// 目标被关在固定式家具里时不能牵引。
+	bool bInFurnitureNow = false;
+	if (Account && !ViewAccount.IsEmpty())
+	{
+		for (const FMyBondageLifeFurnitureState& F : Account->GetFurnitureStates())
+		{
+			if (!F.Occupant.IsEmpty() && F.Occupant.Equals(ViewAccount, ESearchCase::IgnoreCase))
+			{
+				bInFurnitureNow = true;
+				break;
+			}
+		}
+	}
+
+	const bool bCanTraction = bHasCollar && !bInFurnitureNow;
 		const bool bTractioned = Account && !ViewAccount.IsEmpty() && Account->GetTractionFollowers().Contains(ViewAccount);
 
-		TractionButton->SetIsEnabled(bShow && bHasCollar);
+		TractionButton->SetIsEnabled(bShow && bCanTraction);
 		TractionButton->SetToolTipText(FText::FromString(bHasCollar ? FString() : TEXT("需要目标穿戴项圈")));
 
 		if (UTextBlock* Label = Cast<UTextBlock>(TractionButton->GetChildAt(0)))
