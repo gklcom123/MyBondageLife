@@ -12,9 +12,9 @@ AMyBondageLifeFurnitureBase::AMyBondageLifeFurnitureBase()
 
 USceneComponent* AMyBondageLifeFurnitureBase::GetInteractionCameraComponent() const
 {
-	if (InteractionCamera)
+	if (InteractionCameraOverride)
 	{
-		return InteractionCamera;
+		return InteractionCameraOverride;
 	}
 
 	// 蓝图里把组件命名为 InteractionCamera 也能直接用。
@@ -32,7 +32,7 @@ USceneComponent* AMyBondageLifeFurnitureBase::GetInteractionCameraComponent() co
 
 FTransform AMyBondageLifeFurnitureBase::GetInteractionTransform() const
 {
-	USceneComponent* Point = InteractionPoint;
+	USceneComponent* Point = InteractionPointOverride;
 	if (!Point)
 	{
 		TArray<USceneComponent*> Components;

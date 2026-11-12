@@ -54,11 +54,11 @@ public:
 	 * 然后把它的引用赋给这个变量即可。父类不创建任何组件，避免与子蓝图同名冲突。
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Furniture")
-	TObjectPtr<USceneComponent> InteractionPoint;
+	TObjectPtr<USceneComponent> InteractionPointOverride;
 
 	/** 交互时用于接管视角的相机位置（子蓝图里放一个 Camera/Scene 组件后赋值）。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Furniture")
-	TObjectPtr<USceneComponent> InteractionCamera;
+	TObjectPtr<USceneComponent> InteractionCameraOverride;
 
 	/** 交互期间循环播放的蒙太奇。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Furniture")
