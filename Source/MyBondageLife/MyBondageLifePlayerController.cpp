@@ -968,6 +968,7 @@ void AMyBondageLifePlayerController::HandlePlayerInfoOpenChanged(bool bIsOpen)
 
 void AMyBondageLifePlayerController::HandlePlayerInfoKeyPressed()
 {
+	if (bInFurniture) { return; }
 	if (bTractionFollower) { return; }
 	// "C" belongs to the chat text while typing.
 	if (bChatTextInput || IsGameMenuOpen())
@@ -1136,6 +1137,7 @@ void AMyBondageLifePlayerController::HideFriendList()
 
 void AMyBondageLifePlayerController::ToggleFriendList()
 {
+	if (bInFurniture) { return; }
 	if (bTractionFollower) { return; }
 	if (bClimaxLocked)
 	{
@@ -2094,6 +2096,7 @@ void AMyBondageLifePlayerController::HideWardrobe()
 
 void AMyBondageLifePlayerController::ToggleWardrobe()
 {
+	if (bInFurniture) { return; }
 	if (bTractionFollower) { return; }
 	if (bClimaxLocked)
 	{
@@ -2663,6 +2666,7 @@ void AMyBondageLifePlayerController::HandleNotificationAdded(const FMyBondageLif
 
 void AMyBondageLifePlayerController::ToggleMessageCenter()
 {
+	if (bInFurniture) { return; }
 	if (bTractionFollower) { return; }
 	if (bClimaxLocked)
 	{
@@ -3292,6 +3296,7 @@ void AMyBondageLifePlayerController::PushRestraintColors()
 
 void AMyBondageLifePlayerController::HandleEmoteKeyPressed()
 {
+	if (bInFurniture) { return; }
 	if (bTractionFollower) { return; }
 	if (bClimaxLocked)
 	{
@@ -3303,6 +3308,7 @@ void AMyBondageLifePlayerController::HandleEmoteKeyPressed()
 
 void AMyBondageLifePlayerController::ToggleEmoteList()
 {
+	if (bInFurniture) { return; }
 	if (bTractionFollower) { return; }
 	if (bClimaxLocked)
 	{
@@ -3984,6 +3990,7 @@ void AMyBondageLifePlayerController::EndClimaxSequence()
 
 void AMyBondageLifePlayerController::ToggleSettings()
 {
+	if (bInFurniture) { return; }
 	if (bTractionFollower) { return; }
 	if (bClimaxLocked)
 	{
@@ -4633,6 +4640,12 @@ void AMyBondageLifePlayerController::UpdateFurnitureProximity()
 	const bool bMine = State && !State->Occupant.IsEmpty()
 		&& State->Occupant.Equals(Account->GetAccountName(), ESearchCase::IgnoreCase);
 	// 服务端已记录我在使用该家具但本地还没吸附：立即补上（避免事件竞态导致只变 UI 不动人）。
+	if (bMine && OwnPawn)
+	{
+		bInFurniture = true;
+		OwnPawn->bBlockMoveInput = true;   // 每帧强制，家具交互期间禁止移动
+	}
+
 	if (bMine && (!bInFurniture || ActiveFurniture.Get() != Furniture))
 	{
 		AttachToFurniture(Furniture);
