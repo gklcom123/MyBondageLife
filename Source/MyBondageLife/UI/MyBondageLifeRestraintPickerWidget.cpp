@@ -265,17 +265,7 @@ void UMyBondageLifeRestraintPickerWidget::RefreshContents()
 			Title += TEXT(" ：已上锁");
 			if ((Lock.LockType == 2 || Lock.LockType == 5) && Lock.ExpiresAt.GetTicks() > 0)
 			{
-				// 服务端时间可能是本地时间字符串：先用 UTC 计算，若已过期再用本地时间兜底。
-				FTimespan Remaining = Lock.ExpiresAt - FDateTime::UtcNow();
-				UE_LOG(LogMyBondageLife, Log, TEXT("Lock: expires=%s utc=%s remain=%lld canUnlock=%d"), *Lock.ExpiresAt.ToIso8601(), *FDateTime::UtcNow().ToIso8601(), (long long)Remaining.GetTicks(), Lock.bCanUnlock ? 1 : 0);
-				if (Remaining.GetTicks() <= 0)
-				{
-					const FTimespan LocalRemaining = Lock.ExpiresAt - FDateTime::Now();
-					if (LocalRemaining.GetTicks() > 0)
-					{
-						Remaining = LocalRemaining;
-					}
-				}
+				const FTimespan Remaining = Lock.ExpiresAt - FDateTime::UtcNow();
 				if (Remaining.GetTicks() > 0)
 				{
 					Title += FString::Printf(TEXT("（剩余 %02d:%02d:%02d）"),
@@ -284,9 +274,8 @@ void UMyBondageLifeRestraintPickerWidget::RefreshContents()
 				}
 				else
 				{
-					// 服务端仍认为锁有效（canUnlock=false）时不显示“已到期”，避免本地时间误差误导。
-					Title += Lock.bCanUnlock ? FString(TEXT("（已到期）")) : FString(TEXT("（进行中）"));
-			}
+					Title += TEXT("（已到期）");
+				}
 			}
 		}
 		else
