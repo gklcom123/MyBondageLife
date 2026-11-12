@@ -2098,3 +2098,8 @@ void AMyBondageLifeCharacter::MulticastSetFullAnmi_Implementation(bool bEnabled)
 {
 	ApplyFullAnmi(bEnabled);
 }
+
+void AMyBondageLifeCharacter::ServerTeleportToFurniture_Implementation(FVector Location, FRotator Rotation)
+{
+	SetActorLocationAndRotation(Location, Rotation, false, nullptr, ETeleportType::TeleportPhysics);
+}

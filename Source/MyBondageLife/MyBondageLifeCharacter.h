@@ -538,6 +538,9 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerSetFullAnmi(bool bEnabled);
 
+	UFUNCTION(Server, Reliable)
+	void ServerTeleportToFurniture(FVector Location, FRotator Rotation);
+
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastSetFullAnmi(bool bEnabled);
 

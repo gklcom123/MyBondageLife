@@ -4816,6 +4816,8 @@ void AMyBondageLifePlayerController::AttachToFurniture(AMyBondageLifeFurnitureBa
 		SocketTransform.AddToTranslation(FVector(0.0f, 0.0f, Capsule->GetScaledCapsuleHalfHeight()));
 	}
 	OwnPawn->SetActorTransform(SocketTransform, false, nullptr, ETeleportType::TeleportPhysics);
+	// 服务器也要传送，否则客机会被服务器位置纠正回原地。
+	OwnPawn->ServerTeleportToFurniture(SocketTransform.GetLocation(), SocketTransform.Rotator());
 
 	if (UAnimMontage* Montage = Furniture->GetInteractionMontage())
 	{
@@ -4857,6 +4859,8 @@ void AMyBondageLifePlayerController::DetachFromFurniture(bool bMoveForward)
 
 	ActiveFurniture = nullptr;
 	bInFurniture = false;
+	PendingFurnitureKey.Reset();
+	LastFurnitureHint.Reset();
 }
 
 void AMyBondageLifePlayerController::ApplyFurnitureState()
