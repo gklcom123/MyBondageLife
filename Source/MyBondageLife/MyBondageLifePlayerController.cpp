@@ -4769,11 +4769,11 @@ void AMyBondageLifePlayerController::AttachToFurniture(AMyBondageLifeFurnitureBa
 	bInFurniture = true;
 
 	// 视角接管：若家具配置了相机点，用它生成临时 CameraActor。
-	if (Furniture->InteractionCamera)
+	if (USceneComponent* CamPoint = Furniture->GetInteractionCameraComponent())
 	{
 		FActorSpawnParameters Params;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		FurnitureCameraActor = GetWorld()->SpawnActor<AActor>(ACameraActor::StaticClass(), Furniture->InteractionCamera->GetComponentTransform(), Params);
+		FurnitureCameraActor = GetWorld()->SpawnActor<AActor>(ACameraActor::StaticClass(), CamPoint->GetComponentTransform(), Params);
 		if (FurnitureCameraActor)
 		{
 			SetViewTargetWithBlend(FurnitureCameraActor, 0.25f);

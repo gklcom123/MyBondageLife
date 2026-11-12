@@ -44,6 +44,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Furniture")
 	FVector GetInteractionLocation() const;
 
+	/** 相机组件：优先变量，否则按名字 InteractionCamera 查找。 */
+	UFUNCTION(BlueprintPure, Category = "Furniture")
+	USceneComponent* GetInteractionCameraComponent() const;
+
 public:
 	/**
 	 * 人物固定点：在**子蓝图**里自己放一个 SceneComponent（名字随意），

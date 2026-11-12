@@ -10,11 +10,46 @@ AMyBondageLifeFurnitureBase::AMyBondageLifeFurnitureBase()
 	// 父类不创建任何组件：InteractionPoint 由子蓝图放置后赋给变量。
 }
 
+USceneComponent* AMyBondageLifeFurnitureBase::GetInteractionCameraComponent() const
+{
+	if (InteractionCamera)
+	{
+		return InteractionCamera;
+	}
+
+	// 蓝图里把组件命名为 InteractionCamera 也能直接用。
+	TArray<USceneComponent*> Components;
+	GetComponents<USceneComponent>(Components);
+	for (USceneComponent* Component : Components)
+	{
+		if (Component && Component->GetName().Equals(TEXT("InteractionCamera"), ESearchCase::IgnoreCase))
+		{
+			return Component;
+		}
+	}
+	return nullptr;
+}
+
 FTransform AMyBondageLifeFurnitureBase::GetInteractionTransform() const
 {
-	if (InteractionPoint)
+	USceneComponent* Point = InteractionPoint;
+	if (!Point)
 	{
-		return InteractionPoint->GetComponentTransform();
+		TArray<USceneComponent*> Components;
+		GetComponents<USceneComponent>(Components);
+		for (USceneComponent* Component : Components)
+		{
+			if (Component && Component->GetName().Equals(TEXT("InteractionPoint"), ESearchCase::IgnoreCase))
+			{
+				Point = Component;
+				break;
+			}
+	}
+	}
+
+	if (Point)
+	{
+		return Point->GetComponentTransform();
 	}
 	return GetActorTransform();
 }
