@@ -52,6 +52,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Furniture")
 	TObjectPtr<USceneComponent> InteractionPoint;
 
+	/** 交互时用于接管视角的相机位置（子蓝图里放一个 Camera/Scene 组件后赋值）。 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Furniture")
+	TObjectPtr<USceneComponent> InteractionCamera;
+
 	/** 交互期间循环播放的蒙太奇。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Furniture")
 	TObjectPtr<UAnimMontage> Anmi;

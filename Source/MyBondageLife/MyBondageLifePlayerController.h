@@ -701,6 +701,7 @@ public:
 	// ---- 固定式家具（牢笼等） ----
 	bool HandleFurnitureInteraction();
 	void UpdateFurnitureProximity();
+	UFUNCTION()
 	void ApplyFurnitureState();
 	void RefreshFurnitureStatePeriodic();
 	void AttachToFurniture(class AMyBondageLifeFurnitureBase* Furniture);
@@ -713,6 +714,11 @@ public:
 	TWeakObjectPtr<class AMyBondageLifeFurnitureBase> NearbyFurniture;
 	TWeakObjectPtr<class AMyBondageLifeFurnitureBase> ActiveFurniture;
 	bool bInFurniture = false;
+
+	UPROPERTY(Transient)
+	TObjectPtr<AActor> FurnitureCameraActor;
+
+	FString PendingFurnitureKey;
 	FTimerHandle FurnitureRefreshTimer;
 
 	UFUNCTION()

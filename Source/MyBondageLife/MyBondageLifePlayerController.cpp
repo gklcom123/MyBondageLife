@@ -1,7 +1,8 @@
 
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "MyBondageLifePlayerController.h"
+#include "MyBondageLifePlayerController.h"
+#include "Camera/CameraActor.h"
 
 
 #include "Network/MyBondageLifeRoomSubsystem.h"
@@ -1857,6 +1858,22 @@ void AMyBondageLifePlayerController::PlayerTick(float DeltaTime)
 	if (NameplateLayer)
 	{
 		NameplateLayer->UpdateNameplates();
+	}
+
+	if (!PendingFurnitureKey.IsEmpty())
+	{
+		if (UMyBondageLifeAccountSubsystem* Account = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+		{
+		for (TActorIterator<AMyBondageLifeFurnitureBase> It(GetWorld()); It; ++It)
+		{
+			if (IsValid(*It) && (*It)->GetFurnitureKey().Equals(PendingFurnitureKey, ESearchCase::IgnoreCase))
+			{
+				AttachToFurniture(*It);
+				PendingFurnitureKey.Reset();
+				break;
+			}
+		}
+		}
 	}
 
 	UpdateFurnitureProximity();
@@ -4704,7 +4721,10 @@ bool AMyBondageLifePlayerController::HandleFurnitureInteraction()
 			ShowFurnitureHint(TEXT("已被锁，无法逃脱"));
 			return true;
 		}
-		Account->ExitFurniture(Active->GetFurnitureKey(), Host);
+		// 本地先解除吸附（服务端确认后再刷新状态），避免等待 5 秒轮询显得卡住。
+		const FString KeyToExit = Active->GetFurnitureKey();
+		DetachFromFurniture(true);
+		Account->ExitFurniture(KeyToExit, Host);
 		return true;
 	}
 
@@ -4747,6 +4767,19 @@ void AMyBondageLifePlayerController::AttachToFurniture(AMyBondageLifeFurnitureBa
 
 	ActiveFurniture = Furniture;
 	bInFurniture = true;
+
+	// 视角接管：若家具配置了相机点，用它生成临时 CameraActor。
+	if (Furniture->InteractionCamera)
+	{
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		FurnitureCameraActor = GetWorld()->SpawnActor<AActor>(ACameraActor::StaticClass(), Furniture->InteractionCamera->GetComponentTransform(), Params);
+		if (FurnitureCameraActor)
+		{
+			SetViewTargetWithBlend(FurnitureCameraActor, 0.25f);
+		}
+	}
+
 	OwnPawn->bBlockMoveInput = true;
 	OwnPawn->SetActorTransform(Furniture->GetInteractionTransform(), false, nullptr, ETeleportType::TeleportPhysics);
 
@@ -4769,6 +4802,13 @@ void AMyBondageLifePlayerController::DetachFromFurniture(bool bMoveForward)
 			OwnPawn->SetActorLocation(OwnPawn->GetActorLocation() + OwnPawn->GetActorForwardVector() * 150.0f, false);
 		}
 	}
+	if (FurnitureCameraActor)
+	{
+		SetViewTargetWithBlend(OwnPawn, 0.25f);
+		FurnitureCameraActor->Destroy();
+		FurnitureCameraActor = nullptr;
+	}
+
 	ActiveFurniture = nullptr;
 	bInFurniture = false;
 }
@@ -4798,6 +4838,7 @@ void AMyBondageLifePlayerController::ApplyFurnitureState()
 		if (!bInFurniture || !ActiveFurniture.IsValid())
 		{
 			UWorld* World = GetWorld();
+			PendingFurnitureKey = MyState->FurnitureId;
 			if (World)
 			{
 				for (TActorIterator<AMyBondageLifeFurnitureBase> It(World); It; ++It)
