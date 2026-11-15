@@ -69,7 +69,7 @@ TSharedRef<SWidget> UMainSceneWidget::RebuildWidget()
 	{
 		BuildLayout();
 		BuildRoomBrowser();
-		BuildConnectingOverlay();
+		// 不再创建第二套"正在加入房间"面板：连接进度统一由 RoomSubsystem 的 Slate 覆层显示（带倒计时）。
 	}
 
 	return Super::RebuildWidget();

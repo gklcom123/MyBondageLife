@@ -37,14 +37,20 @@ namespace MyBondageLifeUI
 
 	UFont* LoadUIFont()
 	{
-		static TWeakObjectPtr<UFont> CachedFont;
-		if (CachedFont.IsValid())
+		// 纯 Slate 控件（STextBlock 等）不会持有字体的 GC 引用；跨地图时必须让字体常驻，
+		// 否则切图后 FSlateFontInfo 会指向已回收对象，首次绘制就会崩溃。
+		static UFont* CachedFont = nullptr;
+		if (IsValid(CachedFont))
 		{
-			return CachedFont.Get();
+			return CachedFont;
 		}
 
 		UFont* Font = LoadObject<UFont>(nullptr,
 			TEXT("/Game/Font/AlimamaFangYuanTiVF-Thin-2_Font.AlimamaFangYuanTiVF-Thin-2_Font"));
+		if (Font)
+		{
+			Font->AddToRoot();
+		}
 
 		CachedFont = Font;
 		return Font;

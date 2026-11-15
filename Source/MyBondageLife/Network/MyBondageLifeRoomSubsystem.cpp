@@ -203,7 +203,9 @@ void UMyBondageLifeRoomSubsystem::ShowConnectingOverlay(const FText& Text)
 		SAssignNew(ConnectingTextBlock, STextBlock)
 			.Text(Text)
 			.ColorAndOpacity(FSlateColor(FLinearColor::White))
-			.Font(FSlateFontInfo(MyBondageLifeUI::LoadUIFont(), 32))
+			.Font(MyBondageLifeUI::LoadUIFont()
+				? FSlateFontInfo(MyBondageLifeUI::LoadUIFont(), 32)
+				: FCoreStyle::GetDefaultFontStyle(TEXT("Regular"), 32))
 			.Justification(ETextJustify::Center);
 
 		ConnectingOverlay = SNew(SBorder)
