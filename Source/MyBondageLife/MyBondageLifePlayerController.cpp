@@ -5728,6 +5728,10 @@ static FAutoConsoleCommand GDumpShopItemsCommand(
 	FConsoleCommandDelegate::CreateLambda([]()
 	{
 
+		// 重新读取 DataTable，保证改表后 dump 的是最新数据。
+		FMyBondageLifeOutfitCatalog::Refresh();
+		FMyBondageLifeRestraintCatalog::Refresh();
+
 		TArray<FString> Entries;
 		for (const FMyBondageLifeOutfitItem& Item : FMyBondageLifeOutfitCatalog::GetItems())
 		{
