@@ -760,6 +760,9 @@ public:
 
 	UFUNCTION()
 	void HandleShopChanged();
+
+	UFUNCTION()
+	void HandleShopCloseClicked();
 	void ShowBoardcastText(const FString& Text);
 
 	UPROPERTY(Transient)

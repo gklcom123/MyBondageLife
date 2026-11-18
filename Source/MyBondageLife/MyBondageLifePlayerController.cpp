@@ -1,7 +1,9 @@
 
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "MyBondageLifePlayerController.h"
+#include "MyBondageLifePlayerController.h"
+#include "Components/UniformGridPanel.h"
+#include "Components/UniformGridSlot.h"
 
 
 
@@ -5333,7 +5335,7 @@ void AMyBondageLifePlayerController::RefreshShopGrid()
 		return;
 	}
 
-	UGridPanel* Grid = Cast<UGridPanel>(ShopPanelWidget->WidgetTree->FindWidget(TEXT("W_ItemGrid")));
+	UPanelWidget* Grid = Cast<UPanelWidget>(ShopPanelWidget->WidgetTree->FindWidget(TEXT("W_ItemGrid")));
 	if (!Grid)
 	{
 		UE_LOG(LogMyBondageLife, Warning, TEXT("Shop: W_ItemGrid not found"));
@@ -5398,13 +5400,29 @@ void AMyBondageLifePlayerController::RefreshShopGrid()
 			}
 		}
 
-		if (UGridSlot* Slot = Grid->AddChildToGrid(ItemWidget))
+		// 兼容 GridPanel / UniformGridPanel / 普通容器。
+		if (UGridPanel* GridPanel = Cast<UGridPanel>(Grid))
 		{
-			Slot->SetColumn(Index % 10);
+			if (UGridSlot* Slot = GridPanel->AddChildToGrid(ItemWidget))
+			{
+				Slot->SetColumn(Index % 10);
+				Slot->SetRow(Index / 10);
+				Slot->SetPadding(FMargin(6.0f));
+			}
+	}
+	else if (UUniformGridPanel* UniformGrid = Cast<UUniformGridPanel>(Grid))
+	{
+		if (UUniformGridSlot* Slot = UniformGrid->AddChildToUniformGrid(ItemWidget))
+		{
 			Slot->SetRow(Index / 10);
-			Slot->SetPadding(FMargin(6.0f));
+			Slot->SetColumn(Index % 10);
 		}
-		++Index;
+	}
+	else
+	{
+		Grid->AddChild(ItemWidget);
+	}
+	++Index;
 	};
 
 	if (bOutfit)
@@ -5484,6 +5502,10 @@ void AMyBondageLifePlayerController::OpenShop()
 	if (UButton* RestraintBtn = Cast<UButton>(ShopPanelWidget->WidgetTree->FindWidget(TEXT("W_Switch_Btn_Restraint"))))
 	{
 		RestraintBtn->OnClicked.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleShopRestraintTab);
+	}
+	if (UButton* CloseBtn = Cast<UButton>(ShopPanelWidget->WidgetTree->FindWidget(TEXT("W_Close"))))
+	{
+		CloseBtn->OnClicked.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleShopCloseClicked);
 	}
 
 	SelectShopTab(true);
@@ -5641,4 +5663,8 @@ void AMyBondageLifePlayerController::HandleShopChanged()
 	{
 		RefreshShopGrid();
 	}
+}
+void AMyBondageLifePlayerController::HandleShopCloseClicked()
+{
+	CloseShop();
 }
