@@ -267,6 +267,11 @@ void FMyBondageLifeRestraintCatalog::Refresh()
 		Item.Libido = ReadFloat(RowStruct, RowData, { TEXT("Libido") });
 		Item.WearTime = ReadFloat(RowStruct, RowData, { TEXT("WearTime") });
 		Item.Price = ReadFloat(RowStruct, RowData, { TEXT("Price") });
+		if (Item.Price > 0.0f)
+		{
+			UE_LOG(LogMyBondageLife, Log, TEXT("Shop: restraint id=%s name=%s price=%.0f"), *Item.ItemId.ToString(), *Item.Name, Item.Price);
+	}
+
 
 		Item.bHasGagType = HasProperty(RowStruct, { TEXT("GagType") });
 		Item.GagType = Item.bHasGagType ? ReadInt(RowStruct, RowData, { TEXT("GagType") }) : 0;

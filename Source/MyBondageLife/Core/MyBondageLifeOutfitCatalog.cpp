@@ -202,6 +202,11 @@ void FMyBondageLifeOutfitCatalog::Refresh()
 		Item.Slot = FMath::Clamp(ReadInt(RowStruct, RowData, { TEXT("Slot") }), 0, SlotCount - 1);
 		Item.FeetOffset = ReadFloat(RowStruct, RowData, { TEXT("FeetOffset") });
 		Item.Price = ReadFloat(RowStruct, RowData, { TEXT("Price") });
+		if (Item.Price > 0.0f)
+		{
+			UE_LOG(LogMyBondageLife, Log, TEXT("Shop: outfit id=%s name=%s price=%.0f"), *Item.ItemId.ToString(), *Item.Name, Item.Price);
+	}
+
 		ReadStringArray(RowStruct, RowData, { TEXT("HideBodyPart"), TEXT("HideBodyPart?") }, Item.HideBodyParts);
 
 		TSoftObjectPtr<> MeshPtr;
