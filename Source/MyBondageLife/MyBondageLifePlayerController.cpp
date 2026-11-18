@@ -2,6 +2,12 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "MyBondageLifePlayerController.h"
+
+
+
+#include "Misc/Paths.h"
+#include "Misc/FileHelper.h"
+#include "HAL/IConsoleManager.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
@@ -5714,3 +5720,30 @@ void AMyBondageLifePlayerController::HandleShopKeyPressed()
 	}
 	ToggleShop();
 }
+
+// 导出付费商品清单，供服务端同步 shop_items：mbl.dump_shop_items
+static FAutoConsoleCommand GDumpShopItemsCommand(
+	TEXT("mbl.dump_shop_items"),
+	TEXT("Export paid shop items (Price > 0) to Saved/ShopItems.json"),
+	FConsoleCommandDelegate::CreateLambda([]()
+	{
+
+		TArray<FString> Entries;
+		for (const FMyBondageLifeOutfitItem& Item : FMyBondageLifeOutfitCatalog::GetItems())
+		{
+			if (Item.Price <= 0.0f) { continue; }
+			Entries.Add(FString::Printf(TEXT("{\"itemType\":\"outfit\",\"itemId\":\"%s\",\"name\":\"%s\",\"price\":%d}"),
+				*Item.ItemId.ToString(), *Item.Name.Replace(TEXT("\\"), TEXT("\\\\")).Replace(TEXT("\""), TEXT("\\\"")), FMath::RoundToInt(Item.Price)));
+		}
+		for (const FMyBondageLifeRestraintItem& Item : FMyBondageLifeRestraintCatalog::GetItems())
+		{
+			if (Item.Price <= 0.0f) { continue; }
+			Entries.Add(FString::Printf(TEXT("{\"itemType\":\"restraint\",\"itemId\":\"%s\",\"name\":\"%s\",\"price\":%d}"),
+				*Item.ItemId.ToString(), *Item.Name.Replace(TEXT("\\"), TEXT("\\\\")).Replace(TEXT("\""), TEXT("\\\"")), FMath::RoundToInt(Item.Price)));
+		}
+
+		const FString Json = FString::Printf(TEXT("{\"items\":[%s]}"), *FString::Join(Entries, TEXT(",")));
+		const FString FilePath = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("ShopItems.json"));
+		const bool bOk = FFileHelper::SaveStringToFile(Json, *FilePath, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
+		UE_LOG(LogMyBondageLife, Log, TEXT("Shop: dump %d items -> %s (%s)"), Entries.Num(), *FilePath, bOk ? TEXT("ok") : TEXT("failed"));
+	}));
