@@ -20,7 +20,10 @@
 #include "MyBondageLifePlayerController.h"
 #include "MyBondageLifeCharacter.h"
 #include "GameFramework/PlayerState.h"
-#include "Core/MyBondageLifeRestraintCatalog.h"
+#include "Core/MyBondageLifeRestraintCatalog.h"
+
+namespace { static void ApplyPickerUIFont(UTextBlock* Label, int32 Size) { if (!Label) { return; } FSlateFontInfo Font = Label->GetFont(); Font.Size = Size; Font.FontObject = MyBondageLifeUI::LoadUIFont(); Label->SetFont(Font); } }
+
 
 namespace
 {
@@ -170,6 +173,10 @@ void UMyBondageLifeRestraintPickerWidget::BuildLayout()
 			CancelLabel->SetText(FText::FromString(TEXT("\u53D6\u6D88")));
 			CancelLabel->SetJustification(ETextJustify::Center);
 			CancelButton->AddChild(CancelLabel);
+
+			ApplyPickerUIFont(PickerTitle, 24);
+			ApplyPickerUIFont(LockActionLabel, 20);
+			ApplyPickerUIFont(CancelLabel, 20);
 		}
 	}
 

@@ -23,6 +23,15 @@
 
 namespace
 {
+	static void ApplyPickerFont(UTextBlock* Label, int32 Size)
+	{
+		if (!Label) { return; }
+		FSlateFontInfo Font = Label->GetFont();
+		Font.Size = Size;
+		Font.FontObject = MyBondageLifeUI::LoadUIFont();
+		Label->SetFont(Font);
+	}
+
 	UButton* MakeFlatButton(UWidgetTree* Tree, const FString& Caption, UTextBlock*& OutLabel)
 	{
 		UButton* Button = Tree->ConstructWidget<UButton>(UButton::StaticClass());
@@ -380,6 +389,7 @@ void UMyBondageLifeOutfitPickerWidget::BuildLayout()
 		PickerPanel->SetContent(PanelBox);
 
 		PickerTitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("W_OutfitPicker_Title"));
+		ApplyPickerFont(PickerTitle, 24);
 		if (UVerticalBoxSlot* TitleSlot = PanelBox->AddChildToVerticalBox(PickerTitle))
 		{
 			TitleSlot->SetPadding(FMargin(12.0f, 10.0f, 12.0f, 8.0f));
@@ -396,6 +406,7 @@ void UMyBondageLifeOutfitPickerWidget::BuildLayout()
 		RemoveButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("W_OutfitPicker_Remove"));
 		UTextBlock* RemoveLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
 		RemoveLabel->SetText(FText::FromString(TEXT("脱下")));
+		ApplyPickerFont(RemoveLabel, 20);
 		RemoveButton->AddChild(RemoveLabel);
 		if (UVerticalBoxSlot* RemoveSlot = PanelBox->AddChildToVerticalBox(RemoveButton))
 		{
@@ -405,6 +416,7 @@ void UMyBondageLifeOutfitPickerWidget::BuildLayout()
 		UButton* OwnCancel = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("W_OutfitPicker_Cancel"));
 		UTextBlock* CancelLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
 		CancelLabel->SetText(FText::FromString(TEXT("取消")));
+		ApplyPickerFont(CancelLabel, 20);
 		OwnCancel->AddChild(CancelLabel);
 		if (UVerticalBoxSlot* CancelSlot = PanelBox->AddChildToVerticalBox(OwnCancel))
 		{
@@ -476,6 +488,7 @@ void UMyBondageLifeOutfitPickerWidget::ClosePicker()
 		PickerPanel->SetContent(PanelBox);
 
 		PickerTitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("W_OutfitPicker_Title"));
+		ApplyPickerFont(PickerTitle, 24);
 		if (UVerticalBoxSlot* TitleSlot = PanelBox->AddChildToVerticalBox(PickerTitle))
 		{
 			TitleSlot->SetPadding(FMargin(12.0f, 10.0f, 12.0f, 8.0f));
@@ -492,6 +505,7 @@ void UMyBondageLifeOutfitPickerWidget::ClosePicker()
 		RemoveButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("W_OutfitPicker_Remove"));
 		UTextBlock* RemoveLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
 		RemoveLabel->SetText(FText::FromString(TEXT("脱下")));
+		ApplyPickerFont(RemoveLabel, 20);
 		RemoveButton->AddChild(RemoveLabel);
 		if (UVerticalBoxSlot* RemoveSlot = PanelBox->AddChildToVerticalBox(RemoveButton))
 		{
@@ -501,6 +515,7 @@ void UMyBondageLifeOutfitPickerWidget::ClosePicker()
 		UButton* OwnCancel = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("W_OutfitPicker_Cancel"));
 		UTextBlock* CancelLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
 		CancelLabel->SetText(FText::FromString(TEXT("取消")));
+		ApplyPickerFont(CancelLabel, 20);
 		OwnCancel->AddChild(CancelLabel);
 		if (UVerticalBoxSlot* CancelSlot = PanelBox->AddChildToVerticalBox(OwnCancel))
 		{
