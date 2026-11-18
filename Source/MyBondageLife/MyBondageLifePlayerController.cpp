@@ -5687,6 +5687,10 @@ void AMyBondageLifePlayerController::HandleShopPurchaseFinished(bool bSuccess, c
 	{
 		ShowBoardcastText(TEXT("\u91D1\u5E01\u4E0D\u8DB3\uFF0C\u8D2D\u4E70\u5931\u8D25"));
 	}
+	else
+	{
+		ShowBoardcastText(FString::Printf(TEXT("\u8D2D\u4E70\u5931\u8D25\uFF08%s\uFF09"), ErrorCode.IsEmpty() ? TEXT("\u672A\u77E5\u9519\u8BEF") : *ErrorCode));
+	}
 
 	UpdateShopMoneyText();
 }
