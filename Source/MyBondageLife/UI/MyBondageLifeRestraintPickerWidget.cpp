@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "UI/MyBondageLifeRestraintPickerWidget.h"
+#include "UI/MyBondageLifeRestraintPickerWidget.h"
+#include "UI/MyBondageLifeUIStyle.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
@@ -301,12 +302,12 @@ void UMyBondageLifeRestraintPickerWidget::RefreshContents()
 
 			USizeBox* CellSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
 			CellSize->SetWidthOverride(150.0f);
-			CellSize->SetHeightOverride(190.0f);
+			CellSize->SetHeightOverride(215.0f);
 			if (UCanvasPanelSlot* CellSlot = PickerGrid->AddChildToCanvas(CellSize))
 			{
 				CellSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
 				CellSlot->SetAlignment(FVector2D(0.0f, 0.0f));
-				CellSlot->SetPosition(FVector2D(Col * 170.0f, Row * 200.0f));
+				CellSlot->SetPosition(FVector2D(Col * 170.0f, Row * 225.0f));
 				CellSlot->SetAutoSize(true);
 			}
 
@@ -356,6 +357,17 @@ void UMyBondageLifeRestraintPickerWidget::RefreshContents()
 		}
 		NameLabel->SetText(FText::FromString(LabelText));
 		NameLabel->SetColorAndOpacity(FSlateColor(LabelColor));
+
+	// 统一字体 + 自动换行 + 略小字号，长名称不会溢出格子。
+	NameLabel->SetAutoWrapText(true);
+	NameLabel->SetWrapTextAt(140.0f);
+	{
+		FSlateFontInfo NameFont = NameLabel->GetFont();
+		NameFont.Size = 16;
+		NameFont.FontObject = MyBondageLifeUI::LoadUIFont();
+		NameLabel->SetFont(NameFont);
+	}
+
 			NameLabel->SetJustification(ETextJustify::Center);
 			if (UVerticalBoxSlot* NameSlot = Column->AddChildToVerticalBox(NameLabel))
 			{

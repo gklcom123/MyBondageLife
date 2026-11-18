@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "UI/MyBondageLifeOutfitWidgets.h"
+#include "UI/MyBondageLifeOutfitWidgets.h"
+#include "UI/MyBondageLifeUIStyle.h"
 #include "Core/MyBondageLifeRestraintCatalog.h"
 
 #include "Blueprint/WidgetTree.h"
@@ -28,6 +29,15 @@ namespace
 		OutLabel = Tree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
 		OutLabel->SetText(FText::FromString(Caption));
 		OutLabel->SetJustification(ETextJustify::Center);
+
+		// 统一字体。
+	{
+		FSlateFontInfo LabelFont = OutLabel->GetFont();
+		LabelFont.Size = 20;
+		LabelFont.FontObject = MyBondageLifeUI::LoadUIFont();
+		OutLabel->SetFont(LabelFont);
+	}
+
 		Button->AddChild(OutLabel);
 		return Button;
 	}
