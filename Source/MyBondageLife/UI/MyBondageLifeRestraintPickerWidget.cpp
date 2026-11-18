@@ -313,6 +313,14 @@ void UMyBondageLifeRestraintPickerWidget::RefreshContents()
 			UButton* ItemButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
 			CellSize->AddChild(ItemButton);
 
+		// 商店：付费且未购买的道具置灰。
+		bool bOwned = true;
+		if (const UMyBondageLifeAccountSubsystem* ShopAccount = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+		{
+			bOwned = ShopAccount->OwnsRestraint(Item->ItemId);
+		}
+		ItemButton->SetIsEnabled(bOwned);
+
 			UMyBondageLifePickerItemProxy* Proxy = NewObject<UMyBondageLifePickerItemProxy>(this);
 			Proxy->Owner = this;
 			Proxy->ItemId = Item->ItemId;
@@ -339,7 +347,15 @@ void UMyBondageLifeRestraintPickerWidget::RefreshContents()
 			IconSize->AddChild(Icon);
 
 			UTextBlock* NameLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-			NameLabel->SetText(FText::FromString(FMyBondageLifeRestraintCatalog::GetDisplayName(Item->ItemId)));
+			FString LabelText = FMyBondageLifeRestraintCatalog::GetDisplayName(Item->ItemId);
+			FLinearColor LabelColor = FLinearColor(0.05f, 0.05f, 0.05f, 1.0f);
+		if (!bOwned)
+		{
+			LabelText += TEXT("（未购买）");
+			LabelColor = FLinearColor(0.85f, 0.10f, 0.10f, 1.0f);
+		}
+		NameLabel->SetText(FText::FromString(LabelText));
+		NameLabel->SetColorAndOpacity(FSlateColor(LabelColor));
 			NameLabel->SetJustification(ETextJustify::Center);
 			if (UVerticalBoxSlot* NameSlot = Column->AddChildToVerticalBox(NameLabel))
 			{

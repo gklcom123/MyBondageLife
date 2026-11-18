@@ -53,6 +53,9 @@ struct FMyBondageLifeRestraintItem
 	/** 穿戴所需时间（秒）；<=0 表示瞬间穿戴。 */
 	float WearTime = 0.0f;
 
+	/** 价格；0 = 免费（初始拥有）。 */
+	float Price = 0.0f;
+
 	/** true = 不出现在拘束选择列表，但仍可被穿戴/脱下。 */
 	bool bCantVisiable = false;
 };

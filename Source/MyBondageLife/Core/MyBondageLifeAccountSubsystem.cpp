@@ -316,6 +316,7 @@ bool UMyBondageLifeAccountSubsystem::ApplyAuthPayload(const TSharedPtr<FJsonObje
 
 	RefreshContractState();
 	RefreshRestraints();
+	RefreshShopOwnership();
 
 	// 登录后立刻拉一次自己的公开资料：UID 用于规则（听觉白名单）与个人信息显示。
 	if (!AccountName.IsEmpty())
@@ -856,6 +857,7 @@ void UMyBondageLifeAccountSubsystem::StartFriendPolling()
 				LastContractRefreshSeconds = Now;
 				RefreshContractState();
 	RefreshRestraints();
+	RefreshShopOwnership();
 
 	// 登录后立刻拉一次自己的公开资料：UID 用于规则（听觉白名单）与个人信息显示。
 	if (!AccountName.IsEmpty())
@@ -3196,4 +3198,65 @@ void UMyBondageLifeAccountSubsystem::UnlockFurniture(const FString& FurnitureId,
 			}
 			Self->RefreshFurnitureState(HostAccount);
 		});
+}
+// ---------------------------------------------------------------------------
+// 商店（第一期：拥有判定；购买接口第二期）
+// ---------------------------------------------------------------------------
+void UMyBondageLifeAccountSubsystem::RefreshShopOwnership()
+{
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	SendFriendApiRequest(TEXT("GET"), TEXT("/shop/owned"), nullptr,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self || !bOk || !Json.IsValid())
+			{
+				return;
+			}
+
+			Self->OwnedRestraintIds.Reset();
+			Self->OwnedOutfitIds.Reset();
+
+			auto ReadList = [Json](const TCHAR* Field, TSet<FString>& Out)
+			{
+				const TArray<TSharedPtr<FJsonValue>>* Values = nullptr;
+				if (Json->TryGetArrayField(Field, Values) && Values)
+				{
+					for (const TSharedPtr<FJsonValue>& Value : *Values)
+					{
+						FString Id;
+						if (Value.IsValid() && Value->TryGetString(Id) && !Id.IsEmpty())
+						{
+							Out.Add(Id);
+						}
+					}
+				}
+			};
+
+			ReadList(TEXT("restraints"), Self->OwnedRestraintIds);
+			ReadList(TEXT("outfits"), Self->OwnedOutfitIds);
+
+			UE_LOG(LogMyBondageLife, Log, TEXT("Shop: owned restraints=%d outfits=%d"),
+				Self->OwnedRestraintIds.Num(), Self->OwnedOutfitIds.Num());
+		});
+}
+
+bool UMyBondageLifeAccountSubsystem::OwnsRestraint(FName ItemId) const
+{
+	const FMyBondageLifeRestraintItem* Item = FMyBondageLifeRestraintCatalog::Find(ItemId);
+	if (Item && Item->Price <= 0.0f)
+	{
+		return true;   // 免费：初始拥有
+	}
+	return OwnedRestraintIds.Contains(ItemId.ToString());
+}
+
+bool UMyBondageLifeAccountSubsystem::OwnsOutfit(FName ItemId) const
+{
+	const FMyBondageLifeOutfitItem* Item = FMyBondageLifeOutfitCatalog::Find(ItemId);
+	if (Item && Item->Price <= 0.0f)
+	{
+		return true;
+	}
+	return OwnedOutfitIds.Contains(ItemId.ToString());
 }

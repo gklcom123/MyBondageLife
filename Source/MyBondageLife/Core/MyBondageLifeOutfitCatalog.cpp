@@ -201,6 +201,7 @@ void FMyBondageLifeOutfitCatalog::Refresh()
 		Item.Name = ReadName(RowStruct, RowData);
 		Item.Slot = FMath::Clamp(ReadInt(RowStruct, RowData, { TEXT("Slot") }), 0, SlotCount - 1);
 		Item.FeetOffset = ReadFloat(RowStruct, RowData, { TEXT("FeetOffset") });
+		Item.Price = ReadFloat(RowStruct, RowData, { TEXT("Price") });
 		ReadStringArray(RowStruct, RowData, { TEXT("HideBodyPart"), TEXT("HideBodyPart?") }, Item.HideBodyParts);
 
 		TSoftObjectPtr<> MeshPtr;

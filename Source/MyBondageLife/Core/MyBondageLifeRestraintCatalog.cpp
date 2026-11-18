@@ -266,6 +266,7 @@ void FMyBondageLifeRestraintCatalog::Refresh()
 		Item.bCantVisiable = ReadBool(RowStruct, RowData, { TEXT("CantVisiable"), TEXT("CantVisible") });
 		Item.Libido = ReadFloat(RowStruct, RowData, { TEXT("Libido") });
 		Item.WearTime = ReadFloat(RowStruct, RowData, { TEXT("WearTime") });
+		Item.Price = ReadFloat(RowStruct, RowData, { TEXT("Price") });
 
 		Item.bHasGagType = HasProperty(RowStruct, { TEXT("GagType") });
 		Item.GagType = Item.bHasGagType ? ReadInt(RowStruct, RowData, { TEXT("GagType") }) : 0;

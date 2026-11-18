@@ -17,6 +17,9 @@ struct FMyBondageLifeOutfitItem
 	TSoftObjectPtr<UTexture2D> Icon;
 	TArray<FString> HideBodyParts;
 	float FeetOffset = 0.0f;
+
+	/** 价格；0 = 免费（初始拥有）。 */
+	float Price = 0.0f;
 };
 
 /**

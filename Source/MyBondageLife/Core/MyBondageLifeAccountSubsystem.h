@@ -530,6 +530,16 @@ public:
 
 	const TArray<FMyBondageLifeFurnitureState>& GetFurnitureStates() const { return FurnitureStates; }
 	const FMyBondageLifeFurnitureState* FindFurniture(const FString& FurnitureId) const;
+
+	// ---- 商店（第一期：仅拥有判定）----
+	/** 拉取已购买的道具（免费道具由客户端按 Price=0 判定）。 */
+	void RefreshShopOwnership();
+
+	bool OwnsRestraint(FName ItemId) const;
+	bool OwnsOutfit(FName ItemId) const;
+
+	TSet<FString> OwnedRestraintIds;
+	TSet<FString> OwnedOutfitIds;
 	const FString& GetFurnitureHostAccount() const { return FurnitureHostAccount; }
 
 	UPROPERTY(BlueprintAssignable, Category = "Furniture")

@@ -524,7 +524,21 @@ void UMyBondageLifeOutfitPickerWidget::RefreshContents()
 		}
 
 		UTextBlock* Label = nullptr;
-		UButton* Button = MakeFlatButton(WidgetTree, Item->Name.IsEmpty() ? Item->ItemId.ToString() : Item->Name, Label);
+		FString DisplayName = Item->Name.IsEmpty() ? Item->ItemId.ToString() : Item->Name;
+		UButton* Button = MakeFlatButton(WidgetTree, DisplayName, Label);
+
+	// 商店：付费且未购买的道具置灰并标红。
+	bool bOwned = true;
+	if (const UMyBondageLifeAccountSubsystem* ShopAccount = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		bOwned = ShopAccount->OwnsOutfit(Item->ItemId);
+	}
+	Button->SetIsEnabled(bOwned);
+	if (!bOwned && Label)
+	{
+		Label->SetText(FText::FromString(DisplayName + TEXT("（未购买）")));
+		Label->SetColorAndOpacity(FSlateColor(FLinearColor(0.85f, 0.10f, 0.10f, 1.0f)));
+	}
 
 		FString ItemId = Item->ItemId.ToString();
 		UMyBondageLifeOutfitItemProxy* Proxy = NewObject<UMyBondageLifeOutfitItemProxy>(this);
