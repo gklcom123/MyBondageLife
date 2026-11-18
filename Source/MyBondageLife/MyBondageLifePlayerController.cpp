@@ -1855,10 +1855,6 @@ void AMyBondageLifePlayerController::SetupInputComponent()
 	// 衣柜面板：B 键与底部入口同效。
 	InputComponent->BindKey(EKeys::B, IE_Pressed, this, &AMyBondageLifePlayerController::HandleWardrobeKeyPressed);
 
-	// N：商店
-	InputComponent->BindKey(EKeys::N, IE_Pressed, this,
-		&AMyBondageLifePlayerController::ToggleShop);
-
 	InputComponent->BindKey(EKeys::Q, IE_Pressed, this, &AMyBondageLifePlayerController::HandleMessageKeyPressed);
 
 	// 束缚姿势改由装备的拘束（UpAnmi）驱动，F9 临时开关已移除。
@@ -1909,6 +1905,12 @@ void AMyBondageLifePlayerController::PlayerTick(float DeltaTime)
 	}
 
 	SyncFurnitureCameraPostProcess();
+	// N 键轮询：商店打开时输入模式为 GameAndUI，绑定键可能被吞，这里直接读按键状态。
+	if (WasInputKeyJustPressed(EKeys::N))
+	{
+		ToggleShop();
+	}
+
 	UpdateFurnitureProximity();
 	UpdateTractionFollow(DeltaTime);
 	UpdateTractionChain();
