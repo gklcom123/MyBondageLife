@@ -888,7 +888,7 @@ void AMyBondageLifePlayerController::RefreshChatInputState()
 
 	const bool bBlocked = bChatTextInput || bAltMouseMode || bPlayerInfoOpen || bFriendPanelOpen
 		|| bFriendRequestPending || bWardrobeOpen || bSocialModalOpen || bMessageCenterOpen
-		|| bEmotePanelOpen || bRulePanelOpen || bRuleDetailOpen;
+		|| bEmotePanelOpen || bRulePanelOpen || bRuleDetailOpen || bShopOpen;
 
 	SetGameplayInputBlocked(bBlocked);
 
@@ -902,7 +902,7 @@ void AMyBondageLifePlayerController::RefreshChatInputState()
 		// Alt and the panels free the mouse; typing keeps the cursor hidden.
 		bShowMouseCursor = bAltMouseMode || bPlayerInfoOpen || bFriendPanelOpen
 			|| bFriendRequestPending || bWardrobeOpen || bSocialModalOpen || bMessageCenterOpen
-			|| bEmotePanelOpen || bRulePanelOpen || bRuleDetailOpen;
+			|| bEmotePanelOpen || bRulePanelOpen || bRuleDetailOpen || bShopOpen;
 	}
 	else
 	{
@@ -5450,6 +5450,8 @@ void AMyBondageLifePlayerController::OpenShop()
 	if (ShopPanelWidget)
 	{
 		ShopPanelWidget->SetVisibility(ESlateVisibility::Visible);
+		bShopOpen = true;
+		RefreshChatInputState();
 		SelectShopTab(ShopTab.IsEmpty() || ShopTab == TEXT("outfit"));
 		if (UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
 			? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
@@ -5472,6 +5474,8 @@ void AMyBondageLifePlayerController::OpenShop()
 		return;
 	}
 	ShopPanelWidget->AddToViewport(60);
+	bShopOpen = true;
+	RefreshChatInputState();
 
 	if (UButton* OutfitBtn = Cast<UButton>(ShopPanelWidget->WidgetTree->FindWidget(TEXT("W_Switch_Btn_Outfit"))))
 	{
@@ -5497,6 +5501,8 @@ void AMyBondageLifePlayerController::CloseShop()
 	{
 		ShopPanelWidget->SetVisibility(ESlateVisibility::Collapsed);
 	}
+	bShopOpen = false;
+	RefreshChatInputState();
 }
 
 void AMyBondageLifePlayerController::ToggleShop()

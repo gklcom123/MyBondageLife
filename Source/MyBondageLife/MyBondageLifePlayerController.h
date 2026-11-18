@@ -737,6 +737,8 @@ public:
 	/** 家具自动释放：上一次是否处于上锁状态。 */
 	bool bWasLockedFurniture = false;
 
+	bool bShopOpen = false;
+
 	// ---- 商店 ----
 	void ToggleShop();
 	void OpenShop();
