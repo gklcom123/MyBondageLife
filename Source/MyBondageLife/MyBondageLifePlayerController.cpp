@@ -53,7 +53,10 @@
 #include "UI/MyBondageLifeUIStyle.h"
 #include "UI/MyBondageLifeSettingsWidget.h"
 #include "UI/MyBondageLifeWardrobeButtonWidget.h"
-#include "UI/MyBondageLifePlayerInfoEntryWidget.h"
+#include "UI/MyBondageLifePlayerInfoEntryWidget.h"
+
+namespace { static FString ApplyLibidoStutter(const FString& InText, float Libido); }
+
 
 namespace
 {
@@ -549,8 +552,15 @@ void AMyBondageLifePlayerController::HandleChatMessageSubmitted(const FString& M
 		}
 	}
 
+	// 语吃（性欲 ≥ 40）：先叠词/尾巴，再由服务端做堵嘴混淆。
+	const FString Stuttered = ApplyLibidoStutter(Message, SexValue);
+	if (Stuttered != Message)
+	{
+		UE_LOG(LogMyBondageLife, Log, TEXT("Chat: stutter '%s' -> '%s' (libido=%.0f)"), *Message, *Stuttered, SexValue);
+	}
+
 	// Whitelist_Hear：嘴被堵住时把原句和许可 UID 一起带给服务器，由收件人决定是否显示原文。
-	FString Payload = Message;
+	FString Payload = Stuttered;
 	if (const AMyBondageLifeCharacter* ListenCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
 	{
 		if (ListenCharacter->GetGagActive())
@@ -564,7 +574,7 @@ void AMyBondageLifePlayerController::HandleChatMessageSubmitted(const FString& M
 					&& HearDetail.Ints.Num() > 0)
 				{
 					FString UidList = FString::JoinBy(HearDetail.Ints, TEXT(","), [](int32 Value) { return FString::FromInt(Value); });
-					Payload = FString::Printf(TEXT("<WH|%s|%s>"), *UidList, *Message);
+					Payload = FString::Printf(TEXT("<WH|%s|%s>"), *UidList, *Stuttered);
 
 				UE_LOG(LogMyBondageLife, Log, TEXT("Whitelist_Hear: sending uids [%s] enabled=%d"), *UidList, RuleAccount->IsRuleEnabled(TEXT("Whitelist_Hear")) ? 1 : 0);
 				}
@@ -5058,5 +5068,189 @@ void AMyBondageLifePlayerController::ApplyFurnitureState()
 	else if (bInFurniture)
 	{
 		DetachFromFurniture(true);
+	}
+}
+
+namespace
+{
+	/** 语吃：把文本按分隔符切成片段，返回首段起点 / 末段终点。 */
+	static bool FindFirstAndLastToken(const FString& Text, int32& OutFirstStart, int32& OutFirstEnd, int32& OutLastStart, int32& OutLastEnd)
+	{
+		auto IsSeparator = [](TCHAR Ch)
+		{
+			static const FString Separators = TEXT(" \t\r\n,.;:!?，。、；：！？…~～-—");
+			return Separators.Contains(FString::Chr(Ch));
+		};
+
+		OutFirstStart = INDEX_NONE;
+		for (int32 Index = 0; Index < Text.Len(); ++Index)
+		{
+			if (!IsSeparator(Text[Index]))
+			{
+				OutFirstStart = Index;
+				break;
+			}
+		}
+		if (OutFirstStart == INDEX_NONE)
+		{
+			return false;
+		}
+
+		OutFirstEnd = OutFirstStart;
+		for (int32 Index = OutFirstStart; Index < Text.Len(); ++Index)
+		{
+			if (IsSeparator(Text[Index]))
+			{
+				break;
+			}
+			OutFirstEnd = Index + 1;
+		}
+
+		OutLastEnd = INDEX_NONE;
+		for (int32 Index = Text.Len() - 1; Index >= 0; --Index)
+		{
+			if (!IsSeparator(Text[Index]))
+			{
+				OutLastEnd = Index + 1;
+				break;
+			}
+		}
+		if (OutLastEnd == INDEX_NONE)
+		{
+			return false;
+		}
+
+		OutLastStart = OutLastEnd - 1;
+		for (int32 Index = OutLastEnd - 1; Index >= 0; --Index)
+		{
+			if (IsSeparator(Text[Index]))
+			{
+				break;
+			}
+			OutLastStart = Index;
+		}
+
+		return true;
+	}
+
+	/** 语吃（性欲 ≥ 40）：头部或尾部叠词；多片段时首段叠头、末段叠尾；≥70 追加语气尾巴。 */
+	static FString ApplyLibidoStutter(const FString& InText, float Libido)
+	{
+		if (Libido < 40.0f || InText.IsEmpty())
+		{
+			return InText;
+		}
+
+		const int32 HeadRepeats = Libido >= 85.0f ? 5 : (Libido >= 70.0f ? 4 : (Libido >= 55.0f ? 3 : 2));
+		const int32 TailRepeats = FMath::Clamp(HeadRepeats - 1, 1, 3);
+
+		int32 FirstStart = 0, FirstEnd = 0, LastStart = 0, LastEnd = 0;
+		if (!FindFirstAndLastToken(InText, FirstStart, FirstEnd, LastStart, LastEnd))
+		{
+			return InText;
+		}
+
+		FString Result = InText;
+		const bool bMultipleTokens = !(FirstStart == LastStart && FirstEnd == LastEnd);
+
+		if (bMultipleTokens)
+		{
+			// 多片段：首段叠头 + 末段叠尾（示例：薇-薇-薇薇，你好啊-啊）。
+			const FString HeadToken = Result.Mid(FirstStart, FirstEnd - FirstStart);
+			if (!HeadToken.IsEmpty())
+			{
+				FString Prefix;
+				for (int32 Repeat = 0; Repeat < HeadRepeats; ++Repeat)
+				{
+					Prefix += HeadToken.Left(1);
+					Prefix += TEXT("-");
+				}
+				Result.InsertAt(FirstStart, Prefix);
+			}
+
+			// 末段（插入头部后位置会移动，重新查找一次）。
+			if (FindFirstAndLastToken(Result, FirstStart, FirstEnd, LastStart, LastEnd))
+			{
+				const FString TailToken = Result.Mid(LastStart, LastEnd - LastStart);
+				if (TailToken.Len() > 1)
+				{
+					// 保留结尾标点：把标点临时摘掉，叠加后放回。
+					int32 TailBodyEnd = LastEnd;
+					while (TailBodyEnd > LastStart)
+					{
+						const TCHAR Ch = Result[TailBodyEnd - 1];
+						if (FString(TEXT(".,!?;:，。、；：！？…~～")).Contains(FString::Chr(Ch)))
+						{
+							--TailBodyEnd;
+						}
+						else
+						{
+							break;
+						}
+					}
+
+					if (TailBodyEnd > LastStart + 1)
+					{
+						const FString TailChar = Result.Mid(TailBodyEnd - 1, 1);
+						FString TailSuffix;
+						for (int32 Repeat = 0; Repeat < TailRepeats; ++Repeat)
+						{
+							TailSuffix += TailChar;
+						}
+						Result.InsertAt(TailBodyEnd, TEXT("-") + TailSuffix);
+					}
+				}
+			}
+		}
+		else if (FMath::FRand() < 0.75f)
+		{
+			const FString HeadToken = Result.Mid(FirstStart, FirstEnd - FirstStart);
+			if (!HeadToken.IsEmpty())
+			{
+				FString Prefix;
+				for (int32 Repeat = 0; Repeat < HeadRepeats; ++Repeat)
+				{
+					Prefix += HeadToken.Left(1);
+					Prefix += TEXT("-");
+				}
+				Result.InsertAt(FirstStart, Prefix);
+			}
+		}
+		else
+		{
+			FString TailToken = Result.Mid(LastStart, LastEnd - LastStart);
+			int32 TailBodyEnd = LastEnd;
+			while (TailBodyEnd > LastStart)
+			{
+				const TCHAR Ch = Result[TailBodyEnd - 1];
+				if (FString(TEXT(".,!?;:，。、；：！？…~～")).Contains(FString::Chr(Ch)))
+				{
+					--TailBodyEnd;
+				}
+				else
+				{
+					break;
+				}
+			}
+			if (TailBodyEnd > LastStart)
+			{
+				const FString TailChar = Result.Mid(TailBodyEnd - 1, 1);
+				FString TailSuffix;
+				for (int32 Repeat = 0; Repeat < TailRepeats; ++Repeat)
+				{
+					TailSuffix += TailChar;
+				}
+				Result.InsertAt(TailBodyEnd, TEXT("-") + TailSuffix);
+			}
+		}
+
+		// 性欲 ≥ 70：40% 概率追加语气尾巴。
+		if (Libido >= 70.0f && FMath::FRand() < 0.4f)
+		{
+			static const TCHAR* Endings[] = { TEXT("……❤"), TEXT("…唔…"), TEXT("………啊！！"), TEXT("❤~~") };
+			Result += Endings[FMath::RandRange(0, 3)];
+		}
+
+		return Result;
 	}
 }
