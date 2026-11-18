@@ -1,7 +1,7 @@
 
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "MyBondageLifePlayerController.h"
+#include "MyBondageLifePlayerController.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
@@ -5374,17 +5374,25 @@ void AMyBondageLifePlayerController::RefreshShopGrid()
 				: FString::Printf(TEXT("￥%.0f"), Price)));
 		}
 
+		// 图片表现完全交给 WBP_ShopItem 的 RefreshButtonImage(Img) 事件，
+		// 避免 C++ 再和 WBP_Emote 继承来的 W_Icon/ButtonStyle 打架。
+		if (UFunction* RefreshButtonImage = ItemWidget->FindFunction(TEXT("RefreshButtonImage")))
+		{
+			struct FRefreshButtonImageParams
+			{
+				UTexture2D* Img = nullptr;
+			};
+			FRefreshButtonImageParams Params{Icon};
+			ItemWidget->ProcessEvent(RefreshButtonImage, &Params);
+		}
+		else
+		{
+			UE_LOG(LogMyBondageLife, Warning,
+				TEXT("Shop: WBP_ShopItem has no RefreshButtonImage(Img) event"));
+		}
+
 		if (UButton* BuyButton = Cast<UButton>(ItemWidget->WidgetTree->FindWidget(TEXT("W_BtnImg"))))
 		{
-			if (Icon)
-			{
-				FButtonStyle Style = BuyButton->GetStyle();
-				Style.Normal.SetResourceObject(Icon);
-				Style.Hovered.SetResourceObject(Icon);
-				Style.Pressed.SetResourceObject(Icon);
-				BuyButton->SetStyle(Style);
-			}
-
 			if (bOwned)
 			{
 				BuyButton->SetIsEnabled(false);

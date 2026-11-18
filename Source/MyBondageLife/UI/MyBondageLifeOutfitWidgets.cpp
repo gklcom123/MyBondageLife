@@ -586,6 +586,15 @@ void UMyBondageLifeOutfitPickerWidget::RefreshContents()
 
 void UMyBondageLifeOutfitPickerWidget::ChooseItem(const FString& ItemId)
 {
+	// 未购买的付费服装不允许穿戴（列表已置灰，这里再兜底一次）。
+	if (const UMyBondageLifeAccountSubsystem* ShopAccount = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		if (!ShopAccount->OwnsOutfit(FName(*ItemId)))
+		{
+			return;
+		}
+	}
+
 	ChosenItemId = ItemId;
 	const int32 ChosenSlot = PickerSlot;
 	ClosePicker();
