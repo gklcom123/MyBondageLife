@@ -30,6 +30,25 @@ class AMyBondageLifeCharacter;
  *  BeginPlay is decided by the persistent subsystems, so the flow also survives the
  *  travel that starts or joins a room.
  */
+UCLASS()
+class UMyBondageLifeShopItemProxy : public UObject
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY()
+	TObjectPtr<class AMyBondageLifePlayerController> Owner;
+
+	UPROPERTY()
+	TObjectPtr<class UButton> Button;
+
+	FString ItemId;
+	FString ItemType;
+
+	UFUNCTION()
+	void HandleClicked();
+};
+
 UCLASS(abstract)
 class AMyBondageLifePlayerController : public APlayerController
 {
@@ -717,6 +736,38 @@ public:
 
 	/** 家具自动释放：上一次是否处于上锁状态。 */
 	bool bWasLockedFurniture = false;
+
+	// ---- 商店 ----
+	void ToggleShop();
+	void OpenShop();
+	void CloseShop();
+	void RefreshShopGrid();
+	void UpdateShopMoneyText();
+	void SelectShopTab(bool bOutfit);
+	void HandleShopPurchase(const FString& ItemType, const FString& ItemId);
+	void HandleShopPurchaseFromProxy(class UMyBondageLifeShopItemProxy* Proxy);
+
+	UFUNCTION()
+	void HandleShopOutfitTab();
+
+	UFUNCTION()
+	void HandleShopRestraintTab();
+
+	UFUNCTION()
+	void HandleShopPurchaseFinished(bool bSuccess, const FString& ItemId, const FString& ErrorCode);
+
+	UFUNCTION()
+	void HandleShopChanged();
+	void ShowBoardcastText(const FString& Text);
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UUserWidget> ShopPanelWidget;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<class UMyBondageLifeShopItemProxy>> ShopItemProxies;
+
+	FString ShopTab;   // "outfit" / "restraint"
+	TMap<FString, FTimerHandle> ShopPendingTimers;
 
 	void SyncFurnitureCameraPostProcess();
 

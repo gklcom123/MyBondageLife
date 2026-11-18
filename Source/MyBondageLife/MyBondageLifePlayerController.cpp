@@ -1,7 +1,18 @@
 
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "MyBondageLifePlayerController.h"
+#include "MyBondageLifePlayerController.h"
+
+
+
+
+
+
+#include "Components/GridSlot.h"
+#include "Misc/Guid.h"
+#include "Components/TextBlock.h"
+#include "Components/Button.h"
+#include "Components/GridPanel.h"
 #include "Camera/CameraComponent.h"
 
 
@@ -53,7 +64,8 @@
 #include "UI/MyBondageLifeUIStyle.h"
 #include "UI/MyBondageLifeSettingsWidget.h"
 #include "UI/MyBondageLifeWardrobeButtonWidget.h"
-#include "UI/MyBondageLifePlayerInfoEntryWidget.h"
+#include "UI/MyBondageLifePlayerInfoEntryWidget.h"
+
 
 namespace { static FString ApplyLibidoStutter(const FString& InText, float Libido); }
 
@@ -1841,6 +1853,10 @@ void AMyBondageLifePlayerController::SetupInputComponent()
 	// 衣柜面板：B 键与底部入口同效。
 	InputComponent->BindKey(EKeys::B, IE_Pressed, this, &AMyBondageLifePlayerController::HandleWardrobeKeyPressed);
 
+	// N：商店
+	InputComponent->BindKey(EKeys::N, IE_Pressed, this,
+		&AMyBondageLifePlayerController::ToggleShop);
+
 	InputComponent->BindKey(EKeys::Q, IE_Pressed, this, &AMyBondageLifePlayerController::HandleMessageKeyPressed);
 
 	// 束缚姿势改由装备的拘束（UpAnmi）驱动，F9 临时开关已移除。
@@ -2816,6 +2832,8 @@ void AMyBondageLifePlayerController::ShowHudEntries()
 		HudRuleAccount->OnRomanceActionFailed.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleRomanceFailed);
 		HudRuleAccount->OnTractionChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleTractionChanged);
 	HudRuleAccount->OnFurnitureChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::ApplyFurnitureState);
+	HudRuleAccount->OnShopChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleShopChanged);
+	HudRuleAccount->OnShopPurchaseFinished.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleShopPurchaseFinished);
 	GetWorldTimerManager().SetTimer(FurnitureRefreshTimer, this, &AMyBondageLifePlayerController::RefreshFurnitureStatePeriodic, 5.0f, true);
 	RefreshFurnitureStatePeriodic();
 		HudRuleAccount->RefreshTractionState();
@@ -3466,6 +3484,10 @@ void AMyBondageLifePlayerController::HandleHudButtonClicked(EMyBondageLifeHudEnt
 	case EMyBondageLifeHudEntryAction::Wardrobe:
 		ToggleWardrobe();
 		break;
+	case EMyBondageLifeHudEntryAction::Shop:
+		ToggleShop();
+		break;
+
 	case EMyBondageLifeHudEntryAction::Emote:
 		ToggleEmoteList();
 		break;
@@ -5252,5 +5274,365 @@ namespace
 		}
 
 		return Result;
+	}
+}
+// ---------------------------------------------------------------------------
+// 商店
+// ---------------------------------------------------------------------------
+void UMyBondageLifeShopItemProxy::HandleClicked()
+{
+	if (Owner)
+	{
+		Owner->HandleShopPurchaseFromProxy(this);
+	}
+}
+
+void AMyBondageLifePlayerController::ShowBoardcastText(const FString& Text)
+{
+	if (!MainHudWidget)
+	{
+		return;
+	}
+	if (UFunction* BoardCastFunction = MainHudWidget->FindFunction(TEXT("CreateBoardCastText")))
+	{
+		struct FBoardCastParams { FText Text; };
+		FBoardCastParams Params;
+		Params.Text = FText::FromString(Text);
+		MainHudWidget->ProcessEvent(BoardCastFunction, &Params);
+	}
+}
+
+void AMyBondageLifePlayerController::UpdateShopMoneyText()
+{
+	if (!ShopPanelWidget || !ShopPanelWidget->WidgetTree)
+	{
+		return;
+	}
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	if (!Account)
+	{
+		return;
+	}
+	if (UTextBlock* MoneyText = Cast<UTextBlock>(ShopPanelWidget->WidgetTree->FindWidget(TEXT("W_OwnMoney"))))
+	{
+		MoneyText->SetText(FText::FromString(FString::Printf(TEXT("剩余金钱：%lld"), Account->GetMoney())));
+	}
+}
+
+void AMyBondageLifePlayerController::RefreshShopGrid()
+{
+	if (!ShopPanelWidget || !ShopPanelWidget->WidgetTree)
+	{
+		return;
+	}
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	if (!Account)
+	{
+		return;
+	}
+
+	UGridPanel* Grid = Cast<UGridPanel>(ShopPanelWidget->WidgetTree->FindWidget(TEXT("W_ItemGrid")));
+	if (!Grid)
+	{
+		UE_LOG(LogMyBondageLife, Warning, TEXT("Shop: W_ItemGrid not found"));
+		return;
+	}
+	Grid->ClearChildren();
+	ShopItemProxies.Reset();
+
+	UClass* ItemWidgetClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_ShopItem.WBP_ShopItem_C"));
+	if (!ItemWidgetClass)
+	{
+		UE_LOG(LogMyBondageLife, Warning, TEXT("Shop: WBP_ShopItem class not found"));
+		return;
+	}
+
+	const bool bOutfit = ShopTab == TEXT("outfit");
+	int32 Index = 0;
+
+	auto AddItem = [&](const FString& ItemId, const FString& Name, float Price, UTexture2D* Icon, bool bOwned)
+	{
+		UUserWidget* ItemWidget = CreateWidget<UUserWidget>(this, ItemWidgetClass);
+		if (!ItemWidget)
+		{
+			return;
+		}
+
+		if (UTextBlock* NameText = Cast<UTextBlock>(ItemWidget->WidgetTree->FindWidget(TEXT("W_Name"))))
+		{
+			NameText->SetText(FText::FromString(Name));
+		}
+		if (UTextBlock* PriceText = Cast<UTextBlock>(ItemWidget->WidgetTree->FindWidget(TEXT("W_Price"))))
+		{
+			PriceText->SetText(FText::FromString(bOwned
+				? FString(TEXT("已拥有"))
+				: FString::Printf(TEXT("￥%.0f"), Price)));
+		}
+
+		if (UButton* BuyButton = Cast<UButton>(ItemWidget->WidgetTree->FindWidget(TEXT("W_BtnImg"))))
+		{
+			if (Icon)
+			{
+				FButtonStyle Style = BuyButton->GetStyle();
+				Style.Normal.SetResourceObject(Icon);
+				Style.Hovered.SetResourceObject(Icon);
+				Style.Pressed.SetResourceObject(Icon);
+				BuyButton->SetStyle(Style);
+			}
+
+			if (bOwned)
+			{
+				BuyButton->SetIsEnabled(false);
+				BuyButton->SetColorAndOpacity(FLinearColor(0.35f, 0.35f, 0.35f, 1.0f));
+			}
+			else
+			{
+				UMyBondageLifeShopItemProxy* Proxy = NewObject<UMyBondageLifeShopItemProxy>(this);
+				Proxy->Owner = this;
+				Proxy->ItemId = ItemId;
+				Proxy->ItemType = bOutfit ? TEXT("outfit") : TEXT("restraint");
+				ShopItemProxies.Add(Proxy);
+				BuyButton->OnClicked.AddUniqueDynamic(Proxy, &UMyBondageLifeShopItemProxy::HandleClicked);
+			}
+		}
+
+		if (UGridSlot* Slot = Grid->AddChildToGrid(ItemWidget))
+		{
+			Slot->SetColumn(Index % 10);
+			Slot->SetRow(Index / 10);
+			Slot->SetPadding(FMargin(6.0f));
+		}
+		++Index;
+	};
+
+	if (bOutfit)
+	{
+		for (const FMyBondageLifeOutfitItem& Item : FMyBondageLifeOutfitCatalog::GetItems())
+		{
+			if (Item.Price <= 0.0f) { continue; }
+			AddItem(Item.ItemId.ToString(), Item.Name, Item.Price, Item.Icon.LoadSynchronous(), Account->OwnsOutfit(Item.ItemId));
+		}
+	}
+	else
+	{
+		for (const FMyBondageLifeRestraintItem& Item : FMyBondageLifeRestraintCatalog::GetItems())
+		{
+			if (Item.Price <= 0.0f) { continue; }
+			AddItem(Item.ItemId.ToString(), Item.Name, Item.Price, Item.Icon.LoadSynchronous(), Account->OwnsRestraint(Item.ItemId));
+		}
+	}
+
+	UpdateShopMoneyText();
+}
+
+void AMyBondageLifePlayerController::SelectShopTab(bool bOutfit)
+{
+	ShopTab = bOutfit ? TEXT("outfit") : TEXT("restraint");
+	RefreshShopGrid();
+
+	if (ShopPanelWidget && ShopPanelWidget->WidgetTree)
+	{
+		if (UButton* OutfitBtn = Cast<UButton>(ShopPanelWidget->WidgetTree->FindWidget(TEXT("W_Switch_Btn_Outfit"))))
+		{
+			OutfitBtn->SetColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f, bOutfit ? 1.0f : 0.55f));
+		}
+		if (UButton* RestraintBtn = Cast<UButton>(ShopPanelWidget->WidgetTree->FindWidget(TEXT("W_Switch_Btn_Restraint"))))
+		{
+			RestraintBtn->SetColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f, bOutfit ? 0.55f : 1.0f));
+		}
+	}
+}
+
+void AMyBondageLifePlayerController::OpenShop()
+{
+	if (ShopPanelWidget)
+	{
+		ShopPanelWidget->SetVisibility(ESlateVisibility::Visible);
+		SelectShopTab(ShopTab.IsEmpty() || ShopTab == TEXT("outfit"));
+		if (UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+			? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+		{
+			Account->RefreshShopState();
+		}
+		return;
+	}
+
+	UClass* PanelClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_ShopPanel.WBP_ShopPanel_C"));
+	if (!PanelClass)
+	{
+		UE_LOG(LogMyBondageLife, Warning, TEXT("Shop: WBP_ShopPanel class not found"));
+		return;
+	}
+
+	ShopPanelWidget = CreateWidget<UUserWidget>(this, PanelClass);
+	if (!ShopPanelWidget)
+	{
+		return;
+	}
+	ShopPanelWidget->AddToViewport(60);
+
+	if (UButton* OutfitBtn = Cast<UButton>(ShopPanelWidget->WidgetTree->FindWidget(TEXT("W_Switch_Btn_Outfit"))))
+	{
+		OutfitBtn->OnClicked.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleShopOutfitTab);
+	}
+	if (UButton* RestraintBtn = Cast<UButton>(ShopPanelWidget->WidgetTree->FindWidget(TEXT("W_Switch_Btn_Restraint"))))
+	{
+		RestraintBtn->OnClicked.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleShopRestraintTab);
+	}
+
+	SelectShopTab(true);
+
+	if (UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		Account->RefreshShopState();
+	}
+}
+
+void AMyBondageLifePlayerController::CloseShop()
+{
+	if (ShopPanelWidget)
+	{
+		ShopPanelWidget->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
+void AMyBondageLifePlayerController::ToggleShop()
+{
+	if (bClimaxLocked || bTractionFollower || bInFurniture)
+	{
+		return;
+	}
+	if (ShopPanelWidget && ShopPanelWidget->GetVisibility() == ESlateVisibility::Visible)
+	{
+		CloseShop();
+	}
+	else
+	{
+		OpenShop();
+	}
+}
+
+void AMyBondageLifePlayerController::HandleShopOutfitTab() { SelectShopTab(true); }
+
+void AMyBondageLifePlayerController::HandleShopRestraintTab() { SelectShopTab(false); }
+
+void AMyBondageLifePlayerController::HandleShopPurchase(const FString& ItemType, const FString& ItemId)
+{
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	if (!Account)
+	{
+		return;
+	}
+
+	// 客户端先判余额，不足直接提示，不发请求。
+	float Price = 0.0f;
+	FString ItemName;
+	if (ItemType == TEXT("outfit"))
+	{
+		if (const FMyBondageLifeOutfitItem* Item = FMyBondageLifeOutfitCatalog::Find(FName(*ItemId)))
+		{
+			Price = Item->Price;
+			ItemName = Item->Name;
+		}
+	}
+	else
+	{
+		if (const FMyBondageLifeRestraintItem* Item = FMyBondageLifeRestraintCatalog::Find(FName(*ItemId)))
+		{
+			Price = Item->Price;
+			ItemName = Item->Name;
+		}
+	}
+
+	if (Price > 0.0f && Account->GetMoney() < static_cast<int64>(Price))
+	{
+		ShowBoardcastText(TEXT("金币不足，购买失败"));
+		return;
+	}
+
+	const FString RequestId = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens);
+	Account->PurchaseShopItem(ItemType, ItemId, RequestId);
+
+	// 临时置灰按钮，5 秒无反馈自动恢复。
+	if (ShopPanelWidget && ShopPanelWidget->WidgetTree)
+	{
+		for (UMyBondageLifeShopItemProxy* Proxy : ShopItemProxies)
+		{
+			// 找到对应按钮较麻烦：这里统一把该 ItemId 的按钮按名字无法区分，
+			// 退化为整个商店面板的购买按钮在回调里刷新。
+		}
+	}
+}
+
+void AMyBondageLifePlayerController::HandleShopPurchaseFromProxy(UMyBondageLifeShopItemProxy* Proxy)
+{
+	if (!Proxy)
+	{
+		return;
+	}
+	HandleShopPurchase(Proxy->ItemType, Proxy->ItemId);
+
+	if (Proxy->Button)
+	{
+		Proxy->Button->SetIsEnabled(false);
+		Proxy->Button->SetColorAndOpacity(FLinearColor(0.6f, 0.6f, 0.6f, 1.0f));
+
+		FTimerHandle Handle;
+		TWeakObjectPtr<UMyBondageLifeShopItemProxy> WeakProxy(Proxy);
+		GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [WeakProxy]()
+		{
+			if (UMyBondageLifeShopItemProxy* P = WeakProxy.Get())
+			{
+				if (P->Button)
+				{
+					P->Button->SetIsEnabled(true);
+					P->Button->SetColorAndOpacity(FLinearColor::White);
+				}
+			}
+		}), 5.0f, false);
+	}
+}
+
+void AMyBondageLifePlayerController::HandleShopPurchaseFinished(bool bSuccess, const FString& ItemId, const FString& ErrorCode)
+{
+	for (UMyBondageLifeShopItemProxy* Proxy : ShopItemProxies)
+	{
+		if (Proxy && Proxy->ItemId == ItemId && Proxy->Button)
+		{
+			Proxy->Button->SetIsEnabled(true);
+			Proxy->Button->SetColorAndOpacity(FLinearColor::White);
+		}
+	}
+
+	if (bSuccess)
+	{
+		FString ItemName;
+		if (const FMyBondageLifeOutfitItem* Outfit = FMyBondageLifeOutfitCatalog::Find(FName(*ItemId)))
+		{
+			ItemName = Outfit->Name;
+		}
+		else if (const FMyBondageLifeRestraintItem* Restraint = FMyBondageLifeRestraintCatalog::Find(FName(*ItemId)))
+		{
+			ItemName = Restraint->Name;
+		}
+		ShowBoardcastText(FString::Printf(TEXT("\u5DF2\u8D2D\u4E70\u201C%s\u201D"), *ItemName));
+		RefreshShopGrid();
+	}
+	else if (ErrorCode == TEXT("INSUFFICIENT_FUNDS"))
+	{
+		ShowBoardcastText(TEXT("\u91D1\u5E01\u4E0D\u8DB3\uFF0C\u8D2D\u4E70\u5931\u8D25"));
+	}
+
+	UpdateShopMoneyText();
+}
+void AMyBondageLifePlayerController::HandleShopChanged()
+{
+	if (ShopPanelWidget && ShopPanelWidget->GetVisibility() == ESlateVisibility::Visible)
+	{
+		RefreshShopGrid();
 	}
 }

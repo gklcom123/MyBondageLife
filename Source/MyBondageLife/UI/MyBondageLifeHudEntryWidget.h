@@ -17,7 +17,8 @@ enum class EMyBondageLifeHudEntryAction : uint8
 	PlayerInfo,
 	FriendList,
 	Wardrobe,
-	Emote
+	Emote,
+	Shop
 };
 
 /**

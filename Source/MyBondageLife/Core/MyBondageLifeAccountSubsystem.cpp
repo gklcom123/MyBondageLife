@@ -317,6 +317,7 @@ bool UMyBondageLifeAccountSubsystem::ApplyAuthPayload(const TSharedPtr<FJsonObje
 	RefreshContractState();
 	RefreshRestraints();
 	RefreshShopOwnership();
+	RefreshShopState();
 
 	// 登录后立刻拉一次自己的公开资料：UID 用于规则（听觉白名单）与个人信息显示。
 	if (!AccountName.IsEmpty())
@@ -858,6 +859,7 @@ void UMyBondageLifeAccountSubsystem::StartFriendPolling()
 				RefreshContractState();
 	RefreshRestraints();
 	RefreshShopOwnership();
+	RefreshShopState();
 
 	// 登录后立刻拉一次自己的公开资料：UID 用于规则（听觉白名单）与个人信息显示。
 	if (!AccountName.IsEmpty())
@@ -3259,4 +3261,106 @@ bool UMyBondageLifeAccountSubsystem::OwnsOutfit(FName ItemId) const
 		return true;
 	}
 	return OwnedOutfitIds.Contains(ItemId.ToString());
+}
+
+// ---------------------------------------------------------------------------
+// 商店（第二期：金币与购买）
+// ---------------------------------------------------------------------------
+void UMyBondageLifeAccountSubsystem::RefreshShopState()
+{
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	SendFriendApiRequest(TEXT("GET"), TEXT("/shop/state"), nullptr,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self || !bOk || !Json.IsValid())
+			{
+				return;
+			}
+
+			double MoneyValue = 0.0;
+			if (Json->TryGetNumberField(TEXT("money"), MoneyValue))
+			{
+				Self->Money = static_cast<int64>(MoneyValue);
+			}
+
+			Self->OwnedRestraintIds.Reset();
+			Self->OwnedOutfitIds.Reset();
+
+			auto ReadList = [Json](const TCHAR* Field, TSet<FString>& Out)
+			{
+				const TArray<TSharedPtr<FJsonValue>>* Values = nullptr;
+				if (Json->TryGetArrayField(Field, Values) && Values)
+				{
+					for (const TSharedPtr<FJsonValue>& Value : *Values)
+					{
+						FString Id;
+						if (Value.IsValid() && Value->TryGetString(Id) && !Id.IsEmpty())
+						{
+							Out.Add(Id);
+						}
+					}
+				}
+			};
+			ReadList(TEXT("restraints"), Self->OwnedRestraintIds);
+			ReadList(TEXT("outfits"), Self->OwnedOutfitIds);
+
+			UE_LOG(LogMyBondageLife, Log, TEXT("Shop: money=%lld owned restraints=%d outfits=%d"),
+				Self->Money, Self->OwnedRestraintIds.Num(), Self->OwnedOutfitIds.Num());
+			Self->OnShopChanged.Broadcast();
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::PurchaseShopItem(const FString& ItemType, const FString& ItemId, const FString& RequestId)
+{
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("itemType"), ItemType);
+	Body->SetStringField(TEXT("itemId"), ItemId);
+	Body->SetStringField(TEXT("requestId"), RequestId);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	SendFriendApiRequest(TEXT("POST"), TEXT("/shop/purchase"), Body,
+		[WeakThis, ItemId](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self)
+			{
+				return;
+			}
+
+			if (!bOk)
+			{
+				FString Code;
+				if (Json.IsValid())
+				{
+					const TSharedPtr<FJsonObject>* ErrorObject = nullptr;
+					if (Json->TryGetObjectField(TEXT("error"), ErrorObject) && ErrorObject)
+					{
+						(*ErrorObject)->TryGetStringField(TEXT("code"), Code);
+					}
+					// 402 时顶层带当前余额。
+					double MoneyValue = 0.0;
+					if (Json->TryGetNumberField(TEXT("money"), MoneyValue))
+					{
+						Self->Money = static_cast<int64>(MoneyValue);
+					}
+				}
+				UE_LOG(LogMyBondageLife, Warning, TEXT("Shop: purchase failed (%d) %s"), StatusCode, *Code);
+				Self->OnShopPurchaseFinished.Broadcast(false, ItemId, Code);
+				return;
+			}
+
+			double MoneyValue = 0.0;
+			if (Json.IsValid() && Json->TryGetNumberField(TEXT("money"), MoneyValue))
+			{
+				Self->Money = static_cast<int64>(MoneyValue);
+			}
+
+			bool bAlready = false;
+			Json->TryGetBoolField(TEXT("alreadyOwned"), bAlready);
+			UE_LOG(LogMyBondageLife, Log, TEXT("Shop: purchased %s already=%d money=%lld"), *ItemId, bAlready ? 1 : 0, Self->Money);
+
+			Self->RefreshShopState();
+			Self->OnShopPurchaseFinished.Broadcast(true, ItemId, FString());
+		});
 }

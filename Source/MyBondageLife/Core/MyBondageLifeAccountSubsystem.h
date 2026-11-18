@@ -368,6 +368,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeUserProfileUpdated, co
  *  Every backend error is translated into a Chinese message before it reaches the
  *  UI, so the login screen only has to display what it is given.
  */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeShopChanged);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FMyBondageLifeShopPurchaseFinished, bool, bSuccess, const FString&, ItemId, const FString&, ErrorCode);
+
 UCLASS()
 class MYBONDAGELIFE_API UMyBondageLifeAccountSubsystem : public UGameInstanceSubsystem
 {
@@ -536,6 +539,24 @@ public:
 	void RefreshShopOwnership();
 
 	bool OwnsRestraint(FName ItemId) const;
+
+	/** 金币余额（来自 GET /shop/state）。 */
+	int64 GetMoney() const { return Money; }
+
+	/** 刷新金币与已购列表。 */
+	void RefreshShopState();
+
+	/** 购买：成功/失败通过 OnShopPurchaseFinished 通知。 */
+	void PurchaseShopItem(const FString& ItemType, const FString& ItemId, const FString& RequestId);
+
+
+	UPROPERTY(BlueprintAssignable, Category = "Shop")
+	FMyBondageLifeShopChanged OnShopChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Shop")
+	FMyBondageLifeShopPurchaseFinished OnShopPurchaseFinished;
+
+	int64 Money = 0;
 	bool OwnsOutfit(FName ItemId) const;
 
 	TSet<FString> OwnedRestraintIds;
