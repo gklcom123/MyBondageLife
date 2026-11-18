@@ -148,6 +148,14 @@ namespace
 			{
 				return static_cast<float>(ByteProperty->GetPropertyValue_InContainer(RowData));
 			}
+			if (const FIntProperty* IntProperty = CastField<FIntProperty>(*It))
+			{
+				return static_cast<float>(IntProperty->GetPropertyValue_InContainer(RowData));
+			}
+			if (const FInt64Property* Int64Property = CastField<FInt64Property>(*It))
+			{
+				return static_cast<float>(Int64Property->GetPropertyValue_InContainer(RowData));
+			}
 		}
 		return 0.0f;
 	}
