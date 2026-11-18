@@ -1,7 +1,8 @@
 
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "MyBondageLifePlayerController.h"
+#include "MyBondageLifePlayerController.h"
+#include "Framework/Application/SlateApplication.h"
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
 
@@ -1855,6 +1856,10 @@ void AMyBondageLifePlayerController::SetupInputComponent()
 	// 衣柜面板：B 键与底部入口同效。
 	InputComponent->BindKey(EKeys::B, IE_Pressed, this, &AMyBondageLifePlayerController::HandleWardrobeKeyPressed);
 
+	// N：商店（与其它面板相同：绑定键 + 状态开关）
+	InputComponent->BindKey(EKeys::N, IE_Pressed, this,
+		&AMyBondageLifePlayerController::HandleShopKeyPressed);
+
 	InputComponent->BindKey(EKeys::Q, IE_Pressed, this, &AMyBondageLifePlayerController::HandleMessageKeyPressed);
 
 	// 束缚姿势改由装备的拘束（UpAnmi）驱动，F9 临时开关已移除。
@@ -1905,12 +1910,6 @@ void AMyBondageLifePlayerController::PlayerTick(float DeltaTime)
 	}
 
 	SyncFurnitureCameraPostProcess();
-	// N 键轮询：商店打开时输入模式为 GameAndUI，绑定键可能被吞，这里直接读按键状态。
-	if (WasInputKeyJustPressed(EKeys::N))
-	{
-		ToggleShop();
-	}
-
 	UpdateFurnitureProximity();
 	UpdateTractionFollow(DeltaTime);
 	UpdateTractionChain();
@@ -5496,6 +5495,12 @@ void AMyBondageLifePlayerController::OpenShop()
 	ShopPanelWidget->AddToViewport(60);
 	bShopOpen = true;
 	RefreshChatInputState();
+	// 面板里的按钮会抢键盘焦点，导致第一次按键被 Slate 吞掉；把焦点交还视口。
+	if (FSlateApplication::IsInitialized())
+	{
+		FSlateApplication::Get().SetAllUserFocusToGameViewport();
+	}
+
 
 	if (UButton* OutfitBtn = Cast<UButton>(ShopPanelWidget->WidgetTree->FindWidget(TEXT("W_Switch_Btn_Outfit"))))
 	{
@@ -5535,7 +5540,7 @@ void AMyBondageLifePlayerController::ToggleShop()
 	{
 		return;
 	}
-	if (ShopPanelWidget && ShopPanelWidget->GetVisibility() == ESlateVisibility::Visible)
+	if (bShopOpen)
 	{
 		CloseShop();
 	}
@@ -5669,4 +5674,12 @@ void AMyBondageLifePlayerController::HandleShopChanged()
 void AMyBondageLifePlayerController::HandleShopCloseClicked()
 {
 	CloseShop();
+}
+void AMyBondageLifePlayerController::HandleShopKeyPressed()
+{
+	if (bChatTextInput || IsGameMenuOpen())
+	{
+		return;
+	}
+	ToggleShop();
 }

@@ -741,6 +741,9 @@ public:
 
 	// ---- 商店 ----
 	void ToggleShop();
+
+	UFUNCTION()
+	void HandleShopKeyPressed();
 	void OpenShop();
 	void CloseShop();
 	void RefreshShopGrid();
