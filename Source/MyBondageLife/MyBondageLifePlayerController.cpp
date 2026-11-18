@@ -5317,7 +5317,13 @@ void AMyBondageLifePlayerController::UpdateShopMoneyText()
 	{
 		return;
 	}
-	if (UTextBlock* MoneyText = Cast<UTextBlock>(ShopPanelWidget->WidgetTree->FindWidget(TEXT("W_OwnMoney"))))
+	UTextBlock* MoneyText = Cast<UTextBlock>(ShopPanelWidget->WidgetTree->FindWidget(TEXT("W_OwnMoney")));
+	if (!MoneyText)
+	{
+		// WBP_ShopPanel 里余额文本的绑定名是 W_Name。
+		MoneyText = Cast<UTextBlock>(ShopPanelWidget->WidgetTree->FindWidget(TEXT("W_Name")));
+	}
+	if (MoneyText)
 	{
 		MoneyText->SetText(FText::FromString(FString::Printf(TEXT("剩余金钱：%lld"), Account->GetMoney())));
 	}
@@ -5391,7 +5397,16 @@ void AMyBondageLifePlayerController::RefreshShopGrid()
 				TEXT("Shop: WBP_ShopItem has no RefreshButtonImage(Img) event"));
 		}
 
-		if (UButton* BuyButton = Cast<UButton>(ItemWidget->WidgetTree->FindWidget(TEXT("W_BtnImg"))))
+		UButton* BuyButton = Cast<UButton>(ItemWidget->WidgetTree->FindWidget(TEXT("W_BtnImg")));
+		if (!BuyButton && ItemWidget->WidgetTree)
+		{
+		TArray<UWidget*> AllWidgets;
+		ItemWidget->WidgetTree->GetAllWidgets(AllWidgets);
+		for (UWidget* Candidate : AllWidgets) { if (UButton* Found = Cast<UButton>(Candidate)) { BuyButton = Found; break; } }
+	}
+	UE_LOG(LogMyBondageLife, Log, TEXT("Shop: item %s button=%s owned=%d"), *ItemId, BuyButton ? TEXT("ok") : TEXT("MISSING"), bOwned ? 1 : 0);
+
+	if (BuyButton)
 		{
 			if (bOwned)
 			{
@@ -5564,6 +5579,8 @@ void AMyBondageLifePlayerController::HandleShopRestraintTab() { SelectShopTab(fa
 
 void AMyBondageLifePlayerController::HandleShopPurchase(const FString& ItemType, const FString& ItemId)
 {
+	UE_LOG(LogMyBondageLife, Log, TEXT("Shop: purchase %s/%s"), *ItemType, *ItemId);
+
 	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
 	if (!Account)
@@ -5613,6 +5630,7 @@ void AMyBondageLifePlayerController::HandleShopPurchase(const FString& ItemType,
 
 void AMyBondageLifePlayerController::HandleShopPurchaseFromProxy(UMyBondageLifeShopItemProxy* Proxy)
 {
+	UE_LOG(LogMyBondageLife, Log, TEXT("Shop: click proxy=%s"), Proxy ? *Proxy->ItemId : TEXT("null"));
 	if (!Proxy)
 	{
 		return;
@@ -5674,6 +5692,7 @@ void AMyBondageLifePlayerController::HandleShopPurchaseFinished(bool bSuccess, c
 }
 void AMyBondageLifePlayerController::HandleShopChanged()
 {
+	UpdateShopMoneyText();
 	if (ShopPanelWidget && ShopPanelWidget->GetVisibility() == ESlateVisibility::Visible)
 	{
 		RefreshShopGrid();
