@@ -1,7 +1,8 @@
 
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "MyBondageLifePlayerController.h"
+#include "MyBondageLifePlayerController.h"
+#include "UI/MyBondageLifeQuestPanelWidget.h"
 
 #include "Components/CanvasPanelSlot.h"
 #include "Components/Border.h"
@@ -5824,49 +5825,12 @@ void AMyBondageLifePlayerController::OpenQuest()
 {
 	if (!QuestPanelWidget)
 	{
-		// 直接用代码搭面板：设计版 WBP 根节点尺寸为 0，复制来的资源在本项目里无法撑开。
-		QuestPanelWidget = CreateWidget<UUserWidget>(this, UUserWidget::StaticClass());
+		// 与其它面板一致：用具体 C++ 控件类创建，布局在 RebuildWidget 里搭。
+		QuestPanelWidget = CreateWidget<UMyBondageLifeQuestPanelWidget>(this, UMyBondageLifeQuestPanelWidget::StaticClass());
 		if (!QuestPanelWidget) { return; }
-
-		UWidgetTree* Tree = NewObject<UWidgetTree>(QuestPanelWidget, TEXT("QuestWidgetTree"));
-		QuestPanelWidget->WidgetTree = Tree;
-
-		UCanvasPanel* Root = Tree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("QuestRoot"));
-		Tree->RootWidget = Root;
-
-		UBorder* Bg = Tree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("QuestBg"));
-		Bg->SetBrushColor(FLinearColor(0.03f, 0.03f, 0.05f, 0.94f));
-		if (UCanvasPanelSlot* BgSlot = Root->AddChildToCanvas(Bg))
-		{
-			BgSlot->SetAnchors(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
-			BgSlot->SetOffsets(FMargin(0.0f));
-		}
-
-		UTextBlock* Title = Tree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("QuestTitle"));
-		Title->SetText(FText::FromString(TEXT("任务")));
-		Title->SetColorAndOpacity(FSlateColor(FLinearColor::White));
-		if (UCanvasPanelSlot* TitleSlot = Root->AddChildToCanvas(Title))
-		{
-			TitleSlot->SetAnchors(FAnchors(0.5f, 0.08f, 0.5f, 0.08f));
-			TitleSlot->SetAlignment(FVector2D(0.5f, 0.5f));
-			TitleSlot->SetAutoSize(true);
-		}
-
-		UButton* CloseButton = Tree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("W_Close"));
-		UTextBlock* CloseText = Tree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("QuestCloseText"));
-		CloseText->SetText(FText::FromString(TEXT("关闭")));
-		CloseButton->AddChild(CloseText);
-		if (UCanvasPanelSlot* CloseSlot = Root->AddChildToCanvas(CloseButton))
-		{
-			CloseSlot->SetAnchors(FAnchors(1.0f, 0.0f, 1.0f, 0.0f));
-			CloseSlot->SetAlignment(FVector2D(1.0f, 0.0f));
-			CloseSlot->SetPosition(FVector2D(-40.0f, 40.0f));
-			CloseSlot->SetSize(FVector2D(140.0f, 52.0f));
-		}
-		CloseButton->OnClicked.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleQuestCloseClicked);
-
+		Cast<UMyBondageLifeQuestPanelWidget>(QuestPanelWidget)->OnClosed.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleQuestCloseClicked);
 		QuestPanelWidget->AddToViewport(60);
-		UE_LOG(LogMyBondageLife, Log, TEXT("Quest: built code panel"));
+		UE_LOG(LogMyBondageLife, Log, TEXT("Quest: created code panel"));
 	}
 
 	QuestPanelWidget->SetVisibility(ESlateVisibility::Visible);
