@@ -5832,6 +5832,14 @@ void AMyBondageLifePlayerController::OpenQuest()
 		QuestPanelWidget = CreateWidget<UUserWidget>(this, PanelClass);
 		if (!QuestPanelWidget) { return; }
 		QuestPanelWidget->AddToViewport(60);
+		QuestPanelWidget->SetAnchorsInViewport(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
+		QuestPanelWidget->SetAlignmentInViewport(FVector2D(0.0f, 0.0f));
+		QuestPanelWidget->SetPositionInViewport(FVector2D::ZeroVector, false);
+		UE_LOG(LogMyBondageLife, Log, TEXT("Quest: created=%s inViewport=%d vis=%d size=%s"),
+			QuestPanelWidget ? TEXT("ok") : TEXT("null"),
+			QuestPanelWidget && QuestPanelWidget->IsInViewport() ? 1 : 0,
+			QuestPanelWidget ? static_cast<int32>(QuestPanelWidget->GetVisibility()) : -1,
+			QuestPanelWidget ? *QuestPanelWidget->GetDesiredSize().ToString() : TEXT("none"));
 		if (UButton* CloseBtn = Cast<UButton>(QuestPanelWidget->WidgetTree->FindWidget(TEXT("W_Close"))))
 		{
 			CloseBtn->OnClicked.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleQuestCloseClicked);
