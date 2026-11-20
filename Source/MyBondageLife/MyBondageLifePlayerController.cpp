@@ -1748,6 +1748,13 @@ void AMyBondageLifePlayerController::EndPlay(const EEndPlayReason::Type EndPlayR
 		BroadcastSystemMessage(FString::Printf(TEXT("\uFF08%s\u79BB\u5F00\u4E86\u623F\u95F4\uFF09"), *LeaveName));
 	}
 
+	// 关闭并释放任务面板，避免跨世界残留引用。
+	if (QuestPanelWidget)
+	{
+		QuestPanelWidget->RemoveFromParent();
+		QuestPanelWidget = nullptr;
+	}
+
 	Super::EndPlay(EndPlayReason);
 }
 
