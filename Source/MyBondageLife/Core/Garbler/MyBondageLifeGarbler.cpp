@@ -687,6 +687,129 @@ FString FMyBondageLifeGarbler::GarblePhonemes(const TArray<FString>& Phonemes,
 	return Result;
 }
 
+
+// 中文 → 中文：把混淆后的拉丁发音按拼音近似还原成常用汉字。
+static TMap<FString, TCHAR> BuildSyllableToHanzi()
+{
+	TMap<FString, TCHAR> Map;
+	// 优先给常见语气字，读起来更像"被堵住的中文"。
+	static const TCHAR* Preferred = TEXT("唔啊哦嗯呃咦呜呼哈嘿咯嘛咪噗嘶噜嘟咕叽啪哒嗒咚咔吱嘎叭嘀哔叮当隆轰哗唰沙啦呢吧呀哇噢喔呕昂呵嘻吼嗷哞喵咩呱啾喳唧嗝噗嗤哼嘤咳");
+	for (const TCHAR* It = Preferred; *It; ++It)
+	{
+		if (const FString* Pinyin = FMyBondageLifeGarbler::GetHanziPinyin().Find(*It))
+		{
+			Map.Add(*Pinyin, *It);
+		}
+	}
+	for (const TPair<TCHAR, FString>& Pair : FMyBondageLifeGarbler::GetHanziPinyin())
+	{
+		if (!Map.Contains(Pair.Value))
+		{
+			Map.Add(Pair.Value, Pair.Key);
+		}
+	}
+	return Map;
+}
+
+static bool IsLatinLetter(TCHAR Ch)
+{
+	return (Ch >= 'a' && Ch <= 'z') || (Ch >= 'A' && Ch <= 'Z');
+}
+
+static FString MakeChineseLike(const FString& Garbled, int32 TargetCount)
+{
+	static const TMap<FString, TCHAR> SyllableToHanzi = BuildSyllableToHanzi();
+	if (SyllableToHanzi.Num() == 0 || TargetCount <= 0)
+	{
+		return Garbled;
+	}
+
+	FString Result;
+	TArray<FString> Tail;
+
+	int32 Index = 0;
+	while (Index < Garbled.Len())
+	{
+		const TCHAR Ch = Garbled[Index];
+		if (!IsLatinLetter(Ch))
+		{
+			if (Ch == ' ' || Ch == '\t')
+			{
+				if (Result.Len() < TargetCount) { Result.AppendChar(TEXT(' ')); }
+			}
+			else if (Result.Len() < TargetCount)
+			{
+				Tail.Add(FString::Chr(Ch));
+			}
+			++Index;
+			continue;
+		}
+
+		FString Syllable;
+		while (Index < Garbled.Len() && IsLatinLetter(Garbled[Index]))
+		{
+			FString Candidate = Syllable + FString::Chr(FChar::ToLower(Garbled[Index]));
+			if (SyllableToHanzi.Contains(Candidate) && Candidate.Len() <= 6)
+			{
+				Syllable = Candidate;
+				++Index;
+			}
+			else if (Syllable.IsEmpty())
+			{
+				Syllable = Candidate;
+				++Index;
+				break;
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		if (Syllable.IsEmpty()) { break; }
+
+		if (const TCHAR* Hanzi = SyllableToHanzi.Find(Syllable))
+		{
+			Result.AppendChar(*Hanzi);
+		}
+		else
+		{
+			// 找不到精确拼音：取同前缀的第一个音节，尽量保留发音相近。
+			for (const TPair<FString, TCHAR>& Pair : SyllableToHanzi)
+			{
+				if (Pair.Key.StartsWith(Syllable.Left(1)))
+				{
+					Result.AppendChar(Pair.Value);
+					break;
+				}
+			}
+		}
+
+		if (Result.Len() >= TargetCount) { break; }
+	}
+
+	// 长度贴近原文（中文按字数）。
+	while (Result.Len() < TargetCount)
+	{
+		Result.AppendChar(TEXT('\u5514')); // 唔
+	}
+	if (Result.Len() > TargetCount)
+	{
+		Result = Result.Left(TargetCount);
+	}
+
+	// 原句尾部的标点补回去。
+	for (const FString& Punct : Tail)
+	{
+		Result += Punct;
+	}
+	return Result;
+}
+const TMap<TCHAR, FString>& FMyBondageLifeGarbler::GetHanziPinyin()
+{
+	return HanziPinyin;
+}
+
 FString FMyBondageLifeGarbler::Garble(const FString& Text, const TArray<FName>& GagIds,
 	const FMyBondageLifeGarblerOptions& Options)
 {

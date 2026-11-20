@@ -84,6 +84,9 @@ public:
 	/** 把 "口球" / "ball gag" / "BallGag" 这类写法统一解析成档位 id；失败返回 NAME_None。 */
 	static FName ResolveProfileId(const FString& IdOrDisplayNameOrAlias);
 
+	/** 汉字 -> 拼音 表（供中文混淆后处理使用）。 */
+	static const TMap<TCHAR, FString>& GetHanziPinyin();
+
 	/** 调试用：一句话描述某个档位（音素条目数等）。 */
 	static FString DescribeProfile(FName ProfileId);
 
