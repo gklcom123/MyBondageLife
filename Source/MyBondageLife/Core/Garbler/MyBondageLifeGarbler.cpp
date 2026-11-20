@@ -1024,6 +1024,17 @@ FString FMyBondageLifeGarbler::Garble(const FString& Text, const TArray<FName>& 
 		++Cursor;
 	}
 
+	int32 InputCjkCount = 0;
+	for (int32 i = 0; i < Text.Len(); ++i)
+	{
+		const TCHAR C = Text[i];
+		if (C >= 0x4E00 && C <= 0x9FFF) { ++InputCjkCount; }
+	}
+	if (InputCjkCount > 0)
+	{
+		Out = MakeChineseLike(Out, InputCjkCount);
+	}
+
 	return Out;
 }
 
