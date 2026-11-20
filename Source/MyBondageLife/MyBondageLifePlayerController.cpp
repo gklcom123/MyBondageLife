@@ -5826,7 +5826,12 @@ void AMyBondageLifePlayerController::OpenQuest()
 	if (!QuestPanelWidget)
 	{
 		// 与其它面板一致：用具体 C++ 控件类创建，布局在 RebuildWidget 里搭。
-		QuestPanelWidget = CreateWidget<UMyBondageLifeQuestPanelWidget>(this, UMyBondageLifeQuestPanelWidget::StaticClass());
+		// 优先用你设计的 WBP_QuestPanel（父类需为 UMyBondageLifeQuestPanelWidget）；找不到才用代码版。
+		UClass* DesignedClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_QuestPanel.WBP_QuestPanel_C"));
+		UClass* UseClass = (DesignedClass && DesignedClass->IsChildOf(UMyBondageLifeQuestPanelWidget::StaticClass()))
+			? DesignedClass : UMyBondageLifeQuestPanelWidget::StaticClass();
+		UE_LOG(LogMyBondageLife, Log, TEXT("Quest: use class=%s designed=%s"), *UseClass->GetName(), DesignedClass ? TEXT("yes") : TEXT("no"));
+		QuestPanelWidget = CreateWidget<UMyBondageLifeQuestPanelWidget>(this, UseClass);
 		if (!QuestPanelWidget) { return; }
 		Cast<UMyBondageLifeQuestPanelWidget>(QuestPanelWidget)->OnClosed.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleQuestCloseClicked);
 		QuestPanelWidget->AddToViewport(60);
