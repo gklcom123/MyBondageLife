@@ -605,6 +605,18 @@ void AMyBondageLifePlayerController::HandleChatMessageSubmitted(const FString& M
 	}
 
 	ServerSendChatMessage(Payload);
+
+	// 任务：戴口球说话（每次发言上报一次，服务端批量推进同类任务）。
+	if (const AMyBondageLifeCharacter* SpeakCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		if (SpeakCharacter->GetGagActive())
+		{
+			if (UMyBondageLifeAccountSubsystem* QuestAccount = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+			{
+				QuestAccount->ReportQuestProgress(TEXT("GagAndSpeak"));
+			}
+		}
+	}
 }
 
 void AMyBondageLifePlayerController::ExecuteChatCommand(const FString& CommandLine)
@@ -909,7 +921,7 @@ void AMyBondageLifePlayerController::RefreshChatInputState()
 
 	const bool bBlocked = bChatTextInput || bAltMouseMode || bPlayerInfoOpen || bFriendPanelOpen
 		|| bFriendRequestPending || bWardrobeOpen || bSocialModalOpen || bMessageCenterOpen
-		|| bEmotePanelOpen || bRulePanelOpen || bRuleDetailOpen || bShopOpen;
+		|| bEmotePanelOpen || bRulePanelOpen || bRuleDetailOpen || bShopOpen || bQuestOpen;
 
 	SetGameplayInputBlocked(bBlocked);
 
@@ -923,7 +935,7 @@ void AMyBondageLifePlayerController::RefreshChatInputState()
 		// Alt and the panels free the mouse; typing keeps the cursor hidden.
 		bShowMouseCursor = bAltMouseMode || bPlayerInfoOpen || bFriendPanelOpen
 			|| bFriendRequestPending || bWardrobeOpen || bSocialModalOpen || bMessageCenterOpen
-			|| bEmotePanelOpen || bRulePanelOpen || bRuleDetailOpen || bShopOpen;
+			|| bEmotePanelOpen || bRulePanelOpen || bRuleDetailOpen || bShopOpen || bQuestOpen;
 	}
 	else
 	{
@@ -2808,6 +2820,14 @@ void AMyBondageLifePlayerController::ShowMainHud()
 	if (MainHudWidget)
 	{
 		MainHudWidget->AddToViewport(11);
+
+	// 任务：登录后拉取一次，并每秒刷新刷新倒计时。
+	if (UMyBondageLifeAccountSubsystem* QuestAccount = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		QuestAccount->RefreshQuests();
+		RefreshQuestHud();
+	}
+	GetWorldTimerManager().SetTimer(QuestRemainTimer, FTimerDelegate::CreateWeakLambda(this, [this]() { UpdateQuestRemainTime(); }), 1.0f, true);
 	}
 }
 
@@ -2857,6 +2877,7 @@ void AMyBondageLifePlayerController::ShowHudEntries()
 		HudRuleAccount->OnTractionChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleTractionChanged);
 	HudRuleAccount->OnFurnitureChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::ApplyFurnitureState);
 	HudRuleAccount->OnShopChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleShopChanged);
+	HudRuleAccount->OnQuestsChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::RefreshQuestHud);
 	HudRuleAccount->OnShopPurchaseFinished.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleShopPurchaseFinished);
 	GetWorldTimerManager().SetTimer(FurnitureRefreshTimer, this, &AMyBondageLifePlayerController::RefreshFurnitureStatePeriodic, 5.0f, true);
 	RefreshFurnitureStatePeriodic();
@@ -3751,6 +3772,13 @@ bool AMyBondageLifePlayerController::HandleEscapePanels()
 	// 高潮期间忽略所有快捷键（含 ESC）。
 	if (bClimaxLocked)
 	{
+		return true;
+	}
+
+	// 任务面板。
+	if (bQuestOpen)
+	{
+		CloseQuest();
 		return true;
 	}
 
@@ -5875,3 +5903,24 @@ void AMyBondageLifePlayerController::UpdateQuestRemainTime()
 	const int32 Minutes = (Account->QuestRemainSeconds % 3600) / 60;
 	Label->SetText(FText::FromString(FString::Printf(TEXT("下一次刷新时间：%02d:%02d"), Hours, Minutes)));
 }
+// 导出任务定义：mbl.dump_quests
+static FAutoConsoleCommand GDumpQuestsCommand(
+	TEXT("mbl.dump_quests"),
+	TEXT("Export DT_Quest definitions to Saved/Quests.json"),
+	FConsoleCommandDelegate::CreateLambda([]()
+	{
+		FMyBondageLifeQuestCatalog::Refresh();
+		TArray<FString> Entries;
+		for (const FMyBondageLifeQuestDef& Q : FMyBondageLifeQuestCatalog::GetItems())
+		{
+			Entries.Add(FString::Printf(TEXT("{\"id\":\"%s\",\"questString\":\"%s\",\"name\":\"%s\",\"description\":\"%s\",\"times\":%d,\"daily\":%s,\"rewardMoney\":%d}"),
+				*Q.Id.ToString(), *Q.QuestString,
+				*Q.Name.Replace(TEXT("\\"), TEXT("\\\\")).Replace(TEXT("\""), TEXT("\\\"")),
+				*Q.Description.Replace(TEXT("\\"), TEXT("\\\\")).Replace(TEXT("\""), TEXT("\\\"")),
+				Q.Times, Q.bDaily ? TEXT("true") : TEXT("false"), Q.RewardMoney));
+		}
+		const FString Json = FString::Printf(TEXT("{\"items\":[%s]}"), *FString::Join(Entries, TEXT(",")));
+		const FString Path = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("Quests.json"));
+		const bool bOk = FFileHelper::SaveStringToFile(Json, *Path, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
+		UE_LOG(LogMyBondageLife, Log, TEXT("Quest: dump %d defs -> %s (%s)"), Entries.Num(), *Path, bOk ? TEXT("ok") : TEXT("failed"));
+	}));

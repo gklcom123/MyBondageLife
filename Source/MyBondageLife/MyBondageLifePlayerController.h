@@ -752,6 +752,7 @@ public:
 	void UpdateQuestRemainTime();
 
 	bool bQuestOpen = false;
+	FTimerHandle QuestRemainTimer;
 	UPROPERTY(Transient) TObjectPtr<class UUserWidget> QuestPanelWidget;
 
 	UFUNCTION()
