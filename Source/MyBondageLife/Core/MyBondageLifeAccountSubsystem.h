@@ -546,6 +546,9 @@ public:
 	/** 刷新金币与已购列表。 */
 	void RefreshShopState();
 
+	/** 查询当前在线人数（登录界面用，无需鉴权）。 */
+	void RequestOnlineCount(TFunction<void(int32)> OnResult);
+
 	/** 购买：成功/失败通过 OnShopPurchaseFinished 通知。 */
 	void PurchaseShopItem(const FString& ItemType, const FString& ItemId, const FString& RequestId);
 

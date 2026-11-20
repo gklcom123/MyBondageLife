@@ -3364,3 +3364,24 @@ void UMyBondageLifeAccountSubsystem::PurchaseShopItem(const FString& ItemType, c
 			Self->OnShopPurchaseFinished.Broadcast(true, ItemId, FString());
 		});
 }
+
+void UMyBondageLifeAccountSubsystem::RequestOnlineCount(TFunction<void(int32)> OnResult)
+{
+	SendFriendApiRequest(TEXT("GET"), TEXT("/stats/online"), nullptr,
+		[OnResult = MoveTemp(OnResult)](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			int32 Count = 0;
+			if (bOk && Json.IsValid())
+			{
+				double Value = 0.0;
+				if (Json->TryGetNumberField(TEXT("online"), Value))
+				{
+					Count = static_cast<int32>(Value);
+				}
+			}
+			if (OnResult)
+			{
+				OnResult(Count);
+			}
+		});
+}

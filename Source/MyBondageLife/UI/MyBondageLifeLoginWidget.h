@@ -58,6 +58,12 @@ protected:
 
 	void BuildLayout();
 
+	UFUNCTION()
+	void RefreshOnlineCount();
+
+	UPROPERTY() TObjectPtr<class UTextBlock> OnlineCountLabel;
+	FTimerHandle OnlineCountTimer;
+
 	/** Fixed width button with a centred label; bPrimary only tints the text. */
 	UButton* CreateActionButton(UVerticalBox* Parent, const FString& LabelText, float Height, bool bInteractive);
 

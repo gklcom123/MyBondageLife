@@ -137,6 +137,17 @@ void UMyBondageLifeLoginWidget::BuildLayout()
 		SubtitleFont.FontObject = MyBondageLifeUI::LoadUIFont();
 		SubtitleLabel->SetFont(SubtitleFont);
 	}
+	// 在线人数（账号登录下方，进入界面每 5 秒刷新一次）
+	OnlineCountLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("W_OnlineCount"));
+	OnlineCountLabel->SetText(FText::FromString(TEXT("在线玩家：--")));
+	OnlineCountLabel->SetJustification(ETextJustify::Center);
+	OnlineCountLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.75f, 0.78f, 0.85f, 1.0f)));
+	if (UVerticalBoxSlot* OnlineSlot = LoginPanel->AddChildToVerticalBox(OnlineCountLabel))
+	{
+		OnlineSlot->SetPadding(FMargin(0.0f, 4.0f, 0.0f, 8.0f));
+		OnlineSlot->SetHorizontalAlignment(HAlign_Center);
+	}
+
 	if (UVerticalBoxSlot* SubtitleSlot = LoginPanel->AddChildToVerticalBox(SubtitleLabel))
 	{
 		SubtitleSlot->SetHorizontalAlignment(HAlign_Center);
@@ -281,6 +292,12 @@ void UMyBondageLifeLoginWidget::BuildLayout()
 
 void UMyBondageLifeLoginWidget::NativeConstruct()
 {
+	RefreshOnlineCount();
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimer(OnlineCountTimer, this, &UMyBondageLifeLoginWidget::RefreshOnlineCount, 5.0f, true);
+	}
+
 	Super::NativeConstruct();
 
 	if (UGameInstance* GameInstance = GetGameInstance())
@@ -699,4 +716,22 @@ void UMyBondageLifeLoginWidget::HandleClass3Clicked()
 void UMyBondageLifeLoginWidget::HandleClass4Clicked()
 {
 	SetSelectedClass(4);
+}
+
+void UMyBondageLifeLoginWidget::RefreshOnlineCount()
+{
+	if (UMyBondageLifeAccountSubsystem* Account = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		TWeakObjectPtr<UMyBondageLifeLoginWidget> WeakThis(this);
+		Account->RequestOnlineCount([WeakThis](int32 Count)
+		{
+			if (UMyBondageLifeLoginWidget* Self = WeakThis.Get())
+			{
+				if (Self->OnlineCountLabel)
+				{
+					Self->OnlineCountLabel->SetText(FText::FromString(FString::Printf(TEXT("在线玩家：%d"), Count)));
+				}
+			}
+		});
+	}
 }
