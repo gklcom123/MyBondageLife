@@ -3400,3 +3400,88 @@ void UMyBondageLifeAccountSubsystem::RequestOnlineCount(TFunction<void(int32)> O
 		});
 	Request->ProcessRequest();
 }
+
+// ---------------------------------------------------------------------------
+// 任务
+// ---------------------------------------------------------------------------
+static bool ParseQuestEntry(const TSharedPtr<FJsonObject>& Obj, FMyBondageLifeQuestEntry& Out)
+{
+	if (!Obj.IsValid()) { return false; }
+	double Number = 0.0;
+	if (Obj->TryGetNumberField(TEXT("slot"), Number)) { Out.Slot = static_cast<int32>(Number); }
+	Obj->TryGetStringField(TEXT("questId"), Out.QuestId);
+	Obj->TryGetStringField(TEXT("questString"), Out.QuestString);
+	Obj->TryGetStringField(TEXT("name"), Out.Name);
+	Obj->TryGetStringField(TEXT("description"), Out.Description);
+	if (Obj->TryGetNumberField(TEXT("progress"), Number)) { Out.Progress = static_cast<int32>(Number); }
+	if (Obj->TryGetNumberField(TEXT("times"), Number)) { Out.Times = static_cast<int32>(Number); }
+	Obj->TryGetBoolField(TEXT("completed"), Out.bCompleted);
+	if (Obj->TryGetNumberField(TEXT("rewardMoney"), Number)) { Out.RewardMoney = static_cast<int32>(Number); }
+	return Out.IsValid();
+}
+
+void UMyBondageLifeAccountSubsystem::RefreshQuests()
+{
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	SendFriendApiRequest(TEXT("GET"), TEXT("/quests"), nullptr,
+		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self || !bOk || !Json.IsValid()) { return; }
+
+			Json->TryGetBoolField(TEXT("hasMaster"), Self->bHasQuestMaster);
+			Self->QuestMasterAccount.Reset();
+			Json->TryGetStringField(TEXT("masterAccount"), Self->QuestMasterAccount);
+
+			double Remain = 0.0;
+			if (Json->TryGetNumberField(TEXT("remainSeconds"), Remain))
+			{
+				Self->QuestRemainSeconds = static_cast<int32>(Remain);
+			}
+
+			Self->DailyQuests.SetNum(5);
+			for (FMyBondageLifeQuestEntry& Entry : Self->DailyQuests) { Entry = FMyBondageLifeQuestEntry(); }
+
+			const TArray<TSharedPtr<FJsonValue>>* Daily = nullptr;
+			if (Json->TryGetArrayField(TEXT("daily"), Daily) && Daily)
+			{
+				for (int32 i = 0; i < Daily->Num() && i < 5; ++i)
+				{
+					const TSharedPtr<FJsonObject>* Obj = nullptr;
+					if ((*Daily)[i].IsValid() && (*Daily)[i]->TryGetObject(Obj) && Obj)
+					{
+						ParseQuestEntry(*Obj, Self->DailyQuests[i]);
+					}
+				}
+			}
+
+			Self->WeeklyQuest = FMyBondageLifeQuestEntry();
+			const TSharedPtr<FJsonObject>* Weekly = nullptr;
+			if (Json->TryGetObjectField(TEXT("weekly"), Weekly) && Weekly)
+			{
+				ParseQuestEntry(*Weekly, Self->WeeklyQuest);
+			}
+
+			UE_LOG(LogMyBondageLife, Log, TEXT("Quest: refresh hasMaster=%d daily=%d weekly=%d"),
+				Self->bHasQuestMaster ? 1 : 0, Self->DailyQuests.Num(), Self->WeeklyQuest.IsValid() ? 1 : 0);
+			Self->OnQuestsChanged.Broadcast();
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::ReportQuestProgress(const FString& QuestString)
+{
+	if (QuestString.IsEmpty()) { return; }
+
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("questString"), QuestString);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	SendFriendApiRequest(TEXT("POST"), TEXT("/quests/progress"), Body,
+		[WeakThis, QuestString](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self) { return; }
+			UE_LOG(LogMyBondageLife, Log, TEXT("Quest: progress %s ok=%d"), *QuestString, bOk ? 1 : 0);
+			Self->RefreshQuests();
+		});
+}

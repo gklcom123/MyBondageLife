@@ -742,6 +742,18 @@ public:
 	// ---- 商店 ----
 	void ToggleShop();
 
+	// ---- 任务 ----
+	UFUNCTION() void HandleQuestKeyPressed();
+	void ToggleQuest();
+	void OpenQuest();
+	void CloseQuest();
+	UFUNCTION() void HandleQuestCloseClicked();
+	void RefreshQuestHud();
+	void UpdateQuestRemainTime();
+
+	bool bQuestOpen = false;
+	UPROPERTY(Transient) TObjectPtr<class UUserWidget> QuestPanelWidget;
+
 	UFUNCTION()
 	void HandleShopKeyPressed();
 	void OpenShop();

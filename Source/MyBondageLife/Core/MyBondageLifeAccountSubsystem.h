@@ -368,6 +368,23 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMyBondageLifeUserProfileUpdated, co
  *  Every backend error is translated into a Chinese message before it reaches the
  *  UI, so the login screen only has to display what it is given.
  */
+USTRUCT(BlueprintType)
+struct FMyBondageLifeQuestEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly) int32 Slot = 0;
+	UPROPERTY(BlueprintReadOnly) FString QuestId;
+	UPROPERTY(BlueprintReadOnly) FString QuestString;
+	UPROPERTY(BlueprintReadOnly) FString Name;
+	UPROPERTY(BlueprintReadOnly) FString Description;
+	UPROPERTY(BlueprintReadOnly) int32 Progress = 0;
+	UPROPERTY(BlueprintReadOnly) int32 Times = 0;
+	UPROPERTY(BlueprintReadOnly) bool bCompleted = false;
+	UPROPERTY(BlueprintReadOnly) int32 RewardMoney = 0;
+
+	bool IsValid() const { return !QuestId.IsEmpty(); }
+};
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMyBondageLifeShopChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FMyBondageLifeShopPurchaseFinished, bool, bSuccess, const FString&, ItemId, const FString&, ErrorCode);
 
@@ -545,6 +562,18 @@ public:
 
 	/** 刷新金币与已购列表。 */
 	void RefreshShopState();
+
+	// ---- 任务 ----
+	void RefreshQuests();
+	void ReportQuestProgress(const FString& QuestString);
+
+	UPROPERTY(BlueprintAssignable) FMyBondageLifeShopChanged OnQuestsChanged;
+
+	UPROPERTY(BlueprintReadOnly) bool bHasQuestMaster = false;
+	UPROPERTY(BlueprintReadOnly) FString QuestMasterAccount;
+	UPROPERTY(BlueprintReadOnly) int32 QuestRemainSeconds = 0;
+	UPROPERTY(BlueprintReadOnly) TArray<FMyBondageLifeQuestEntry> DailyQuests;
+	UPROPERTY(BlueprintReadOnly) FMyBondageLifeQuestEntry WeeklyQuest;
 
 	/** 查询当前在线人数（登录界面用，无需鉴权）。 */
 	void RequestOnlineCount(TFunction<void(int32)> OnResult);

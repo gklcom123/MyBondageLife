@@ -1,7 +1,8 @@
 
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "MyBondageLifePlayerController.h"
+#include "MyBondageLifePlayerController.h"
+#include "Core/MyBondageLifeQuestCatalog.h"
 
 
 
@@ -1874,6 +1875,9 @@ void AMyBondageLifePlayerController::SetupInputComponent()
 	InputComponent->BindKey(EKeys::B, IE_Pressed, this, &AMyBondageLifePlayerController::HandleWardrobeKeyPressed);
 
 	// N：商店（与其它面板相同：绑定键 + 状态开关）
+	InputComponent->BindKey(EKeys::X, IE_Pressed, this,
+		&AMyBondageLifePlayerController::HandleQuestKeyPressed);
+
 	InputComponent->BindKey(EKeys::N, IE_Pressed, this,
 		&AMyBondageLifePlayerController::HandleShopKeyPressed);
 
@@ -3504,6 +3508,10 @@ void AMyBondageLifePlayerController::HandleHudButtonClicked(EMyBondageLifeHudEnt
 	case EMyBondageLifeHudEntryAction::Wardrobe:
 		ToggleWardrobe();
 		break;
+	case EMyBondageLifeHudEntryAction::Quest:
+		ToggleQuest();
+		break;
+
 	case EMyBondageLifeHudEntryAction::Shop:
 		ToggleShop();
 		break;
@@ -5762,3 +5770,108 @@ static FAutoConsoleCommand GDumpShopItemsCommand(
 		const bool bOk = FFileHelper::SaveStringToFile(Json, *FilePath, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
 		UE_LOG(LogMyBondageLife, Log, TEXT("Shop: dump %d items -> %s (%s)"), Entries.Num(), *FilePath, bOk ? TEXT("ok") : TEXT("failed"));
 	}));
+
+// ---------------------------------------------------------------------------
+// 任务
+// ---------------------------------------------------------------------------
+void AMyBondageLifePlayerController::HandleQuestKeyPressed()
+{
+	if (bChatTextInput || IsGameMenuOpen()) { return; }
+	ToggleQuest();
+}
+
+void AMyBondageLifePlayerController::ToggleQuest()
+{
+	if (bClimaxLocked || bTractionFollower || bInFurniture) { return; }
+	if (bQuestOpen) { CloseQuest(); } else { OpenQuest(); }
+}
+
+void AMyBondageLifePlayerController::OpenQuest()
+{
+	if (!QuestPanelWidget)
+	{
+		UClass* PanelClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_QuestPanel.WBP_QuestPanel_C"));
+		if (!PanelClass)
+		{
+			UE_LOG(LogMyBondageLife, Warning, TEXT("Quest: WBP_QuestPanel not found"));
+			return;
+		}
+		QuestPanelWidget = CreateWidget<UUserWidget>(this, PanelClass);
+		if (!QuestPanelWidget) { return; }
+		QuestPanelWidget->AddToViewport(60);
+		if (UButton* CloseBtn = Cast<UButton>(QuestPanelWidget->WidgetTree->FindWidget(TEXT("W_Close"))))
+		{
+			CloseBtn->OnClicked.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleQuestCloseClicked);
+		}
+	}
+	QuestPanelWidget->SetVisibility(ESlateVisibility::Visible);
+	bQuestOpen = true;
+	RefreshChatInputState();
+	if (FSlateApplication::IsInitialized()) { FSlateApplication::Get().SetAllUserFocusToGameViewport(); }
+
+	if (UMyBondageLifeAccountSubsystem* Account = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		Account->RefreshQuests();
+	}
+}
+
+void AMyBondageLifePlayerController::CloseQuest()
+{
+	if (QuestPanelWidget) { QuestPanelWidget->SetVisibility(ESlateVisibility::Collapsed); }
+	bQuestOpen = false;
+	RefreshChatInputState();
+}
+
+void AMyBondageLifePlayerController::HandleQuestCloseClicked()
+{
+	CloseQuest();
+}
+
+void AMyBondageLifePlayerController::RefreshQuestHud()
+{
+	if (!MainHudWidget || !MainHudWidget->WidgetTree) { return; }
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	if (!Account) { return; }
+
+	const bool bHasMaster = Account->bHasQuestMaster;
+	if (UWidget* Tip = MainHudWidget->WidgetTree->FindWidget(TEXT("W_NoneQuestTip")))
+	{
+		Tip->SetVisibility(bHasMaster ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+	}
+	if (UWidget* Box = MainHudWidget->WidgetTree->FindWidget(TEXT("W_QuestDetail_VerticalBox")))
+	{
+		Box->SetVisibility(bHasMaster ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	}
+
+	for (int32 i = 0; i < 5; ++i)
+	{
+		UTextBlock* Label = Cast<UTextBlock>(MainHudWidget->WidgetTree->FindWidget(FName(*FString::Printf(TEXT("W_Daily_%d"), i + 1))));
+		if (!Label) { continue; }
+		const FMyBondageLifeQuestEntry& Q = Account->DailyQuests.IsValidIndex(i) ? Account->DailyQuests[i] : FMyBondageLifeQuestEntry();
+		Label->SetText(FText::FromString(Q.IsValid()
+			? FString::Printf(TEXT("%s：%s（%d/%d）（%s）"), *Q.Name, *Q.Description, Q.Progress, Q.Times, Q.bCompleted ? TEXT("已完成") : TEXT("未完成"))
+			: FString(TEXT("暂时没有该日常任务"))));
+	}
+
+	if (UTextBlock* WeeklyLabel = Cast<UTextBlock>(MainHudWidget->WidgetTree->FindWidget(TEXT("W_Weekly"))))
+	{
+		const FMyBondageLifeQuestEntry& Q = Account->WeeklyQuest;
+		WeeklyLabel->SetText(FText::FromString(Q.IsValid()
+			? FString::Printf(TEXT("%s：%s（%d/%d）（%s）"), *Q.Name, *Q.Description, Q.Progress, Q.Times, Q.bCompleted ? TEXT("已完成") : TEXT("未完成"))
+			: FString(TEXT("暂时没有该周常任务"))));
+	}
+}
+
+void AMyBondageLifePlayerController::UpdateQuestRemainTime()
+{
+	if (!MainHudWidget || !MainHudWidget->WidgetTree) { return; }
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	if (!Account) { return; }
+	UTextBlock* Label = Cast<UTextBlock>(MainHudWidget->WidgetTree->FindWidget(TEXT("W_RemainTime")));
+	if (!Label) { return; }
+
+	Account->QuestRemainSeconds = FMath::Max(0, Account->QuestRemainSeconds - 1);
+	const int32 Hours = Account->QuestRemainSeconds / 3600;
+	const int32 Minutes = (Account->QuestRemainSeconds % 3600) / 60;
+	Label->SetText(FText::FromString(FString::Printf(TEXT("下一次刷新时间：%02d:%02d"), Hours, Minutes)));
+}

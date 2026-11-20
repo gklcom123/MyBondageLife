@@ -39,6 +39,8 @@ namespace
 			return { TEXT("/Game/2DAssest/UI/UI_Emote.UI_Emote"), TEXT("\u8868\u60C5\u52A8\u4F5C\uFF08Z\uFF09") };
 		case EMyBondageLifeHudEntryAction::Shop:
 			return { TEXT("/Game/2DAssest/UI/UI_Shop.UI_Shop"), TEXT("商店（N）") };
+		case EMyBondageLifeHudEntryAction::Quest:
+			return { TEXT("/Game/2DAssest/UI/UI_Quest.UI_Quest"), TEXT("任务（X）") };
 		default:
 			return { TEXT("/Game/2DAssest/UI/UI_HeadIcon.UI_HeadIcon"), TEXT("\u4E2A\u4EBA\u4FE1\u606F\uFF08C\uFF09") };
 		}
