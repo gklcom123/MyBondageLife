@@ -31,6 +31,9 @@ struct FMyBondageLifeRestraintItem
 	bool bRestraintArm = false;
 	bool bInGag = false;
 
+	/** 耳罩：屏蔽听觉（别人说话按 GagType 混淆后显示）。 */
+	bool bInPlug = false;
+
 	/** 眼罩：BlindLevel 1..3 表示视野受限强度。 */
 	bool bIsBlind = false;
 	int32 BlindLevel = 0;

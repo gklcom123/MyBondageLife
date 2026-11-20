@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "MyBondageLifeCharacter.h"
+#include "MyBondageLifeCharacter.h"
+#include "Core/Garbler/MyBondageLifeGarbler.h"
 
 #include "Core/MyBondageLifeHairCatalog.h"
 #include "Core/MyBondageLifeRestraintCatalog.h"
@@ -918,6 +919,46 @@ FName AMyBondageLifeCharacter::GetGagProfileId() const
 
 		// 旧数据没配 GagType：退回默认口球档位，避免"戴着却还能正常说话"。
 		return FMyBondageLifeGagTypeMap::GetDefaultProfileId();
+	}
+
+	return NAME_None;
+}
+
+FName AMyBondageLifeCharacter::GetHearingGagProfileId() const
+{
+	// 需求优先级（高 → 低）：密封头套XL > 密封头套 > 布条封口XL > 布条封口 > 填塞XL > 填塞
+	// > 面板口枷XL > 面板口枷 > 口球XL > 口球 > 开口环XL > 开口环
+	static const TCHAR* PriorityNames[] = {
+		TEXT("密封头套XL"), TEXT("密封头套"),
+		TEXT("布条封口XL"), TEXT("布条封口"),
+		TEXT("填塞XL"), TEXT("填塞"),
+		TEXT("面板口枷XL"), TEXT("面板口枷"),
+		TEXT("口球XL"), TEXT("口球"),
+		TEXT("开口环XL"), TEXT("开口环")
+	};
+
+	TSet<FName> WornProfiles;
+	for (const FName& ItemId : RestraintItemIds)
+	{
+		const FMyBondageLifeRestraintItem* Item = FMyBondageLifeRestraintCatalog::Find(ItemId);
+		if (!Item || !Item->bInPlug || !Item->bHasGagType)
+		{
+			continue;
+		}
+		const FName Profile = FMyBondageLifeGagTypeMap::ToProfileId(Item->GagType);
+		if (!Profile.IsNone())
+		{
+			WornProfiles.Add(Profile);
+		}
+	}
+
+	for (const TCHAR* Name : PriorityNames)
+	{
+		const FName Profile = FMyBondageLifeGarbler::ResolveProfileId(Name);
+		if (!Profile.IsNone() && WornProfiles.Contains(Profile))
+		{
+			return Profile;
+		}
 	}
 
 	return NAME_None;

@@ -263,6 +263,7 @@ void FMyBondageLifeRestraintCatalog::Refresh()
 		// The struct has a typo ("RestranitArm?"), so accept both spellings.
 		Item.bRestraintArm = ReadBool(RowStruct, RowData, { TEXT("RestranitArm"), TEXT("RestraintArm"), TEXT("RestranitArm?"), TEXT("RestraintArm?") });
 		Item.bInGag = ReadBool(RowStruct, RowData, { TEXT("InGag"), TEXT("InGag?") });
+		Item.bInPlug = ReadBool(RowStruct, RowData, { TEXT("InPlug"), TEXT("InPlug?") });
 		Item.bIsBlind = ReadBool(RowStruct, RowData, { TEXT("IsBlind"), TEXT("IsBlind?") });
 		Item.BlindLevel = FMath::Clamp(ReadInt(RowStruct, RowData, { TEXT("BlindLevel"), TEXT("BlindLevel?") }), 0, 3);
 		ReadStringArray(RowStruct, RowData, { TEXT("HideBodyPart"), TEXT("HideBodyPart?") }, Item.HideBodyParts);

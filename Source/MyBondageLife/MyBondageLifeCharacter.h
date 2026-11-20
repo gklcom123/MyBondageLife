@@ -298,6 +298,9 @@ public:
 	UFUNCTION(BlueprintPure, Category="Restraint")
 	FName GetGagProfileId() const;
 
+	/** 耳罩：返回当前生效的听觉混淆档位（优先级见实现）。 */
+	FName GetHearingGagProfileId() const;
+
 	UFUNCTION(BlueprintPure, Category="Restraint")
 	bool GetArmActive() const { return bRestraintArm; }
 

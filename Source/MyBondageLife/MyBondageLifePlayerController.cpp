@@ -792,6 +792,17 @@ void AMyBondageLifePlayerController::ClientReceiveChatMessage_Implementation(con
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("Chat: [%s] %s"), *SenderName, *Message);
 
+	// 耳罩：把收到的聊天（含自己）按听觉混淆档位处理后显示。
+	if (const AMyBondageLifeCharacter* OwnCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		const FName HearingProfile = OwnCharacter->GetHearingGagProfileId();
+		if (!HearingProfile.IsNone())
+		{
+			FMyBondageLifeGarblerOptions HearingOptions;
+			DisplayMessage = FMyBondageLifeGarbler::Garble(DisplayMessage, { HearingProfile }, HearingOptions);
+		}
+	}
+
 	{
 		// Contract partners are labelled: [奴隶] (purple) for my slaves, [主人] (red)
 		// for my master; third parties never see the prefix.
