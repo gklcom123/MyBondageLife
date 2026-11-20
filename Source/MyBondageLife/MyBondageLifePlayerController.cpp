@@ -1,7 +1,8 @@
 
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "MyBondageLifePlayerController.h"
+#include "MyBondageLifePlayerController.h"
+
 #include "Core/MyBondageLifeQuestCatalog.h"
 
 
@@ -5804,6 +5805,7 @@ static FAutoConsoleCommand GDumpShopItemsCommand(
 // ---------------------------------------------------------------------------
 void AMyBondageLifePlayerController::HandleQuestKeyPressed()
 {
+	UE_LOG(LogMyBondageLife, Log, TEXT("Quest: X pressed open=%d"), bQuestOpen ? 1 : 0);
 	if (bChatTextInput || IsGameMenuOpen()) { return; }
 	ToggleQuest();
 }
@@ -5816,9 +5818,12 @@ void AMyBondageLifePlayerController::ToggleQuest()
 
 void AMyBondageLifePlayerController::OpenQuest()
 {
+	UE_LOG(LogMyBondageLife, Log, TEXT("Quest: OpenQuest"));
 	if (!QuestPanelWidget)
 	{
 		UClass* PanelClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_QuestPanel.WBP_QuestPanel_C"));
+		if (!PanelClass) { PanelClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/Quest/WBP_QuestPanel.WBP_QuestPanel_C")); }
+		UE_LOG(LogMyBondageLife, Log, TEXT("Quest: panel class=%s"), PanelClass ? TEXT("ok") : TEXT("null"));
 		if (!PanelClass)
 		{
 			UE_LOG(LogMyBondageLife, Warning, TEXT("Quest: WBP_QuestPanel not found"));
