@@ -5835,6 +5835,19 @@ void AMyBondageLifePlayerController::OpenQuest()
 		QuestPanelWidget->SetAnchorsInViewport(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
 		QuestPanelWidget->SetAlignmentInViewport(FVector2D(0.0f, 0.0f));
 		QuestPanelWidget->SetPositionInViewport(FVector2D::ZeroVector, false);
+		if (QuestPanelWidget && QuestPanelWidget->WidgetTree)
+		{
+			if (UWidget* RootWidget = QuestPanelWidget->WidgetTree->RootWidget)
+			{
+				RootWidget->SetVisibility(ESlateVisibility::Visible);
+				UE_LOG(LogMyBondageLife, Log, TEXT("Quest: root=%s vis=%d size=%s"), *RootWidget->GetClass()->GetName(), static_cast<int32>(RootWidget->GetVisibility()), *RootWidget->GetDesiredSize().ToString());
+			}
+			else
+			{
+				UE_LOG(LogMyBondageLife, Warning, TEXT("Quest: WBP has no root widget"));
+			}
+		}
+
 		UE_LOG(LogMyBondageLife, Log, TEXT("Quest: created=%s inViewport=%d vis=%d size=%s"),
 			QuestPanelWidget ? TEXT("ok") : TEXT("null"),
 			QuestPanelWidget && QuestPanelWidget->IsInViewport() ? 1 : 0,
