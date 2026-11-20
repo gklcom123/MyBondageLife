@@ -716,10 +716,10 @@ static bool IsLatinLetter(TCHAR Ch)
 	return (Ch >= 'a' && Ch <= 'z') || (Ch >= 'A' && Ch <= 'Z');
 }
 
-static FString MakeChineseLike(const FString& Garbled, int32 TargetCount)
+static FString MakeChineseLike(const FString& Garbled)
 {
 	static const TMap<FString, TCHAR> SyllableToHanzi = BuildSyllableToHanzi();
-	if (SyllableToHanzi.Num() == 0 || TargetCount <= 0)
+	if (SyllableToHanzi.Num() == 0)
 	{
 		return Garbled;
 	}
@@ -735,9 +735,9 @@ static FString MakeChineseLike(const FString& Garbled, int32 TargetCount)
 		{
 			if (Ch == ' ' || Ch == '\t')
 			{
-				if (Result.Len() < TargetCount) { Result.AppendChar(TEXT(' ')); }
+				Result.AppendChar(TEXT(' '));
 			}
-			else if (Result.Len() < TargetCount)
+			else
 			{
 				Tail.Add(FString::Chr(Ch));
 			}
@@ -785,18 +785,8 @@ static FString MakeChineseLike(const FString& Garbled, int32 TargetCount)
 			}
 		}
 
-		if (Result.Len() >= TargetCount) { break; }
 	}
 
-	// 长度贴近原文（中文按字数）。
-	while (Result.Len() < TargetCount)
-	{
-		Result.AppendChar(TEXT('\u5514')); // 唔
-	}
-	if (Result.Len() > TargetCount)
-	{
-		Result = Result.Left(TargetCount);
-	}
 
 	// 原句尾部的标点补回去。
 	for (const FString& Punct : Tail)
@@ -1032,7 +1022,7 @@ FString FMyBondageLifeGarbler::Garble(const FString& Text, const TArray<FName>& 
 	}
 	if (InputCjkCount > 0)
 	{
-		Out = MakeChineseLike(Out, InputCjkCount);
+		Out = MakeChineseLike(Out);
 	}
 
 	return Out;
