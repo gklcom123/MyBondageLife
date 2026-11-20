@@ -1,7 +1,10 @@
 
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "MyBondageLifePlayerController.h"
+#include "MyBondageLifePlayerController.h"
+#include "Components/CanvasPanelSlot.h"
+#include "Components/Border.h"
+#include "Components/CanvasPanel.h"
 
 #include "Core/MyBondageLifeQuestCatalog.h"
 
@@ -5835,6 +5838,11 @@ void AMyBondageLifePlayerController::OpenQuest()
 		QuestPanelWidget->SetAnchorsInViewport(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
 		QuestPanelWidget->SetAlignmentInViewport(FVector2D(0.0f, 0.0f));
 		QuestPanelWidget->SetPositionInViewport(FVector2D::ZeroVector, false);
+		{
+			int32 ViewX = 0, ViewY = 0;
+			GetViewportSize(ViewX, ViewY);
+			QuestPanelWidget->SetDesiredSizeInViewport(FVector2D(ViewX, ViewY));
+		}
 		if (QuestPanelWidget && QuestPanelWidget->WidgetTree)
 		{
 			if (UWidget* RootWidget = QuestPanelWidget->WidgetTree->RootWidget)
@@ -5848,6 +5856,51 @@ void AMyBondageLifePlayerController::OpenQuest()
 			}
 		}
 
+		// 设计面板根节点尺寸为 0（无可见内容）时，用代码搭一个最小可用面板，保证入口可验证。
+		if (QuestPanelWidget && QuestPanelWidget->WidgetTree &&
+			(!QuestPanelWidget->WidgetTree->RootWidget || QuestPanelWidget->WidgetTree->RootWidget->GetDesiredSize().IsNearlyZero()))
+		{
+			UCanvasPanel* FallbackRoot = QuestPanelWidget->WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("QuestFallbackRoot"));
+			QuestPanelWidget->WidgetTree = QuestPanelWidget->WidgetTree;
+			if (UBorder* Bg = QuestPanelWidget->WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("QuestFallbackBg")))
+			{
+				Bg->SetBrushColor(FLinearColor(0.04f, 0.04f, 0.06f, 0.92f));
+				if (UCanvasPanelSlot* BgSlot = FallbackRoot->AddChildToCanvas(Bg))
+				{
+					BgSlot->SetAnchors(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
+					BgSlot->SetOffsets(FMargin(0.0f));
+				}
+			}
+			if (UTextBlock* Title = QuestPanelWidget->WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("QuestFallbackTitle")))
+			{
+				Title->SetText(FText::FromString(TEXT("任务")));
+				Title->SetColorAndOpacity(FSlateColor(FLinearColor::White));
+				if (UCanvasPanelSlot* TitleSlot = FallbackRoot->AddChildToCanvas(Title))
+				{
+					TitleSlot->SetAnchors(FAnchors(0.5f, 0.1f, 0.5f, 0.1f));
+					TitleSlot->SetAlignment(FVector2D(0.5f, 0.5f));
+					TitleSlot->SetAutoSize(true);
+				}
+			}
+			if (UButton* CloseButton = QuestPanelWidget->WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("W_Close")))
+			{
+				if (UTextBlock* CloseText = QuestPanelWidget->WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass()))
+				{
+					CloseText->SetText(FText::FromString(TEXT("关闭")));
+					CloseButton->AddChild(CloseText);
+				}
+				if (UCanvasPanelSlot* CloseSlot = FallbackRoot->AddChildToCanvas(CloseButton))
+				{
+					CloseSlot->SetAnchors(FAnchors(1.0f, 0.0f, 1.0f, 0.0f));
+					CloseSlot->SetAlignment(FVector2D(1.0f, 0.0f));
+					CloseSlot->SetPosition(FVector2D(-30.0f, 30.0f));
+					CloseSlot->SetSize(FVector2D(120.0f, 48.0f));
+				}
+				CloseButton->OnClicked.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleQuestCloseClicked);
+			}
+			QuestPanelWidget->WidgetTree->RootWidget = FallbackRoot;
+			UE_LOG(LogMyBondageLife, Log, TEXT("Quest: built fallback panel"));
+		}
 		UE_LOG(LogMyBondageLife, Log, TEXT("Quest: created=%s inViewport=%d vis=%d size=%s"),
 			QuestPanelWidget ? TEXT("ok") : TEXT("null"),
 			QuestPanelWidget && QuestPanelWidget->IsInViewport() ? 1 : 0,
