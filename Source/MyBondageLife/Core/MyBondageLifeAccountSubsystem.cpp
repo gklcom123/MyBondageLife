@@ -3367,16 +3367,28 @@ void UMyBondageLifeAccountSubsystem::PurchaseShopItem(const FString& ItemType, c
 
 void UMyBondageLifeAccountSubsystem::RequestOnlineCount(TFunction<void(int32)> OnResult)
 {
-	SendFriendApiRequest(TEXT("GET"), TEXT("/stats/online"), nullptr,
-		[OnResult = MoveTemp(OnResult)](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+	// 登录界面还没有 Token，不能用带鉴权的 SendFriendApiRequest，这里直接发公共请求。
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
+	Request->SetURL(FString::Printf(TEXT("%s/stats/online"), *GetServerUrl()));
+	Request->SetVerb(TEXT("GET"));
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json; charset=utf-8"));
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	Request->OnProcessRequestComplete().BindLambda(
+		[WeakThis, OnResult = MoveTemp(OnResult)](FHttpRequestPtr, FHttpResponsePtr Response, bool bConnected)
 		{
 			int32 Count = 0;
-			if (bOk && Json.IsValid())
+			if (bConnected && Response.IsValid() && Response->GetResponseCode() >= 200 && Response->GetResponseCode() < 300)
 			{
-				double Value = 0.0;
-				if (Json->TryGetNumberField(TEXT("online"), Value))
+				TSharedPtr<FJsonObject> Json;
+				const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Response->GetContentAsString());
+				if (FJsonSerializer::Deserialize(Reader, Json) && Json.IsValid())
 				{
-					Count = static_cast<int32>(Value);
+					double Value = 0.0;
+					if (Json->TryGetNumberField(TEXT("online"), Value))
+					{
+						Count = static_cast<int32>(Value);
+					}
 				}
 			}
 			if (OnResult)
