@@ -3398,4 +3398,5 @@ void UMyBondageLifeAccountSubsystem::RequestOnlineCount(TFunction<void(int32)> O
 				OnResult(Count);
 			}
 		});
+	Request->ProcessRequest();
 }

@@ -139,7 +139,7 @@ void UMyBondageLifeLoginWidget::BuildLayout()
 	}
 	// 在线人数（账号登录下方，进入界面每 5 秒刷新一次）
 	OnlineCountLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("W_OnlineCount"));
-	OnlineCountLabel->SetText(FText::FromString(TEXT("在线玩家：--")));
+	OnlineCountLabel->SetText(FText::FromString(TEXT("在线玩家：0")));
 	OnlineCountLabel->SetJustification(ETextJustify::Center);
 	OnlineCountLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.75f, 0.78f, 0.85f, 1.0f)));
 	if (UVerticalBoxSlot* OnlineSlot = LoginPanel->AddChildToVerticalBox(OnlineCountLabel))
