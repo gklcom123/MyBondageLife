@@ -748,6 +748,7 @@ public:
 	void OpenQuest();
 	void CloseQuest();
 	UFUNCTION() void HandleQuestCloseClicked();
+	UFUNCTION()
 	void RefreshQuestHud();
 	void UpdateQuestRemainTime();
 
