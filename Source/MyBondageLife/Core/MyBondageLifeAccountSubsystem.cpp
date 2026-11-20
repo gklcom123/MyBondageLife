@@ -3369,7 +3369,9 @@ void UMyBondageLifeAccountSubsystem::RequestOnlineCount(TFunction<void(int32)> O
 {
 	// 登录界面还没有 Token，不能用带鉴权的 SendFriendApiRequest，这里直接发公共请求。
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
-	Request->SetURL(FString::Printf(TEXT("%s/stats/online"), *GetServerUrl()));
+	const FString OnlineUrl = GetServerUrl().TrimEnd() + TEXT("/stats/online");
+	Request->SetURL(OnlineUrl);
+	UE_LOG(LogMyBondageLife, Log, TEXT("Online: GET %s"), *OnlineUrl);
 	Request->SetVerb(TEXT("GET"));
 	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json; charset=utf-8"));
 
