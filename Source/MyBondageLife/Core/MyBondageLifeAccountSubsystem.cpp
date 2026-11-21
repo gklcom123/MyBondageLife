@@ -3487,3 +3487,43 @@ void UMyBondageLifeAccountSubsystem::ReportQuestProgress(const FString& QuestStr
 			Self->RefreshQuests();
 		});
 }
+
+void UMyBondageLifeAccountSubsystem::RequestSlaveQuests(const FString& SlaveAccount)
+{
+	if (SlaveAccount.IsEmpty()) { return; }
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	SendFriendApiRequest(TEXT("GET"), FString::Printf(TEXT("/quests/%s"), *SlaveAccount), nullptr,
+		[WeakThis, SlaveAccount](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self || !bOk || !Json.IsValid()) { return; }
+
+			Self->SlaveQuestsAccount = SlaveAccount;
+			Self->SlaveDailyQuests.SetNum(5);
+			for (FMyBondageLifeQuestEntry& Entry : Self->SlaveDailyQuests) { Entry = FMyBondageLifeQuestEntry(); }
+
+			const TArray<TSharedPtr<FJsonValue>>* Daily = nullptr;
+			if (Json->TryGetArrayField(TEXT("daily"), Daily) && Daily)
+			{
+				for (int32 i = 0; i < Daily->Num() && i < 5; ++i)
+				{
+					const TSharedPtr<FJsonObject>* Obj = nullptr;
+					if ((*Daily)[i].IsValid() && (*Daily)[i]->TryGetObject(Obj) && Obj)
+					{
+						ParseQuestEntry(*Obj, Self->SlaveDailyQuests[i]);
+					}
+				}
+			}
+
+			Self->SlaveWeeklyQuest = FMyBondageLifeQuestEntry();
+			const TSharedPtr<FJsonObject>* Weekly = nullptr;
+			if (Json->TryGetObjectField(TEXT("weekly"), Weekly) && Weekly)
+			{
+				ParseQuestEntry(*Weekly, Self->SlaveWeeklyQuest);
+			}
+
+			UE_LOG(LogMyBondageLife, Log, TEXT("Quest: slave quests for %s loaded"), *SlaveAccount);
+			Self->OnSlaveQuestsChanged.Broadcast();
+		});
+}

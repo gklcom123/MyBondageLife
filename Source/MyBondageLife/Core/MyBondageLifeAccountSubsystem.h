@@ -565,6 +565,15 @@ public:
 
 	// ---- 任务 ----
 	void RefreshQuests();
+
+	/** 主人查看某奴隶的任务。 */
+	void RequestSlaveQuests(const FString& SlaveAccount);
+
+	UPROPERTY(BlueprintAssignable) FMyBondageLifeShopChanged OnSlaveQuestsChanged;
+
+	UPROPERTY(BlueprintReadOnly) FString SlaveQuestsAccount;
+	UPROPERTY(BlueprintReadOnly) TArray<FMyBondageLifeQuestEntry> SlaveDailyQuests;
+	UPROPERTY(BlueprintReadOnly) FMyBondageLifeQuestEntry SlaveWeeklyQuest;
 	void ReportQuestProgress(const FString& QuestString);
 
 	UPROPERTY(BlueprintAssignable) FMyBondageLifeShopChanged OnQuestsChanged;

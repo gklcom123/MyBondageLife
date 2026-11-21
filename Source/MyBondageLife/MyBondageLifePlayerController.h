@@ -771,6 +771,10 @@ public:
 	void RefreshQuestPanel();
 
 	UFUNCTION() void RefreshQuestSlaveList();
+
+	UFUNCTION() void RefreshSlaveQuestDetails();
+
+	FString CurrentQuestSlaveAccount;
 	void SelectQuestSlave(const FString& SlaveAccount, const FString& SlaveName);
 
 	UPROPERTY(Transient) TArray<TObjectPtr<class UMyBondageLifeQuestSlaveProxy>> QuestSlaveProxies;

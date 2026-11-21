@@ -2896,6 +2896,7 @@ void AMyBondageLifePlayerController::ShowHudEntries()
 	HudRuleAccount->OnQuestsChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::RefreshQuestHud);
 	HudRuleAccount->OnQuestsChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::RefreshQuestPanel);
 	HudRuleAccount->OnContractsChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::RefreshQuestSlaveList);
+	HudRuleAccount->OnSlaveQuestsChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::RefreshSlaveQuestDetails);
 	HudRuleAccount->OnShopPurchaseFinished.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleShopPurchaseFinished);
 	GetWorldTimerManager().SetTimer(FurnitureRefreshTimer, this, &AMyBondageLifePlayerController::RefreshFurnitureStatePeriodic, 5.0f, true);
 	RefreshFurnitureStatePeriodic();
@@ -6076,5 +6077,62 @@ void AMyBondageLifePlayerController::SelectQuestSlave(const FString& SlaveAccoun
 		InfoName->SetText(FText::FromString(SlaveName.IsEmpty() ? SlaveAccount : SlaveName));
 	}
 
+	CurrentQuestSlaveAccount = SlaveAccount;
+	if (UMyBondageLifeAccountSubsystem* Account = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		Account->RequestSlaveQuests(SlaveAccount);
+	}
+
 	UE_LOG(LogMyBondageLife, Log, TEXT("Quest: selected slave %s"), *SlaveAccount);
+}
+
+void AMyBondageLifePlayerController::RefreshSlaveQuestDetails()
+{
+	if (!QuestPanelWidget || !QuestPanelWidget->WidgetTree) { return; }
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	if (!Account) { return; }
+
+	auto ApplySlot = [this](const FMyBondageLifeQuestEntry& Q, const TCHAR* TextName, const TCHAR* RewardName,
+		const TCHAR* AddBtnName, const TCHAR* AddLabelName, const TCHAR* RemoveBtnName, const TCHAR* RemoveLabelName)
+	{
+		const bool bHas = Q.IsValid();
+		if (UTextBlock* TextLabel = Cast<UTextBlock>(QuestPanelWidget->WidgetTree->FindWidget(FName(TextName))))
+		{
+			TextLabel->SetText(FText::FromString(bHas
+				? FString::Printf(TEXT("%s：%s（%d/%d）（%s）"), *Q.Name, *Q.Description, Q.Progress, Q.Times, Q.bCompleted ? TEXT("已完成") : TEXT("未完成"))
+				: FString(TEXT("暂无任务"))));
+		}
+		if (UTextBlock* Reward = Cast<UTextBlock>(QuestPanelWidget->WidgetTree->FindWidget(FName(RewardName))))
+		{
+			Reward->SetText(FText::FromString(bHas ? FString::Printf(TEXT("￥%d"), Q.RewardMoney) : FString()));
+		}
+		if (UButton* AddButton = Cast<UButton>(QuestPanelWidget->WidgetTree->FindWidget(FName(AddBtnName))))
+		{
+			AddButton->SetIsEnabled(!bHas || !Q.bCompleted);
+		}
+		if (UTextBlock* AddLabel = Cast<UTextBlock>(QuestPanelWidget->WidgetTree->FindWidget(FName(AddLabelName))))
+		{
+			AddLabel->SetText(FText::FromString(bHas ? TEXT("切换任务") : TEXT("添加任务")));
+		}
+		if (UButton* RemoveButton = Cast<UButton>(QuestPanelWidget->WidgetTree->FindWidget(FName(RemoveBtnName))))
+		{
+			RemoveButton->SetIsEnabled(bHas && !Q.bCompleted);
+		}
+		if (UTextBlock* RemoveLabel = Cast<UTextBlock>(QuestPanelWidget->WidgetTree->FindWidget(FName(RemoveLabelName))))
+		{
+			RemoveLabel->SetText(FText::FromString(TEXT("删除任务")));
+		}
+	};
+
+	for (int32 i = 0; i < 5; ++i)
+	{
+		const FMyBondageLifeQuestEntry& Q = Account->SlaveDailyQuests.IsValidIndex(i) ? Account->SlaveDailyQuests[i] : FMyBondageLifeQuestEntry();
+		ApplySlot(Q,
+			*FString::Printf(TEXT("W_Daily_TA_%d"), i + 1), *FString::Printf(TEXT("W_RewardGold_%d"), i + 1),
+			*FString::Printf(TEXT("W_AddQuest_TA_%d"), i + 1), *FString::Printf(TEXT("W_AddQuestLabel_%d"), i + 1),
+			*FString::Printf(TEXT("W_RemoveQuest_TA_%d"), i + 1), *FString::Printf(TEXT("W_RemoveQuestLabel_%d"), i + 1));
+	}
+	ApplySlot(Account->SlaveWeeklyQuest, TEXT("W_Weekly_TA"), TEXT("W_RewardGold_Weekly"),
+		TEXT("W_AddQuest_TA_Weekly"), TEXT("W_AddQuestLabel_Weekly"),
+		TEXT("W_RemoveQuest_TA_Weekly"), TEXT("W_RemoveQuestLabel_Weekly"));
 }
