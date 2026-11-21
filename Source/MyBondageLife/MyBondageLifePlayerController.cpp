@@ -6262,6 +6262,28 @@ void AMyBondageLifePlayerController::RefreshAddQuestRows()
 		const bool bSlotHasQuest = bWantDaily
 			? (Account && Account->SlaveDailyQuests.IsValidIndex(AddQuestSlotIndex - 1) && Account->SlaveDailyQuests[AddQuestSlotIndex - 1].IsValid())
 			: (Account && Account->SlaveWeeklyQuest.IsValid());
+		UButton* AcceptBtn = Cast<UButton>(Row->WidgetTree->FindWidget(TEXT("W_Accept")));
+		UTextBlock* AcceptLabel = Cast<UTextBlock>(Row->WidgetTree->FindWidget(TEXT("W_Accept_Label")));
+		if (!AcceptBtn || !AcceptLabel)
+		{
+			TArray<UWidget*> AllWidgets;
+			Row->WidgetTree->GetAllWidgets(AllWidgets);
+			for (UWidget* Candidate : AllWidgets)
+			{
+				if (!AcceptBtn) { AcceptBtn = Cast<UButton>(Candidate); }
+				if (!AcceptLabel)
+				{
+					if (UTextBlock* CandidateText = Cast<UTextBlock>(Candidate))
+					{
+						if (CandidateText->GetText().ToString().Contains(TEXT("切换")) || CandidateText->GetText().ToString().Contains(TEXT("添加")))
+						{
+							AcceptLabel = CandidateText;
+						}
+					}
+				}
+			}
+		}
+		UE_LOG(LogMyBondageLife, Log, TEXT("Quest: row %s accept=%s label=%s"), *Def.Id.ToString(), AcceptBtn ? TEXT("ok") : TEXT("MISSING"), AcceptLabel ? TEXT("ok") : TEXT("MISSING"));
 		const bool bUsed = UsedIds.Contains(Def.Id.ToString());
 		if (UButton* Accept = Cast<UButton>(Row->WidgetTree->FindWidget(TEXT("W_Accept"))))
 		{
