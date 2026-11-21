@@ -5853,6 +5853,10 @@ void AMyBondageLifePlayerController::OpenQuest()
 
 	QuestPanelWidget->SetVisibility(ESlateVisibility::Visible);
 	RefreshQuestPanel();
+	if (UMyBondageLifeAccountSubsystem* ContractAccount = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		ContractAccount->RefreshContractState();
+	}
 	RefreshQuestSlaveList();
 	bQuestOpen = true;
 	RefreshChatInputState();
@@ -6004,9 +6008,6 @@ void UMyBondageLifeQuestSlaveProxy::HandleClicked()
 void AMyBondageLifePlayerController::RefreshQuestSlaveList()
 {
 	if (!QuestPanelWidget || !QuestPanelWidget->WidgetTree) { return; }
-
-	UMyBondageLifeAccountSubsystem* ContractAccount = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
-	if (ContractAccount) { ContractAccount->RefreshContractState(); }
 
 	UPanelWidget* SlaveList = Cast<UPanelWidget>(QuestPanelWidget->WidgetTree->FindWidget(TEXT("M_SlaveList")));
 	if (!SlaveList) { UE_LOG(LogMyBondageLife, Warning, TEXT("Quest: M_SlaveList not found")); return; }

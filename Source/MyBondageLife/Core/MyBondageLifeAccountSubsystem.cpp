@@ -318,6 +318,7 @@ bool UMyBondageLifeAccountSubsystem::ApplyAuthPayload(const TSharedPtr<FJsonObje
 	RefreshRestraints();
 	RefreshShopOwnership();
 	RefreshShopState();
+	RefreshContractState();
 
 	// 登录后立刻拉一次自己的公开资料：UID 用于规则（听觉白名单）与个人信息显示。
 	if (!AccountName.IsEmpty())
@@ -860,6 +861,7 @@ void UMyBondageLifeAccountSubsystem::StartFriendPolling()
 	RefreshRestraints();
 	RefreshShopOwnership();
 	RefreshShopState();
+	RefreshContractState();
 
 	// 登录后立刻拉一次自己的公开资料：UID 用于规则（听觉白名单）与个人信息显示。
 	if (!AccountName.IsEmpty())
