@@ -6285,6 +6285,16 @@ void AMyBondageLifePlayerController::RefreshAddQuestRows()
 			}
 		}
 		UE_LOG(LogMyBondageLife, Log, TEXT("Quest: row %s accept=%s label=%s"), *Def.Id.ToString(), AcceptBtn ? *AcceptBtn->GetClass()->GetName() : TEXT("MISSING"), AcceptLabel ? TEXT("ok") : TEXT("MISSING"));
+		if (AcceptBtn)
+		{
+			for (UWidget* Parent = AcceptBtn->GetParent(); Parent; Parent = Parent->GetParent())
+			{
+				if (Parent->GetVisibility() == ESlateVisibility::HitTestInvisible)
+				{
+					Parent->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+				}
+			}
+		}
 		if (Def.Id.ToString() == FMyBondageLifeQuestCatalog::GetItems()[0].Id.ToString())
 		{
 			TArray<UWidget*> AllWidgets;
