@@ -6104,21 +6104,6 @@ void AMyBondageLifePlayerController::SelectQuestSlave(const FString& SlaveAccoun
 	UE_LOG(LogMyBondageLife, Log, TEXT("Quest: selected slave %s"), *SlaveAccount);
 }
 
-static UTextBlock* FindDescendantText(UWidgetTree* Tree, UWidget* Root)
-{
-	if (!Tree || !Root) { return nullptr; }
-	TArray<UWidget*> All;
-	Tree->GetAllWidgets(All);
-	for (UWidget* Candidate : All)
-	{
-		if (!Cast<UTextBlock>(Candidate)) { continue; }
-		for (UWidget* Parent = Candidate->GetParent(); Parent; Parent = Parent->GetParent())
-		{
-			if (Parent == Root) { return Cast<UTextBlock>(Candidate); }
-		}
-	}
-	return nullptr;
-}
 void AMyBondageLifePlayerController::RefreshSlaveQuestDetails()
 {
 	if (!QuestPanelWidget || !QuestPanelWidget->WidgetTree) { return; }
@@ -6142,10 +6127,6 @@ void AMyBondageLifePlayerController::RefreshSlaveQuestDetails()
 		if (UButton* AddButton = Cast<UButton>(QuestPanelWidget->WidgetTree->FindWidget(FName(AddBtnName))))
 		{
 			AddButton->SetIsEnabled(!bHas || !Q.bCompleted);
-			if (UTextBlock* InnerText = FindDescendantText(QuestPanelWidget->WidgetTree, AddButton))
-			{
-				InnerText->SetText(FText::FromString(bHas ? TEXT("切换任务") : TEXT("添加任务")));
-			}
 		}
 		if (UTextBlock* AddLabel = Cast<UTextBlock>(QuestPanelWidget->WidgetTree->FindWidget(FName(AddLabelName))))
 		{
