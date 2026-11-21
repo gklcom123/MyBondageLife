@@ -6283,7 +6283,7 @@ void AMyBondageLifePlayerController::RefreshAddQuestRows()
 				}
 			}
 		}
-		UE_LOG(LogMyBondageLife, Log, TEXT("Quest: row %s accept=%s label=%s used=%d"), *Def.Id.ToString(), AcceptBtn ? *AcceptBtn->GetClass()->GetName() : TEXT("MISSING"), AcceptLabel ? TEXT("ok") : TEXT("MISSING"), bUsed ? 1 : 0);
+		UE_LOG(LogMyBondageLife, Log, TEXT("Quest: row %s accept=%s label=%s used=%d"), *Def.Id.ToString(), AcceptBtn ? *AcceptBtn->GetClass()->GetName() : TEXT("MISSING"), AcceptLabel ? TEXT("ok") : TEXT("MISSING"));
 		if (Def.Id.ToString() == FMyBondageLifeQuestCatalog::GetItems()[0].Id.ToString())
 		{
 			TArray<UWidget*> AllWidgets;
