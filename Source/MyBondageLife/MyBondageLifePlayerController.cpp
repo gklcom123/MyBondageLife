@@ -5919,10 +5919,13 @@ void AMyBondageLifePlayerController::RefreshQuestHud()
 	{
 		UTextBlock* Label = Cast<UTextBlock>(MainHudWidget->WidgetTree->FindWidget(FName(*FString::Printf(TEXT("W_Daily_%d"), i + 1))));
 		if (!Label) { continue; }
+		static const TCHAR* IndexMarks[] = { TEXT("①"), TEXT("②"), TEXT("③"), TEXT("④"), TEXT("⑤") };
+		const FString PrefixMark = IndexMarks[FMath::Clamp(i, 0, 4)];
 		const FMyBondageLifeQuestEntry& Q = Account->DailyQuests.IsValidIndex(i) ? Account->DailyQuests[i] : FMyBondageLifeQuestEntry();
 		Label->SetText(FText::FromString(Q.IsValid()
-			? FString::Printf(TEXT("%s：%s（%d/%d）（%s）"), *Q.Name, *Q.Description, Q.Progress, Q.Times, Q.bCompleted ? TEXT("已完成") : TEXT("未完成"))
-			: FString(TEXT("暂时没有该日常任务"))));
+			? FString::Printf(TEXT("%s%s：%s（%d/%d）（%s）"), *PrefixMark, *Q.Name, *Q.Description, Q.Progress, Q.Times, Q.bCompleted ? TEXT("已完成") : TEXT("未完成"))
+			: PrefixMark + FString(TEXT("暂时没有该日常任务"))));
+		Label->SetColorAndOpacity(FSlateColor(FLinearColor(1.0f, 1.0f, 1.0f, Q.IsValid() ? 1.0f : 0.5f)));
 	}
 
 	if (UTextBlock* WeeklyLabel = Cast<UTextBlock>(MainHudWidget->WidgetTree->FindWidget(TEXT("W_Weekly"))))
