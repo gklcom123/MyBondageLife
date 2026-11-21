@@ -822,6 +822,10 @@ public:
 
 	/** BoundMove 任务：受限状态下的移动累计（秒）。 */
 	float BoundMoveAccum = 0.0f;
+
+	/** 主界面任务覆层（TAB 开关）。 */
+	bool bQuestOverlayVisible = true;
+	UFUNCTION() void ToggleQuestOverlay();
 	FTimerHandle QuestRemainTimer;
 	UPROPERTY(Transient) TObjectPtr<class UUserWidget> QuestPanelWidget;
 

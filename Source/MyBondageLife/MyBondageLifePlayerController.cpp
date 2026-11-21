@@ -1904,6 +1904,10 @@ void AMyBondageLifePlayerController::SetupInputComponent()
 	InputComponent->BindKey(EKeys::B, IE_Pressed, this, &AMyBondageLifePlayerController::HandleWardrobeKeyPressed);
 
 	// N：商店（与其它面板相同：绑定键 + 状态开关）
+	// TAB：显示/隐藏主界面任务覆层
+	InputComponent->BindKey(EKeys::Tab, IE_Pressed, this,
+		&AMyBondageLifePlayerController::ToggleQuestOverlay);
+
 	InputComponent->BindKey(EKeys::X, IE_Pressed, this,
 		&AMyBondageLifePlayerController::HandleQuestKeyPressed);
 
@@ -2861,6 +2865,10 @@ void AMyBondageLifePlayerController::ShowMainHud()
 	if (MainHudWidget)
 	{
 		MainHudWidget->AddToViewport(11);
+	if (UWidget* Overlay = MainHudWidget->WidgetTree->FindWidget(TEXT("W_QuestOverlay")))
+	{
+		Overlay->SetVisibility(bQuestOverlayVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	}
 
 	// 任务：登录后拉取一次，并每秒刷新刷新倒计时。
 	if (UMyBondageLifeAccountSubsystem* QuestAccount = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
@@ -6395,4 +6403,16 @@ void AMyBondageLifePlayerController::HandleQuestSlotButton(const FString& SlotTy
 void AMyBondageLifePlayerController::HandleAddQuestCloseClicked()
 {
 	if (AddQuestPanelWidget) { AddQuestPanelWidget->SetVisibility(ESlateVisibility::Collapsed); }
+}
+void AMyBondageLifePlayerController::ToggleQuestOverlay()
+{
+	bQuestOverlayVisible = !bQuestOverlayVisible;
+	if (MainHudWidget && MainHudWidget->WidgetTree)
+	{
+		if (UWidget* Overlay = MainHudWidget->WidgetTree->FindWidget(TEXT("W_QuestOverlay")))
+		{
+			Overlay->SetVisibility(bQuestOverlayVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+		}
+	}
+	UE_LOG(LogMyBondageLife, Log, TEXT("Quest: overlay %s"), bQuestOverlayVisible ? TEXT("on") : TEXT("off"));
 }
