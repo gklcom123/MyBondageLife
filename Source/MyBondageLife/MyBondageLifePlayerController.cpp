@@ -5856,6 +5856,15 @@ void AMyBondageLifePlayerController::OpenQuest()
 		if (!QuestPanelWidget) { return; }
 		Cast<UMyBondageLifeQuestPanelWidget>(QuestPanelWidget)->OnClosed.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleQuestCloseClicked);
 		QuestPanelWidget->AddToViewport(60);
+		if (UButton* PanelClose = Cast<UButton>(QuestPanelWidget->WidgetTree->FindWidget(TEXT("W_Close"))))
+		{
+			PanelClose->OnClicked.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleQuestCloseClicked);
+			UE_LOG(LogMyBondageLife, Log, TEXT("Quest: bound W_Close"));
+		}
+		else
+		{
+			UE_LOG(LogMyBondageLife, Warning, TEXT("Quest: W_Close not found on panel"));
+		}
 		BindQuestSlotButtons();
 		UE_LOG(LogMyBondageLife, Log, TEXT("Quest: created code panel"));
 		RefreshQuestPanel();
@@ -6122,6 +6131,11 @@ void AMyBondageLifePlayerController::RefreshSlaveQuestDetails()
 		if (UTextBlock* AddLabel = Cast<UTextBlock>(QuestPanelWidget->WidgetTree->FindWidget(FName(AddLabelName))))
 		{
 			AddLabel->SetText(FText::FromString(bHas ? TEXT("切换任务") : TEXT("添加任务")));
+			UE_LOG(LogMyBondageLife, Log, TEXT("Quest: label %s -> %s (has=%d)"), AddLabelName, bHas ? TEXT("切换") : TEXT("添加"), bHas ? 1 : 0);
+		}
+		else
+		{
+			UE_LOG(LogMyBondageLife, Warning, TEXT("Quest: label %s MISSING"), AddLabelName);
 		}
 		if (UButton* RemoveButton = Cast<UButton>(QuestPanelWidget->WidgetTree->FindWidget(FName(RemoveBtnName))))
 		{
