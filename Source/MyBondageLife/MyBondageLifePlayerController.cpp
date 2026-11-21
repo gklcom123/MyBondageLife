@@ -1,7 +1,8 @@
 
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "MyBondageLifePlayerController.h"
+#include "MyBondageLifePlayerController.h"
+
 #include "Components/VerticalBoxSlot.h"
 #include "Components/VerticalBox.h"
 
@@ -6283,7 +6284,7 @@ void AMyBondageLifePlayerController::RefreshAddQuestRows()
 				}
 			}
 		}
-		UE_LOG(LogMyBondageLife, Log, TEXT("Quest: row %s accept=%s label=%s used=%d"), *Def.Id.ToString(), AcceptBtn ? *AcceptBtn->GetClass()->GetName() : TEXT("MISSING"), AcceptLabel ? TEXT("ok") : TEXT("MISSING"));
+		UE_LOG(LogMyBondageLife, Log, TEXT("Quest: row %s accept=%s label=%s"), *Def.Id.ToString(), AcceptBtn ? *AcceptBtn->GetClass()->GetName() : TEXT("MISSING"), AcceptLabel ? TEXT("ok") : TEXT("MISSING"));
 		if (Def.Id.ToString() == FMyBondageLifeQuestCatalog::GetItems()[0].Id.ToString())
 		{
 			TArray<UWidget*> AllWidgets;
