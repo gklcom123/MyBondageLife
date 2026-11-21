@@ -819,6 +819,9 @@ public:
 	void UpdateQuestRemainTime();
 
 	bool bQuestOpen = false;
+
+	/** BoundMove 任务：受限状态下的移动累计（秒）。 */
+	float BoundMoveAccum = 0.0f;
 	FTimerHandle QuestRemainTimer;
 	UPROPERTY(Transient) TObjectPtr<class UUserWidget> QuestPanelWidget;
 

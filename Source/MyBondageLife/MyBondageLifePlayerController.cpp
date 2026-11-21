@@ -1960,6 +1960,30 @@ void AMyBondageLifePlayerController::PlayerTick(float DeltaTime)
 	}
 
 	SyncFurnitureCameraPostProcess();
+	// 任务 BoundMove：手/腿受限且正在移动时，每满 1 秒上报一次。
+	if (const AMyBondageLifeCharacter* BoundCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		const bool bBound = BoundCharacter->IsArmsRestrained() || BoundCharacter->GetLegActive();
+		const bool bMoving = BoundCharacter->GetVelocity().SizeSquared2D() > 400.0f;
+		if (bBound && bMoving)
+		{
+			BoundMoveAccum += GetWorld() ? GetWorld()->GetDeltaSeconds() : 0.0f;
+			if (BoundMoveAccum >= 1.0f)
+			{
+				BoundMoveAccum -= 1.0f;
+				if (UMyBondageLifeAccountSubsystem* QuestAccount = GetGameInstance()
+					? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+				{
+					QuestAccount->ReportQuestProgress(TEXT("BoundMove"));
+				}
+			}
+		}
+		else
+		{
+			BoundMoveAccum = 0.0f;
+		}
+	}
+
 	UpdateFurnitureProximity();
 	UpdateTractionFollow(DeltaTime);
 	UpdateTractionChain();
