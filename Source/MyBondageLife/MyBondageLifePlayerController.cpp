@@ -3794,6 +3794,13 @@ bool AMyBondageLifePlayerController::HandleEscapePanels()
 		return true;
 	}
 
+	// 添加/切换任务面板优先关闭，不影响下一层。
+	if (AddQuestPanelWidget && AddQuestPanelWidget->GetVisibility() == ESlateVisibility::Visible)
+	{
+		AddQuestPanelWidget->SetVisibility(ESlateVisibility::Collapsed);
+		return true;
+	}
+
 	// 任务面板。
 	if (bQuestOpen)
 	{
@@ -6191,6 +6198,11 @@ void AMyBondageLifePlayerController::OpenAddQuestPanel(const FString& SlotType, 
 		AddQuestPanelWidget = CreateWidget<UUserWidget>(this, PanelClass);
 		if (!AddQuestPanelWidget) { return; }
 		AddQuestPanelWidget->AddToViewport(70);
+		if (UButton* CloseBtn = Cast<UButton>(AddQuestPanelWidget->WidgetTree->FindWidget(TEXT("W_Close"))))
+		{
+			UVerticalBox* Dummy = nullptr; (void)Dummy;
+			CloseBtn->OnClicked.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleAddQuestCloseClicked);
+		}
 	}
 
 	AddQuestPanelWidget->SetVisibility(ESlateVisibility::Visible);
@@ -6247,10 +6259,14 @@ void AMyBondageLifePlayerController::RefreshAddQuestRows()
 			Reward->SetText(FText::FromString(FString::Printf(TEXT("￥%d"), Def.RewardMoney)));
 		}
 
+		const bool bSlotHasQuest = bWantDaily
+			? (Account && Account->SlaveDailyQuests.IsValidIndex(AddQuestSlotIndex - 1) && Account->SlaveDailyQuests[AddQuestSlotIndex - 1].IsValid())
+			: (Account && Account->SlaveWeeklyQuest.IsValid());
 		const bool bUsed = UsedIds.Contains(Def.Id.ToString());
 		if (UButton* Accept = Cast<UButton>(Row->WidgetTree->FindWidget(TEXT("W_Accept"))))
 		{
 			Accept->SetIsEnabled(!bUsed);
+			Accept->SetVisibility(ESlateVisibility::Visible);
 			if (!bUsed)
 			{
 				UMyBondageLifeQuestRowProxy* Proxy = NewObject<UMyBondageLifeQuestRowProxy>(this);
@@ -6264,7 +6280,7 @@ void AMyBondageLifePlayerController::RefreshAddQuestRows()
 		}
 		if (UTextBlock* Label = Cast<UTextBlock>(Row->WidgetTree->FindWidget(TEXT("W_Accept_Label"))))
 		{
-			Label->SetText(FText::FromString(bUsed ? TEXT("已存在") : TEXT("切换")));
+			Label->SetText(FText::FromString(bUsed ? TEXT("已存在") : (bSlotHasQuest ? TEXT("切换") : TEXT("添加"))));
 		}
 
 		if (UVerticalBoxSlot* Slot = Box->AddChildToVerticalBox(Row))
@@ -6298,4 +6314,8 @@ void AMyBondageLifePlayerController::HandleQuestSlotButton(const FString& SlotTy
 		return;
 	}
 	OpenAddQuestPanel(SlotType, SlotIndex);
+}
+void AMyBondageLifePlayerController::HandleAddQuestCloseClicked()
+{
+	if (AddQuestPanelWidget) { AddQuestPanelWidget->SetVisibility(ESlateVisibility::Collapsed); }
 }

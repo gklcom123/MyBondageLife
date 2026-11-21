@@ -799,6 +799,8 @@ public:
 	UFUNCTION() void RefreshSlaveQuestDetails();
 
 	void BindQuestSlotButtons();
+
+	UFUNCTION() void HandleAddQuestCloseClicked();
 	void OpenAddQuestPanel(const FString& SlotType, int32 SlotIndex);
 	void RefreshAddQuestRows();
 	void AcceptQuestRow(class UMyBondageLifeQuestRowProxy* Proxy);
