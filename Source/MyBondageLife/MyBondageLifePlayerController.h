@@ -750,6 +750,9 @@ public:
 	UFUNCTION() void HandleQuestCloseClicked();
 	UFUNCTION()
 	void RefreshQuestHud();
+
+	UFUNCTION()
+	void RefreshQuestPanel();
 	void UpdateQuestRemainTime();
 
 	bool bQuestOpen = false;

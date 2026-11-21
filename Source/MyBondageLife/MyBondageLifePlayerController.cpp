@@ -1,7 +1,8 @@
 
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "MyBondageLifePlayerController.h"
+#include "MyBondageLifePlayerController.h"
+
 #include "UI/MyBondageLifeQuestPanelWidget.h"
 
 #include "Components/CanvasPanelSlot.h"
@@ -2891,6 +2892,7 @@ void AMyBondageLifePlayerController::ShowHudEntries()
 	HudRuleAccount->OnFurnitureChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::ApplyFurnitureState);
 	HudRuleAccount->OnShopChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleShopChanged);
 	HudRuleAccount->OnQuestsChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::RefreshQuestHud);
+	HudRuleAccount->OnQuestsChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::RefreshQuestPanel);
 	HudRuleAccount->OnShopPurchaseFinished.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleShopPurchaseFinished);
 	GetWorldTimerManager().SetTimer(FurnitureRefreshTimer, this, &AMyBondageLifePlayerController::RefreshFurnitureStatePeriodic, 5.0f, true);
 	RefreshFurnitureStatePeriodic();
@@ -5843,9 +5845,11 @@ void AMyBondageLifePlayerController::OpenQuest()
 		Cast<UMyBondageLifeQuestPanelWidget>(QuestPanelWidget)->OnClosed.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleQuestCloseClicked);
 		QuestPanelWidget->AddToViewport(60);
 		UE_LOG(LogMyBondageLife, Log, TEXT("Quest: created code panel"));
+		RefreshQuestPanel();
 	}
 
 	QuestPanelWidget->SetVisibility(ESlateVisibility::Visible);
+	RefreshQuestPanel();
 	bQuestOpen = true;
 	RefreshChatInputState();
 	if (FSlateApplication::IsInitialized()) { FSlateApplication::Get().SetAllUserFocusToGameViewport(); }
@@ -5903,6 +5907,41 @@ void AMyBondageLifePlayerController::RefreshQuestHud()
 	}
 }
 
+void AMyBondageLifePlayerController::RefreshQuestPanel()
+{
+	if (!QuestPanelWidget || !QuestPanelWidget->WidgetTree) { return; }
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	if (!Account) { return; }
+
+	const bool bHasMaster = Account->bHasQuestMaster;
+	if (UWidget* Tip = QuestPanelWidget->WidgetTree->FindWidget(TEXT("W_NoneQuestTip")))
+	{
+		Tip->SetVisibility(bHasMaster ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+	}
+	if (UWidget* Box = QuestPanelWidget->WidgetTree->FindWidget(TEXT("W_QuestDetail_VerticalBox")))
+	{
+		Box->SetVisibility(bHasMaster ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	}
+
+	for (int32 i = 0; i < 5; ++i)
+	{
+		UTextBlock* Label = Cast<UTextBlock>(QuestPanelWidget->WidgetTree->FindWidget(FName(*FString::Printf(TEXT("W_Daily_%d"), i + 1))));
+		if (!Label) { continue; }
+		const FMyBondageLifeQuestEntry& Q = Account->DailyQuests.IsValidIndex(i) ? Account->DailyQuests[i] : FMyBondageLifeQuestEntry();
+		Label->SetText(FText::FromString(Q.IsValid()
+			? FString::Printf(TEXT("%s：%s（%d/%d）（%s）"), *Q.Name, *Q.Description, Q.Progress, Q.Times, Q.bCompleted ? TEXT("已完成") : TEXT("未完成"))
+			: FString(TEXT("暂时没有该日常任务"))));
+	}
+
+	if (UTextBlock* WeeklyLabel = Cast<UTextBlock>(QuestPanelWidget->WidgetTree->FindWidget(TEXT("W_Weekly"))))
+	{
+		const FMyBondageLifeQuestEntry& Q = Account->WeeklyQuest;
+		WeeklyLabel->SetText(FText::FromString(Q.IsValid()
+			? FString::Printf(TEXT("%s：%s（%d/%d）（%s）"), *Q.Name, *Q.Description, Q.Progress, Q.Times, Q.bCompleted ? TEXT("已完成") : TEXT("未完成"))
+			: FString(TEXT("暂时没有该周常任务"))));
+	}
+}
+
 void AMyBondageLifePlayerController::UpdateQuestRemainTime()
 {
 	if (!MainHudWidget || !MainHudWidget->WidgetTree) { return; }
@@ -5915,6 +5954,15 @@ void AMyBondageLifePlayerController::UpdateQuestRemainTime()
 	const int32 Hours = Account->QuestRemainSeconds / 3600;
 	const int32 Minutes = (Account->QuestRemainSeconds % 3600) / 60;
 	Label->SetText(FText::FromString(FString::Printf(TEXT("下一次刷新时间：%02d:%02d"), Hours, Minutes)));
+
+	if (QuestPanelWidget && QuestPanelWidget->WidgetTree)
+	{
+		if (UTextBlock* PanelLabel = Cast<UTextBlock>(QuestPanelWidget->WidgetTree->FindWidget(TEXT("W_RemainTime"))))
+		{
+			PanelLabel->SetText(FText::FromString(FString::Printf(TEXT("下一次刷新时间：%02d:%02d"), Hours, Minutes)));
+		}
+	}
+
 }
 // 导出任务定义：mbl.dump_quests
 static FAutoConsoleCommand GDumpQuestsCommand(
