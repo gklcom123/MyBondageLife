@@ -6283,7 +6283,16 @@ void AMyBondageLifePlayerController::RefreshAddQuestRows()
 				}
 			}
 		}
-		UE_LOG(LogMyBondageLife, Log, TEXT("Quest: row %s accept=%s label=%s"), *Def.Id.ToString(), AcceptBtn ? TEXT("ok") : TEXT("MISSING"), AcceptLabel ? TEXT("ok") : TEXT("MISSING"));
+		UE_LOG(LogMyBondageLife, Log, TEXT("Quest: row %s accept=%s label=%s used=%d"), *Def.Id.ToString(), AcceptBtn ? *AcceptBtn->GetClass()->GetName() : TEXT("MISSING"), AcceptLabel ? TEXT("ok") : TEXT("MISSING"), bUsed ? 1 : 0);
+		if (Def.Id.ToString() == FMyBondageLifeQuestCatalog::GetItems()[0].Id.ToString())
+		{
+			TArray<UWidget*> AllWidgets;
+			Row->WidgetTree->GetAllWidgets(AllWidgets);
+			for (UWidget* W : AllWidgets)
+			{
+				UE_LOG(LogMyBondageLife, Log, TEXT("Quest RowWidgets: %s (%s) vis=%d enabled=%d"), *W->GetName(), *W->GetClass()->GetName(), static_cast<int32>(W->GetVisibility()), W->GetIsEnabled() ? 1 : 0);
+			}
+		}
 		const bool bUsed = UsedIds.Contains(Def.Id.ToString());
 		if (UButton* Accept = Cast<UButton>(Row->WidgetTree->FindWidget(TEXT("W_Accept"))))
 		{
