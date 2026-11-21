@@ -2868,6 +2868,10 @@ void AMyBondageLifePlayerController::ShowMainHud()
 	if (UWidget* Overlay = MainHudWidget->WidgetTree->FindWidget(TEXT("W_QuestOverlay")))
 	{
 		Overlay->SetVisibility(bQuestOverlayVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+		}
+		if (UWidget* Small = MainHudWidget->WidgetTree->FindWidget(TEXT("W_QuestOverlaySmall")))
+		{
+			Small->SetVisibility(bQuestOverlayVisible ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
 	}
 
 	// 任务：登录后拉取一次，并每秒刷新刷新倒计时。
@@ -6412,6 +6416,10 @@ void AMyBondageLifePlayerController::ToggleQuestOverlay()
 		if (UWidget* Overlay = MainHudWidget->WidgetTree->FindWidget(TEXT("W_QuestOverlay")))
 		{
 			Overlay->SetVisibility(bQuestOverlayVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+		}
+		if (UWidget* Small = MainHudWidget->WidgetTree->FindWidget(TEXT("W_QuestOverlaySmall")))
+		{
+			Small->SetVisibility(bQuestOverlayVisible ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
 		}
 	}
 	UE_LOG(LogMyBondageLife, Log, TEXT("Quest: overlay %s"), bQuestOverlayVisible ? TEXT("on") : TEXT("off"));
