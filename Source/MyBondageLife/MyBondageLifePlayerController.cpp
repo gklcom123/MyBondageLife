@@ -1,7 +1,9 @@
 
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "MyBondageLifePlayerController.h"
+#include "MyBondageLifePlayerController.h"
+#include "Components/VerticalBoxSlot.h"
+#include "Components/VerticalBox.h"
 
 #include "UI/MyBondageLifeQuestPanelWidget.h"
 
@@ -5850,6 +5852,7 @@ void AMyBondageLifePlayerController::OpenQuest()
 
 	QuestPanelWidget->SetVisibility(ESlateVisibility::Visible);
 	RefreshQuestPanel();
+	RefreshQuestSlaveList();
 	bQuestOpen = true;
 	RefreshChatInputState();
 	if (FSlateApplication::IsInitialized()) { FSlateApplication::Get().SetAllUserFocusToGameViewport(); }
@@ -5985,3 +5988,85 @@ static FAutoConsoleCommand GDumpQuestsCommand(
 		const bool bOk = FFileHelper::SaveStringToFile(Json, *Path, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
 		UE_LOG(LogMyBondageLife, Log, TEXT("Quest: dump %d defs -> %s (%s)"), Entries.Num(), *Path, bOk ? TEXT("ok") : TEXT("failed"));
 	}));
+
+// ---------------------------------------------------------------------------
+// 任务面板：奴隶列表
+// ---------------------------------------------------------------------------
+void UMyBondageLifeQuestSlaveProxy::HandleClicked()
+{
+	if (Owner)
+	{
+		Owner->SelectQuestSlave(SlaveAccount, SlaveName);
+	}
+}
+
+void AMyBondageLifePlayerController::RefreshQuestSlaveList()
+{
+	if (!QuestPanelWidget || !QuestPanelWidget->WidgetTree) { return; }
+
+	UPanelWidget* SlaveList = Cast<UPanelWidget>(QuestPanelWidget->WidgetTree->FindWidget(TEXT("M_SlaveList")));
+	if (!SlaveList) { UE_LOG(LogMyBondageLife, Warning, TEXT("Quest: M_SlaveList not found")); return; }
+
+	// 初次打开：先清空容器。
+	SlaveList->ClearChildren();
+	QuestSlaveProxies.Reset();
+
+	UClass* ButtonClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_QuestSlaveBtn.WBP_QuestSlaveBtn_C"));
+	if (!ButtonClass)
+	{
+		UE_LOG(LogMyBondageLife, Warning, TEXT("Quest: WBP_QuestSlaveBtn not found"));
+		return;
+	}
+
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	if (!Account) { return; }
+
+	for (const FMyBondageLifeContractInfo& Contract : Account->GetContractsAsMaster())
+	{
+		UUserWidget* Entry = CreateWidget<UUserWidget>(this, ButtonClass);
+		if (!Entry || !Entry->WidgetTree) { continue; }
+
+		if (UTextBlock* NameText = Cast<UTextBlock>(Entry->WidgetTree->FindWidget(TEXT("W_Name"))))
+		{
+			NameText->SetText(FText::FromString(Contract.PeerCharacterName.IsEmpty() ? Contract.PeerAccount : Contract.PeerCharacterName));
+		}
+
+		if (UButton* ClickButton = Cast<UButton>(Entry->WidgetTree->FindWidget(TEXT("W_SlaveBtn"))))
+		{
+			UMyBondageLifeQuestSlaveProxy* Proxy = NewObject<UMyBondageLifeQuestSlaveProxy>(this);
+			Proxy->Owner = this;
+			Proxy->SlaveAccount = Contract.PeerAccount;
+			Proxy->SlaveName = Contract.PeerCharacterName;
+			QuestSlaveProxies.Add(Proxy);
+			ClickButton->OnClicked.AddUniqueDynamic(Proxy, &UMyBondageLifeQuestSlaveProxy::HandleClicked);
+		}
+
+		if (UVerticalBoxSlot* Slot = Cast<UVerticalBoxSlot>(SlaveList->AddChild(Entry)))
+		{
+			Slot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 20.0f));
+		}
+	}
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("Quest: slave list built, %d entries"), QuestSlaveProxies.Num());
+}
+
+void AMyBondageLifePlayerController::SelectQuestSlave(const FString& SlaveAccount, const FString& SlaveName)
+{
+	if (!QuestPanelWidget || !QuestPanelWidget->WidgetTree) { return; }
+
+	if (UWidget* Details = QuestPanelWidget->WidgetTree->FindWidget(TEXT("M_DetailsPanel")))
+	{
+		Details->SetVisibility(ESlateVisibility::Visible);
+	}
+	if (UWidget* Tip = QuestPanelWidget->WidgetTree->FindWidget(TEXT("M_SlavePanelTip")))
+	{
+		Tip->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	if (UTextBlock* InfoName = Cast<UTextBlock>(QuestPanelWidget->WidgetTree->FindWidget(TEXT("M_SlaveInfoName"))))
+	{
+		InfoName->SetText(FText::FromString(SlaveName.IsEmpty() ? SlaveAccount : SlaveName));
+	}
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("Quest: selected slave %s"), *SlaveAccount);
+}

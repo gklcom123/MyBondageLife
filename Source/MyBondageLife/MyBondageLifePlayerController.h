@@ -49,6 +49,22 @@ public:
 	void HandleClicked();
 };
 
+
+UCLASS()
+class UMyBondageLifeQuestSlaveProxy : public UObject
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY()
+	TObjectPtr<class AMyBondageLifePlayerController> Owner;
+
+	FString SlaveAccount;
+	FString SlaveName;
+
+	UFUNCTION()
+	void HandleClicked();
+};
 UCLASS(abstract)
 class AMyBondageLifePlayerController : public APlayerController
 {
@@ -753,6 +769,11 @@ public:
 
 	UFUNCTION()
 	void RefreshQuestPanel();
+
+	UFUNCTION() void RefreshQuestSlaveList();
+	void SelectQuestSlave(const FString& SlaveAccount, const FString& SlaveName);
+
+	UPROPERTY(Transient) TArray<TObjectPtr<class UMyBondageLifeQuestSlaveProxy>> QuestSlaveProxies;
 	void UpdateQuestRemainTime();
 
 	bool bQuestOpen = false;
