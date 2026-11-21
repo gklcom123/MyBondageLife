@@ -2,8 +2,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "MyBondageLifePlayerController.h"
-#include "UI/MyBondageLifeAddQuestRowWidget.h"
-
 #include "Components/VerticalBoxSlot.h"
 #include "Components/VerticalBox.h"
 
@@ -6215,10 +6213,21 @@ void AMyBondageLifePlayerController::RefreshAddQuestRows()
 {
 	if (!AddQuestPanelWidget || !AddQuestPanelWidget->WidgetTree) { return; }
 	UVerticalBox* Box = Cast<UVerticalBox>(AddQuestPanelWidget->WidgetTree->FindWidget(TEXT("M_QuestVerticalBox")));
-	if (!Box) { UE_LOG(LogMyBondageLife, Warning, TEXT("Quest: M_QuestVerticalBox not found")); return; }
+	if (!Box)
+	{
+		UE_LOG(LogMyBondageLife, Warning, TEXT("Quest: M_QuestVerticalBox not found"));
+		return;
+	}
 
 	Box->ClearChildren();
 	AddQuestRowProxies.Reset();
+
+	UClass* RowClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_AddQuestRow.WBP_AddQuestRow_C"));
+	if (!RowClass)
+	{
+		UE_LOG(LogMyBondageLife, Warning, TEXT("Quest: WBP_AddQuestRow not found"));
+		return;
+	}
 
 	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
@@ -6234,40 +6243,72 @@ void AMyBondageLifePlayerController::RefreshAddQuestRows()
 		if (Account->SlaveWeeklyQuest.IsValid()) { UsedIds.Add(Account->SlaveWeeklyQuest.QuestId); }
 	}
 
-	const bool bSlotHasQuest = bWantDaily
-		? (Account && Account->SlaveDailyQuests.IsValidIndex(AddQuestSlotIndex - 1) && Account->SlaveDailyQuests[AddQuestSlotIndex - 1].IsValid())
-		: (Account && Account->SlaveWeeklyQuest.IsValid());
-
 	for (const FMyBondageLifeQuestDef& Def : FMyBondageLifeQuestCatalog::GetItems())
 	{
 		if (Def.bDaily != bWantDaily) { continue; }
 
-		const bool bUsed = UsedIds.Contains(Def.Id.ToString());
+		UUserWidget* Row = CreateWidget<UUserWidget>(this, RowClass);
+		if (!Row || !Row->WidgetTree) { continue; }
 
-		UMyBondageLifeAddQuestRowWidget* Row = CreateWidget<UMyBondageLifeAddQuestRowWidget>(this, UMyBondageLifeAddQuestRowWidget::StaticClass());
-		if (!Row) { continue; }
-
-		Row->InfoText = FString::Printf(TEXT("%s：%s"), *Def.Name, *Def.Description);
-		Row->RewardText = FString::Printf(TEXT("￥%d"), Def.RewardMoney);
-		Row->ActionText = bUsed ? TEXT("已存在") : (bSlotHasQuest ? TEXT("切换") : TEXT("添加"));
-		Row->bActionEnabled = !bUsed;
-
-		if (!bUsed)
+		if (UTextBlock* Info = Cast<UTextBlock>(Row->WidgetTree->FindWidget(TEXT("W_QuestInfo"))))
 		{
-			UMyBondageLifeQuestRowProxy* Proxy = NewObject<UMyBondageLifeQuestRowProxy>(this);
-			Proxy->Owner = this;
-			Proxy->QuestId = Def.Id.ToString();
-			Proxy->SlotType = AddQuestSlotType;
-			Proxy->SlotIndex = AddQuestSlotIndex;
-			AddQuestRowProxies.Add(Proxy);
-			Row->Proxy = Proxy;
+			Info->SetText(FText::FromString(FString::Printf(TEXT("%s：%s"), *Def.Name, *Def.Description)));
+		}
+		if (UTextBlock* Reward = Cast<UTextBlock>(Row->WidgetTree->FindWidget(TEXT("W_Reward"))))
+		{
+			Reward->SetText(FText::FromString(FString::Printf(TEXT("￥%d"), Def.RewardMoney)));
+		}
+
+		const bool bSlotHasQuest = bWantDaily
+			? (Account && Account->SlaveDailyQuests.IsValidIndex(AddQuestSlotIndex - 1) && Account->SlaveDailyQuests[AddQuestSlotIndex - 1].IsValid())
+			: (Account && Account->SlaveWeeklyQuest.IsValid());
+		UButton* AcceptBtn = Cast<UButton>(Row->WidgetTree->FindWidget(TEXT("W_Accept")));
+		UTextBlock* AcceptLabel = Cast<UTextBlock>(Row->WidgetTree->FindWidget(TEXT("W_Accept_Label")));
+		if (!AcceptBtn || !AcceptLabel)
+		{
+			TArray<UWidget*> AllWidgets;
+			Row->WidgetTree->GetAllWidgets(AllWidgets);
+			for (UWidget* Candidate : AllWidgets)
+			{
+				if (!AcceptBtn) { AcceptBtn = Cast<UButton>(Candidate); }
+				if (!AcceptLabel)
+				{
+					if (UTextBlock* CandidateText = Cast<UTextBlock>(Candidate))
+					{
+						if (CandidateText->GetText().ToString().Contains(TEXT("切换")) || CandidateText->GetText().ToString().Contains(TEXT("添加")))
+						{
+							AcceptLabel = CandidateText;
+						}
+					}
+				}
+			}
+		}
+		UE_LOG(LogMyBondageLife, Log, TEXT("Quest: row %s accept=%s label=%s"), *Def.Id.ToString(), AcceptBtn ? TEXT("ok") : TEXT("MISSING"), AcceptLabel ? TEXT("ok") : TEXT("MISSING"));
+		const bool bUsed = UsedIds.Contains(Def.Id.ToString());
+		if (UButton* Accept = Cast<UButton>(Row->WidgetTree->FindWidget(TEXT("W_Accept"))))
+		{
+			Accept->SetIsEnabled(!bUsed);
+			Accept->SetVisibility(ESlateVisibility::Visible);
+			if (!bUsed)
+			{
+				UMyBondageLifeQuestRowProxy* Proxy = NewObject<UMyBondageLifeQuestRowProxy>(this);
+				Proxy->Owner = this;
+				Proxy->QuestId = Def.Id.ToString();
+				Proxy->SlotType = AddQuestSlotType;
+				Proxy->SlotIndex = AddQuestSlotIndex;
+				AddQuestRowProxies.Add(Proxy);
+				Accept->OnClicked.AddUniqueDynamic(Proxy, &UMyBondageLifeQuestRowProxy::HandleClicked);
+			}
+		}
+		if (UTextBlock* Label = Cast<UTextBlock>(Row->WidgetTree->FindWidget(TEXT("W_Accept_Label"))))
+		{
+			Label->SetText(FText::FromString(bUsed ? TEXT("已存在") : (bSlotHasQuest ? TEXT("切换") : TEXT("添加"))));
 		}
 
 		if (UVerticalBoxSlot* Slot = Box->AddChildToVerticalBox(Row))
 		{
-			Slot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 10.0f));
+			Slot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 12.0f));
 		}
-		UE_LOG(LogMyBondageLife, Log, TEXT("Quest: code row %s enabled=%d label=%s"), *Def.Id.ToString(), Row->bActionEnabled ? 1 : 0, *Row->ActionText);
 	}
 }
 
