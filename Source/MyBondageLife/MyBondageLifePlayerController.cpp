@@ -2895,6 +2895,7 @@ void AMyBondageLifePlayerController::ShowHudEntries()
 	HudRuleAccount->OnShopChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleShopChanged);
 	HudRuleAccount->OnQuestsChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::RefreshQuestHud);
 	HudRuleAccount->OnQuestsChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::RefreshQuestPanel);
+	HudRuleAccount->OnContractsChanged.AddUniqueDynamic(this, &AMyBondageLifePlayerController::RefreshQuestSlaveList);
 	HudRuleAccount->OnShopPurchaseFinished.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleShopPurchaseFinished);
 	GetWorldTimerManager().SetTimer(FurnitureRefreshTimer, this, &AMyBondageLifePlayerController::RefreshFurnitureStatePeriodic, 5.0f, true);
 	RefreshFurnitureStatePeriodic();
@@ -6004,8 +6005,14 @@ void AMyBondageLifePlayerController::RefreshQuestSlaveList()
 {
 	if (!QuestPanelWidget || !QuestPanelWidget->WidgetTree) { return; }
 
+	UMyBondageLifeAccountSubsystem* ContractAccount = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+	if (ContractAccount) { ContractAccount->RefreshContractState(); }
+
 	UPanelWidget* SlaveList = Cast<UPanelWidget>(QuestPanelWidget->WidgetTree->FindWidget(TEXT("M_SlaveList")));
 	if (!SlaveList) { UE_LOG(LogMyBondageLife, Warning, TEXT("Quest: M_SlaveList not found")); return; }
+
+	// 契约数据可能是异步的：先拉一次，回来后 OnContractsChanged 会再次重建。
+
 
 	// 初次打开：先清空容器。
 	SlaveList->ClearChildren();
