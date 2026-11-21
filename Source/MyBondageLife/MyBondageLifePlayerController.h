@@ -65,6 +65,30 @@ public:
 	UFUNCTION()
 	void HandleClicked();
 };
+
+UCLASS()
+class UMyBondageLifeQuestRowProxy : public UObject
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY() TObjectPtr<class AMyBondageLifePlayerController> Owner;
+	FString QuestId;
+	FString SlotType;
+	int32 SlotIndex = 0;
+	UFUNCTION() void HandleClicked();
+};
+
+UCLASS()
+class UMyBondageLifeQuestSlotProxy : public UObject
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY() TObjectPtr<class AMyBondageLifePlayerController> Owner;
+	FString SlotType;
+	int32 SlotIndex = 0;
+	bool bRemove = false;
+	UFUNCTION() void HandleClicked();
+};
 UCLASS(abstract)
 class AMyBondageLifePlayerController : public APlayerController
 {
@@ -773,6 +797,18 @@ public:
 	UFUNCTION() void RefreshQuestSlaveList();
 
 	UFUNCTION() void RefreshSlaveQuestDetails();
+
+	void BindQuestSlotButtons();
+	void OpenAddQuestPanel(const FString& SlotType, int32 SlotIndex);
+	void RefreshAddQuestRows();
+	void AcceptQuestRow(class UMyBondageLifeQuestRowProxy* Proxy);
+	void HandleQuestSlotButton(const FString& SlotType, int32 SlotIndex, bool bRemove);
+
+	UPROPERTY(Transient) TObjectPtr<class UUserWidget> AddQuestPanelWidget;
+	UPROPERTY(Transient) TArray<TObjectPtr<class UMyBondageLifeQuestRowProxy>> AddQuestRowProxies;
+	UPROPERTY(Transient) TArray<TObjectPtr<class UMyBondageLifeQuestSlotProxy>> QuestSlotProxies;
+	FString AddQuestSlotType;
+	int32 AddQuestSlotIndex = 0;
 
 	FString CurrentQuestSlaveAccount;
 	void SelectQuestSlave(const FString& SlaveAccount, const FString& SlaveName);

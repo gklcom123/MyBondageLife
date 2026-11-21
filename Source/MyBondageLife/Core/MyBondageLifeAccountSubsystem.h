@@ -569,6 +569,9 @@ public:
 	/** 主人查看某奴隶的任务。 */
 	void RequestSlaveQuests(const FString& SlaveAccount);
 
+	void AssignSlaveQuest(const FString& SlaveAccount, const FString& SlotType, int32 SlotIndex, const FString& QuestId);
+	void RemoveSlaveQuest(const FString& SlaveAccount, const FString& SlotType, int32 SlotIndex);
+
 	UPROPERTY(BlueprintAssignable) FMyBondageLifeShopChanged OnSlaveQuestsChanged;
 
 	UPROPERTY(BlueprintReadOnly) FString SlaveQuestsAccount;

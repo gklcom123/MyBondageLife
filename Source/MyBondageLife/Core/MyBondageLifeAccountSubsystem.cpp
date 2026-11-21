@@ -3527,3 +3527,40 @@ void UMyBondageLifeAccountSubsystem::RequestSlaveQuests(const FString& SlaveAcco
 			Self->OnSlaveQuestsChanged.Broadcast();
 		});
 }
+
+void UMyBondageLifeAccountSubsystem::AssignSlaveQuest(const FString& SlaveAccount, const FString& SlotType, int32 SlotIndex, const FString& QuestId)
+{
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("slaveAccount"), SlaveAccount);
+	Body->SetStringField(TEXT("slotType"), SlotType);
+	Body->SetNumberField(TEXT("slotIndex"), SlotIndex);
+	Body->SetStringField(TEXT("questId"), QuestId);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	SendFriendApiRequest(TEXT("POST"), TEXT("/quests/assign"), Body,
+		[WeakThis, SlaveAccount](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self) { return; }
+			UE_LOG(LogMyBondageLife, Log, TEXT("Quest: assign ok=%d status=%d"), bOk ? 1 : 0, StatusCode);
+			Self->RequestSlaveQuests(SlaveAccount);
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::RemoveSlaveQuest(const FString& SlaveAccount, const FString& SlotType, int32 SlotIndex)
+{
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("slaveAccount"), SlaveAccount);
+	Body->SetStringField(TEXT("slotType"), SlotType);
+	Body->SetNumberField(TEXT("slotIndex"), SlotIndex);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	SendFriendApiRequest(TEXT("POST"), TEXT("/quests/remove"), Body,
+		[WeakThis, SlaveAccount](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self) { return; }
+			UE_LOG(LogMyBondageLife, Log, TEXT("Quest: remove ok=%d status=%d"), bOk ? 1 : 0, StatusCode);
+			Self->RequestSlaveQuests(SlaveAccount);
+		});
+}

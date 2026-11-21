@@ -5848,6 +5848,7 @@ void AMyBondageLifePlayerController::OpenQuest()
 		if (!QuestPanelWidget) { return; }
 		Cast<UMyBondageLifeQuestPanelWidget>(QuestPanelWidget)->OnClosed.AddUniqueDynamic(this, &AMyBondageLifePlayerController::HandleQuestCloseClicked);
 		QuestPanelWidget->AddToViewport(60);
+		BindQuestSlotButtons();
 		UE_LOG(LogMyBondageLife, Log, TEXT("Quest: created code panel"));
 		RefreshQuestPanel();
 	}
@@ -6135,4 +6136,166 @@ void AMyBondageLifePlayerController::RefreshSlaveQuestDetails()
 	ApplySlot(Account->SlaveWeeklyQuest, TEXT("W_Weekly_TA"), TEXT("W_RewardGold_Weekly"),
 		TEXT("W_AddQuest_TA_Weekly"), TEXT("W_AddQuestLabel_Weekly"),
 		TEXT("W_RemoveQuest_TA_Weekly"), TEXT("W_RemoveQuestLabel_Weekly"));
+}
+
+void UMyBondageLifeQuestRowProxy::HandleClicked()
+{
+	if (Owner) { Owner->AcceptQuestRow(this); }
+}
+
+void UMyBondageLifeQuestSlotProxy::HandleClicked()
+{
+	if (Owner) { Owner->HandleQuestSlotButton(SlotType, SlotIndex, bRemove); }
+}
+
+void AMyBondageLifePlayerController::BindQuestSlotButtons()
+{
+	if (!QuestPanelWidget || !QuestPanelWidget->WidgetTree) { return; }
+
+	auto BindOne = [this](const FString& BtnName, const FString& SlotType, int32 Index, bool bRemove)
+	{
+		if (UButton* Btn = Cast<UButton>(QuestPanelWidget->WidgetTree->FindWidget(FName(*BtnName))))
+		{
+			UMyBondageLifeQuestSlotProxy* Proxy = NewObject<UMyBondageLifeQuestSlotProxy>(this);
+			Proxy->Owner = this;
+			Proxy->SlotType = SlotType;
+			Proxy->SlotIndex = Index;
+			Proxy->bRemove = bRemove;
+			QuestSlotProxies.Add(Proxy);
+			Btn->OnClicked.AddUniqueDynamic(Proxy, &UMyBondageLifeQuestSlotProxy::HandleClicked);
+		}
+	};
+
+	for (int32 i = 1; i <= 5; ++i)
+	{
+		BindOne(FString::Printf(TEXT("W_AddQuest_TA_%d"), i), TEXT("daily"), i, false);
+		BindOne(FString::Printf(TEXT("W_RemoveQuest_TA_%d"), i), TEXT("daily"), i, true);
+	}
+	BindOne(TEXT("W_AddQuest_TA_Weekly"), TEXT("weekly"), 1, false);
+	BindOne(TEXT("W_RemoveQuest_TA_Weekly"), TEXT("weekly"), 1, true);
+}
+
+void AMyBondageLifePlayerController::OpenAddQuestPanel(const FString& SlotType, int32 SlotIndex)
+{
+	AddQuestSlotType = SlotType;
+	AddQuestSlotIndex = SlotIndex;
+
+	if (!AddQuestPanelWidget)
+	{
+		UClass* PanelClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_AddQuestPanel.WBP_AddQuestPanel_C"));
+		if (!PanelClass)
+		{
+			UE_LOG(LogMyBondageLife, Warning, TEXT("Quest: WBP_AddQuestPanel not found"));
+			return;
+		}
+		AddQuestPanelWidget = CreateWidget<UUserWidget>(this, PanelClass);
+		if (!AddQuestPanelWidget) { return; }
+		AddQuestPanelWidget->AddToViewport(70);
+	}
+
+	AddQuestPanelWidget->SetVisibility(ESlateVisibility::Visible);
+	RefreshAddQuestRows();
+}
+
+void AMyBondageLifePlayerController::RefreshAddQuestRows()
+{
+	if (!AddQuestPanelWidget || !AddQuestPanelWidget->WidgetTree) { return; }
+	UVerticalBox* Box = Cast<UVerticalBox>(AddQuestPanelWidget->WidgetTree->FindWidget(TEXT("M_QuestVerticalBox")));
+	if (!Box)
+	{
+		UE_LOG(LogMyBondageLife, Warning, TEXT("Quest: M_QuestVerticalBox not found"));
+		return;
+	}
+
+	Box->ClearChildren();
+	AddQuestRowProxies.Reset();
+
+	UClass* RowClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_AddQuestRow.WBP_AddQuestRow_C"));
+	if (!RowClass)
+	{
+		UE_LOG(LogMyBondageLife, Warning, TEXT("Quest: WBP_AddQuestRow not found"));
+		return;
+	}
+
+	UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr;
+
+	const bool bWantDaily = AddQuestSlotType != TEXT("weekly");
+	TSet<FString> UsedIds;
+	if (Account)
+	{
+		for (const FMyBondageLifeQuestEntry& Entry : Account->SlaveDailyQuests)
+		{
+			if (Entry.IsValid()) { UsedIds.Add(Entry.QuestId); }
+		}
+		if (Account->SlaveWeeklyQuest.IsValid()) { UsedIds.Add(Account->SlaveWeeklyQuest.QuestId); }
+	}
+
+	for (const FMyBondageLifeQuestDef& Def : FMyBondageLifeQuestCatalog::GetItems())
+	{
+		if (Def.bDaily != bWantDaily) { continue; }
+
+		UUserWidget* Row = CreateWidget<UUserWidget>(this, RowClass);
+		if (!Row || !Row->WidgetTree) { continue; }
+
+		if (UTextBlock* Info = Cast<UTextBlock>(Row->WidgetTree->FindWidget(TEXT("W_QuestInfo"))))
+		{
+			Info->SetText(FText::FromString(FString::Printf(TEXT("%s：%s"), *Def.Name, *Def.Description)));
+		}
+		if (UTextBlock* Reward = Cast<UTextBlock>(Row->WidgetTree->FindWidget(TEXT("W_Reward"))))
+		{
+			Reward->SetText(FText::FromString(FString::Printf(TEXT("￥%d"), Def.RewardMoney)));
+		}
+
+		const bool bUsed = UsedIds.Contains(Def.Id.ToString());
+		if (UButton* Accept = Cast<UButton>(Row->WidgetTree->FindWidget(TEXT("W_Accept"))))
+		{
+			Accept->SetIsEnabled(!bUsed);
+			if (!bUsed)
+			{
+				UMyBondageLifeQuestRowProxy* Proxy = NewObject<UMyBondageLifeQuestRowProxy>(this);
+				Proxy->Owner = this;
+				Proxy->QuestId = Def.Id.ToString();
+				Proxy->SlotType = AddQuestSlotType;
+				Proxy->SlotIndex = AddQuestSlotIndex;
+				AddQuestRowProxies.Add(Proxy);
+				Accept->OnClicked.AddUniqueDynamic(Proxy, &UMyBondageLifeQuestRowProxy::HandleClicked);
+			}
+		}
+		if (UTextBlock* Label = Cast<UTextBlock>(Row->WidgetTree->FindWidget(TEXT("W_Accept_Label"))))
+		{
+			Label->SetText(FText::FromString(bUsed ? TEXT("已存在") : TEXT("切换")));
+		}
+
+		if (UVerticalBoxSlot* Slot = Box->AddChildToVerticalBox(Row))
+		{
+			Slot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 12.0f));
+		}
+	}
+}
+
+void AMyBondageLifePlayerController::AcceptQuestRow(UMyBondageLifeQuestRowProxy* Proxy)
+{
+	if (!Proxy || CurrentQuestSlaveAccount.IsEmpty()) { return; }
+	if (UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		Account->AssignSlaveQuest(CurrentQuestSlaveAccount, Proxy->SlotType, Proxy->SlotIndex, Proxy->QuestId);
+	}
+	if (AddQuestPanelWidget) { AddQuestPanelWidget->SetVisibility(ESlateVisibility::Collapsed); }
+}
+
+void AMyBondageLifePlayerController::HandleQuestSlotButton(const FString& SlotType, int32 SlotIndex, bool bRemove)
+{
+	if (bRemove)
+	{
+		UE_LOG(LogMyBondageLife, Log, TEXT("Quest: remove slot %s/%d"), *SlotType, SlotIndex);
+		if (UMyBondageLifeAccountSubsystem* Account = GetGameInstance()
+			? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+		{
+			Account->RemoveSlaveQuest(CurrentQuestSlaveAccount, SlotType, SlotIndex);
+		}
+		return;
+	}
+	OpenAddQuestPanel(SlotType, SlotIndex);
 }
