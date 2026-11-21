@@ -5949,7 +5949,9 @@ void AMyBondageLifePlayerController::RefreshQuestHud()
 		Label->SetText(FText::FromString(Q.IsValid()
 			? FString::Printf(TEXT("%s%s：%s（%d/%d）（%s）"), *PrefixMark, *Q.Name, *Q.Description, Q.Progress, Q.Times, Q.bCompleted ? TEXT("已完成") : TEXT("未完成"))
 			: PrefixMark + FString(TEXT("暂时没有该日常任务"))));
-		Label->SetColorAndOpacity(FSlateColor(Q.IsValid()`r`n			? (Q.bCompleted ? FLinearColor(0.62f, 1.0f, 0.62f, 1.0f) : FLinearColor(1.0f, 1.0f, 1.0f, 1.0f))`r`n			: FLinearColor(1.0f, 1.0f, 1.0f, 0.5f)));
+		Label->SetColorAndOpacity(FSlateColor(Q.IsValid()
+			? (Q.bCompleted ? FLinearColor(0.62f, 1.0f, 0.62f, 1.0f) : FLinearColor(1.0f, 1.0f, 1.0f, 1.0f))
+			: FLinearColor(1.0f, 1.0f, 1.0f, 0.5f)));
 	}
 
 	if (UTextBlock* WeeklyLabel = Cast<UTextBlock>(MainHudWidget->WidgetTree->FindWidget(TEXT("W_Weekly"))))
