@@ -142,6 +142,7 @@ void UMyBondageLifeLoginWidget::BuildLayout()
 	OnlineCountLabel->SetText(FText::FromString(TEXT("在线玩家：0")));
 	OnlineCountLabel->SetJustification(ETextJustify::Center);
 	OnlineCountLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.75f, 0.78f, 0.85f, 1.0f)));
+	OnlineCountLabel->SetFont(MyBondageLifeUI::Font(20));
 	if (UVerticalBoxSlot* OnlineSlot = LoginPanel->AddChildToVerticalBox(OnlineCountLabel))
 	{
 		OnlineSlot->SetPadding(FMargin(0.0f, 4.0f, 0.0f, 8.0f));
