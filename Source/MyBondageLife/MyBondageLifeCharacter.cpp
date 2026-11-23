@@ -1088,7 +1088,8 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 	LibidoVisualLevel = FMath::FInterpTo(LibidoVisualLevel, static_cast<float>(LibidoScreenLevel), InDeltaTime, 4.0f);
 
 	// 状态没变化就不每帧写后处理（省 CPU）。
-	if (FMath::IsNearlyEqual(BlindVisualLevel, LastAppliedBlind) &&
+	// 蒙眼期间必须每帧刷新相机参数（镜头晃动/移动时球心不能漂移），所以只在未蒙眼时提前返回。
+	if (BlindVisualLevel <= 0.01f && FMath::IsNearlyEqual(BlindVisualLevel, LastAppliedBlind) &&
 		FMath::IsNearlyEqual(LibidoVisualLevel, LastAppliedLibido))
 	{
 		return;
