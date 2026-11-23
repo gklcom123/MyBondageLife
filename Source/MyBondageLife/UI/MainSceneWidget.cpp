@@ -766,7 +766,7 @@ void UMainSceneWidget::JoinRoomByIndex(int32 RoomIndex)
 
 void UMainSceneWidget::HandleCreateRoomClicked()
 {
-	CreateRoom();
+	OpenRoomInfoPanel(false);
 }
 
 void UMainSceneWidget::HandleJoinGameClicked()
@@ -1009,7 +1009,7 @@ void UMainSceneWidget::JoinLocalRoomByIndex(int32 RoomIndex)
 
 void UMainSceneWidget::HandleCreateLocalRoomClicked()
 {
-	CreateLocalRoom();
+	OpenRoomInfoPanel(true);
 }
 
 void UMainSceneWidget::HandleJoinLocalRoomClicked()
@@ -1017,3 +1017,46 @@ void UMainSceneWidget::HandleJoinLocalRoomClicked()
 	OpenLocalRoomBrowser();
 }
 
+void UMainSceneWidget::OpenRoomInfoPanel(bool bLocal)
+{
+	bPendingLocalRoom = bLocal;
+
+	if (!RoomInfoWidget)
+	{
+		UClass* PanelClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/UI/WBP_RoomInfo.WBP_RoomInfo_C"));
+		if (!PanelClass)
+		{
+			UE_LOG(LogMyBondageLife, Warning, TEXT("RoomInfo: WBP_RoomInfo not found"));
+			return;
+		}
+		RoomInfoWidget = CreateWidget<UUserWidget>(this, PanelClass);
+		if (!RoomInfoWidget) { return; }
+		RoomInfoWidget->AddToViewport(60);
+
+		if (UButton* CloseBtn = Cast<UButton>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Close"))))
+		{
+			CloseBtn->OnClicked.AddUniqueDynamic(this, &UMainSceneWidget::HandleRoomInfoCloseClicked);
+		}
+		if (UButton* ConfirmBtn = Cast<UButton>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Confirm"))))
+		{
+			ConfirmBtn->OnClicked.AddUniqueDynamic(this, &UMainSceneWidget::HandleRoomInfoConfirmClicked);
+		}
+	}
+
+	RoomInfoWidget->SetVisibility(ESlateVisibility::Visible);
+	UE_LOG(LogMyBondageLife, Log, TEXT("RoomInfo: opened for %s room"), bLocal ? TEXT("local") : TEXT("online"));
+}
+
+void UMainSceneWidget::HandleRoomInfoCloseClicked()
+{
+	if (RoomInfoWidget) { RoomInfoWidget->SetVisibility(ESlateVisibility::Collapsed); }
+}
+
+void UMainSceneWidget::HandleRoomInfoConfirmClicked()
+{
+	const bool bLocal = bPendingLocalRoom;
+	if (RoomInfoWidget) { RoomInfoWidget->SetVisibility(ESlateVisibility::Collapsed); }
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("RoomInfo: confirm %s room"), bLocal ? TEXT("local") : TEXT("online"));
+	if (bLocal) { CreateLocalRoom(); } else { CreateRoom(); }
+}

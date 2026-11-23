@@ -97,6 +97,15 @@ protected:
 	UFUNCTION()
 	void HandleCreateRoomClicked();
 
+	/** 打开房间信息面板；bLocal=true 表示本地房间。 */
+	void OpenRoomInfoPanel(bool bLocal);
+
+	UFUNCTION() void HandleRoomInfoCloseClicked();
+	UFUNCTION() void HandleRoomInfoConfirmClicked();
+
+	UPROPERTY(Transient) TObjectPtr<class UUserWidget> RoomInfoWidget;
+	bool bPendingLocalRoom = false;
+
 	UFUNCTION()
 	void HandleJoinGameClicked();
 
