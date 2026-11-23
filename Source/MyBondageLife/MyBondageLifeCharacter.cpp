@@ -1106,7 +1106,7 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 	//  · 性欲的粉色主要通过 SceneColorTint + 额外暗角强度体现，两者可同时可见。
 	PP.bOverride_VignetteIntensity = bActive;
 	// 蒙眼改用「深度遮罩」：只看得见周围若干米，远处全黑；暗角只保留适度边框。
-	PP.VignetteIntensity = 1.85f * BlindVisualLevel + 2.2f * LibidoVisualLevel;
+	PP.VignetteIntensity = 2.4f * BlindVisualLevel + 2.2f * LibidoVisualLevel;
 
 	PP.bOverride_VignetteColor = bActive;
 	PP.VignetteColor = bBlind ? FLinearColor(0.0f, 0.0f, 0.0f) : FLinearColor(1.0f, 0.68f, 0.84f);
@@ -1115,7 +1115,7 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 	{
 		if (!BlindDepthMID)
 		{
-			if (UMaterialInterface* BlindMat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Effects/M_BlindSphereVig.M_BlindSphereVig")))
+			if (UMaterialInterface* BlindMat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Effects/M_BlindSphereS.M_BlindSphereS")))
 			{
 				BlindDepthMID = UMaterialInstanceDynamic::Create(BlindMat, this);
 				UE_LOG(LogMyBondageLife, Log, TEXT("Blind: material loaded=%s"), BlindDepthMID ? TEXT("ok") : TEXT("null"));
