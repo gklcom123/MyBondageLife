@@ -1102,7 +1102,7 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 	//  · 性欲的粉色主要通过 SceneColorTint + 额外暗角强度体现，两者可同时可见。
 	PP.bOverride_VignetteIntensity = bActive;
 	// 蒙眼改用「深度遮罩」：只看得见周围若干米，远处全黑；暗角只保留适度边框。
-	PP.VignetteIntensity = 0.55f * BlindVisualLevel + 2.2f * LibidoVisualLevel;
+	PP.VignetteIntensity = 1.30f * BlindVisualLevel + 2.2f * LibidoVisualLevel;
 
 	PP.bOverride_VignetteColor = bActive;
 	PP.VignetteColor = bBlind ? FLinearColor(0.0f, 0.0f, 0.0f) : FLinearColor(1.0f, 0.68f, 0.84f);
@@ -1111,7 +1111,7 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 	{
 		if (!BlindDepthMID)
 		{
-			if (UMaterialInterface* BlindMat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Effects/M_BlindDepth.M_BlindDepth")))
+			if (UMaterialInterface* BlindMat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Effects/M_BlindDepthV2.M_BlindDepthV2")))
 			{
 				BlindDepthMID = UMaterialInstanceDynamic::Create(BlindMat, this);
 			}
@@ -1120,6 +1120,9 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 		{
 			const float Radius = FMath::Clamp(430.0f - 110.0f * BlindVisualLevel, 80.0f, 360.0f);
 			BlindDepthMID->SetScalarParameterValue(TEXT("Radius"), Radius);
+			// 以“角色”为圆心：把摄像机到角色的距离从深度里减掉。
+			const float OriginDistance = FVector::DotProduct(GetActorLocation() - Camera->GetComponentLocation(), Camera->GetForwardVector());
+			BlindDepthMID->SetScalarParameterValue(TEXT("OriginDistance"), FMath::Max(0.0f, OriginDistance));
 			BlindDepthMID->SetScalarParameterValue(TEXT("Fade"), 120.0f);
 			PP.AddBlendable(BlindDepthMID, 1.0f);
 			bBlindDepthAdded = true;
