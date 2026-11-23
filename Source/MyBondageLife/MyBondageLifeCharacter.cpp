@@ -1115,7 +1115,7 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 	{
 		if (!BlindDepthMID)
 		{
-			if (UMaterialInterface* BlindMat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Effects/M_BlindDepthV2.M_BlindDepthV2")))
+			if (UMaterialInterface* BlindMat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Effects/M_BlindDepthV3.M_BlindDepthV3")))
 			{
 				BlindDepthMID = UMaterialInstanceDynamic::Create(BlindMat, this);
 			}
@@ -1128,6 +1128,32 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 			const float OriginDistance = FVector::DotProduct(GetActorLocation() - Camera->GetComponentLocation(), Camera->GetForwardVector());
 			BlindDepthMID->SetScalarParameterValue(TEXT("OriginDistance"), FMath::Max(0.0f, OriginDistance));
 			BlindDepthMID->SetScalarParameterValue(TEXT("Fade"), 70.0f);
+
+			// 屏幕空间圆形：以角色投影点为中心，半径换算成 UV。
+			if (APlayerController* PPController = Cast<APlayerController>(GetController()))
+			{
+				int32 ViewX = 0, ViewY = 0;
+				PPController->GetViewportSize(ViewX, ViewY);
+				if (ViewX > 0 && ViewY > 0)
+				{
+					const FVector CharacterLocation = GetActorLocation();
+					FVector2D CenterPixel;
+					if (UGameplayStatics::ProjectWorldToScreen(PPController, CharacterLocation, CenterPixel, false))
+					{
+						BlindDepthMID->SetVectorParameterValue(TEXT("CenterUV"), FLinearColor(CenterPixel.X / ViewX, CenterPixel.Y / ViewY, 0.0f, 0.0f));
+						const float Aspect = static_cast<float>(ViewX) / static_cast<float>(ViewY);
+						BlindDepthMID->SetVectorParameterValue(TEXT("AspectScale"), FLinearColor(Aspect, 1.0f, 0.0f, 0.0f));
+
+						FVector2D EdgePixel;
+						const FVector EdgeWorld = CharacterLocation + Camera->GetRightVector() * Radius;
+						if (UGameplayStatics::ProjectWorldToScreen(PPController, EdgeWorld, EdgePixel, false))
+						{
+							const float RadiusPixels = FVector2D::Distance(EdgePixel, CenterPixel);
+							BlindDepthMID->SetScalarParameterValue(TEXT("ScreenRadius"), FMath::Max(0.02f, RadiusPixels / ViewY));
+						}
+					}
+				}
+			}
 			PP.AddBlendable(BlindDepthMID, 1.0f);
 			bBlindDepthAdded = true;
 		}
