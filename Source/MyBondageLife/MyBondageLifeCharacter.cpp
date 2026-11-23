@@ -1115,7 +1115,7 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 	{
 		if (!BlindDepthMID)
 		{
-			if (UMaterialInterface* BlindMat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Effects/M_BlindSphereSV2.M_BlindSphereSV2")))
+			if (UMaterialInterface* BlindMat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Effects/M_BlindSphereFinal.M_BlindSphereFinal")))
 			{
 				BlindDepthMID = UMaterialInstanceDynamic::Create(BlindMat, this);
 				UE_LOG(LogMyBondageLife, Log, TEXT("Blind: material loaded=%s"), BlindDepthMID ? TEXT("ok") : TEXT("null"));
@@ -1145,8 +1145,7 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 
 			const float Radius = FMath::Clamp(175.0f - 25.0f * BlindVisualLevel, 60.0f, 180.0f);
 			BlindDepthMID->SetScalarParameterValue(TEXT("Radius"), Radius);
-			BlindDepthMID->SetScalarParameterValue(TEXT("VignetteStrength"), 0.0f);
-			PP.AddBlendable(BlindDepthMID, 1.0f);
+			if (!bBlindDepthAdded) { UE_LOG(LogMyBondageLife, Log, TEXT("Blind: blendable added (Final material), radius=%.0f"), Radius); }`r`n`t`t`tPP.AddBlendable(BlindDepthMID, 1.0f);
 			bBlindDepthAdded = true;
 		}
 
