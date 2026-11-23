@@ -1144,7 +1144,7 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 
 			const float Radius = FMath::Clamp(175.0f - 25.0f * BlindVisualLevel, 60.0f, 180.0f);
 			BlindDepthMID->SetScalarParameterValue(TEXT("Radius"), Radius);
-			BlindDepthMID->SetScalarParameterValue(TEXT("Fade"), FMath::Clamp(Radius * 0.45f, 45.0f, 130.0f));`r`n`t`t`tBlindDepthMID->SetScalarParameterValue(TEXT("VignetteStrength"), FMath::Clamp(0.35f + 0.20f * BlindVisualLevel, 0.0f, 0.95f));
+			BlindDepthMID->SetScalarParameterValue(TEXT("VignetteStrength"), FMath::Clamp(0.35f + 0.20f * BlindVisualLevel, 0.0f, 0.95f));
 			PP.AddBlendable(BlindDepthMID, 1.0f);
 			bBlindDepthAdded = true;
 		}
