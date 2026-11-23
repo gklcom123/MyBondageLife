@@ -1115,7 +1115,7 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 	{
 		if (!BlindDepthMID)
 		{
-			if (UMaterialInterface* BlindMat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Effects/M_BlindSphereFinal.M_BlindSphereFinal")))
+			if (UMaterialInterface* BlindMat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Effects/M_BlindSphereVig.M_BlindSphereVig")))
 			{
 				BlindDepthMID = UMaterialInstanceDynamic::Create(BlindMat, this);
 				UE_LOG(LogMyBondageLife, Log, TEXT("Blind: material loaded=%s"), BlindDepthMID ? TEXT("ok") : TEXT("null"));
