@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "MyBondageLifeCharacter.h"
+#include "MyBondageLifeCharacter.h"
+
 #include "Core/Garbler/MyBondageLifeGarbler.h"
 
 #include "Core/MyBondageLifeHairCatalog.h"
@@ -1100,10 +1101,35 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 	//  · 暗角颜色：蒙眼优先保持黑色（不会因为性欲变粉而变亮），只有单纯性欲时才用粉色；
 	//  · 性欲的粉色主要通过 SceneColorTint + 额外暗角强度体现，两者可同时可见。
 	PP.bOverride_VignetteIntensity = bActive;
-	PP.VignetteIntensity = 2.4f * BlindVisualLevel + 2.2f * LibidoVisualLevel;
+	// 蒙眼改用「深度遮罩」：只看得见周围若干米，远处全黑；暗角只保留适度边框。
+	PP.VignetteIntensity = 0.55f * BlindVisualLevel + 2.2f * LibidoVisualLevel;
 
 	PP.bOverride_VignetteColor = bActive;
 	PP.VignetteColor = bBlind ? FLinearColor(0.0f, 0.0f, 0.0f) : FLinearColor(1.0f, 0.68f, 0.84f);
+
+	if (bBlind)
+	{
+		if (!BlindDepthMID)
+		{
+			if (UMaterialInterface* BlindMat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Effects/M_BlindDepth.M_BlindDepth")))
+			{
+				BlindDepthMID = UMaterialInstanceDynamic::Create(BlindMat, this);
+			}
+		}
+		if (BlindDepthMID)
+		{
+			const float Radius = FMath::Clamp(430.0f - 110.0f * BlindVisualLevel, 80.0f, 360.0f);
+			BlindDepthMID->SetScalarParameterValue(TEXT("Radius"), Radius);
+			BlindDepthMID->SetScalarParameterValue(TEXT("Fade"), 120.0f);
+			PP.AddBlendable(BlindDepthMID, 1.0f);
+			bBlindDepthAdded = true;
+		}
+	}
+	else if (bBlindDepthAdded && BlindDepthMID)
+	{
+		PP.RemoveBlendable(BlindDepthMID);
+		bBlindDepthAdded = false;
+	}
 
 	PP.bOverride_AutoExposureBias = bActive;
 	PP.AutoExposureBias = -0.55f * BlindVisualLevel;

@@ -32,6 +32,10 @@ class AMyBondageLifeCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
 
+	/** 蒙眼：近距离可见、远处全黑的深度遮罩材质实例。 */
+	UPROPERTY(Transient) TObjectPtr<class UMaterialInstanceDynamic> BlindDepthMID;
+	bool bBlindDepthAdded = false;
+
 	/**
 	 *  Character display name. Replicated so a server-provided name would reach
 	 *  every client; for now it keeps its default placeholder.

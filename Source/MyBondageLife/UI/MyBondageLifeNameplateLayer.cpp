@@ -88,6 +88,19 @@ UTextBlock* UMyBondageLifeNameplateLayer::FindOrCreateLabel(AMyBondageLifeCharac
 void UMyBondageLifeNameplateLayer::UpdateNameplates()
 {
 	APlayerController* PlayerController = GetOwningPlayer();
+
+	// 蒙眼状态下看不到任何头顶姓名。
+	if (const AMyBondageLifeCharacter* LocalCharacter = Cast<AMyBondageLifeCharacter>(PlayerController->GetPawn()))
+	{
+		if (LocalCharacter->GetBlindLevel() > 0)
+		{
+			for (const TPair<TObjectPtr<AMyBondageLifeCharacter>, TObjectPtr<UTextBlock>>& Pair : Labels)
+			{
+				if (Pair.Value) { Pair.Value->SetVisibility(ESlateVisibility::Collapsed); }
+			}
+			return;
+		}
+	}
 	UWorld* World = GetWorld();
 	if (!PlayerController || !World || !RootCanvas)
 	{
