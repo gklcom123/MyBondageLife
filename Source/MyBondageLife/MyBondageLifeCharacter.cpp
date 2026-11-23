@@ -1115,51 +1115,41 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 	{
 		if (!BlindDepthMID)
 		{
-			if (UMaterialInterface* BlindMat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Effects/M_BlindDepthV4.M_BlindDepthV4")))
+			if (UMaterialInterface* BlindMat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Effects/M_BlindSphereS.M_BlindSphereS")))
 			{
 				BlindDepthMID = UMaterialInstanceDynamic::Create(BlindMat, this);
 			}
 		}
-		if (BlindDepthMID)
+
+		if (BlindDepthMID && Camera)
 		{
+			// 世界空间球体：以角色为圆心，只渲染半径内，之外全黑。
+			const FVector CamLocation = Camera->GetComponentLocation();
+			const FVector ToCharacter = GetActorLocation() - CamLocation;
+			const float SemiFovRad = FMath::DegreesToRadians(Camera->FieldOfView * 0.5f);
+
+			int32 ViewX = 0;
+			int32 ViewY = 0;
+			if (APlayerController* PC = Cast<APlayerController>(GetController()))
+			{
+				PC->GetViewportSize(ViewX, ViewY);
+			}
+			const float Aspect = (ViewX > 0 && ViewY > 0) ? static_cast<float>(ViewX) / static_cast<float>(ViewY) : 1.7778f;
+
+			BlindDepthMID->SetScalarParameterValue(TEXT("TanHalfFov"), FMath::Tan(SemiFovRad));
+			BlindDepthMID->SetScalarParameterValue(TEXT("Aspect"), Aspect);
+			BlindDepthMID->SetScalarParameterValue(TEXT("CharX"), FVector::DotProduct(ToCharacter, Camera->GetRightVector()));
+			BlindDepthMID->SetScalarParameterValue(TEXT("CharY"), FVector::DotProduct(ToCharacter, Camera->GetUpVector()));
+			BlindDepthMID->SetScalarParameterValue(TEXT("CharDepth"), FVector::DotProduct(ToCharacter, Camera->GetForwardVector()));
+
 			const float Radius = FMath::Clamp(175.0f - 25.0f * BlindVisualLevel, 60.0f, 180.0f);
 			BlindDepthMID->SetScalarParameterValue(TEXT("Radius"), Radius);
-			// 以“角色”为圆心：把摄像机到角色的距离从深度里减掉。
-			const float OriginDistance = FVector::DotProduct(GetActorLocation() - Camera->GetComponentLocation(), Camera->GetForwardVector());
-			BlindDepthMID->SetScalarParameterValue(TEXT("OriginDistance"), FMath::Max(0.0f, OriginDistance));
-			BlindDepthMID->SetScalarParameterValue(TEXT("Fade"), 70.0f);
-
-			// 屏幕空间圆形：以角色投影点为中心，半径换算成 UV。
-			if (APlayerController* PPController = Cast<APlayerController>(GetController()))
-			{
-				int32 ViewX = 0, ViewY = 0;
-				PPController->GetViewportSize(ViewX, ViewY);
-				if (ViewX > 0 && ViewY > 0)
-				{
-					const FVector CharacterLocation = GetActorLocation();
-					FVector2D CenterPixel;
-					if (UGameplayStatics::ProjectWorldToScreen(PPController, CharacterLocation, CenterPixel, false))
-					{
-						BlindDepthMID->SetScalarParameterValue(TEXT("CenterU"), CenterPixel.X / ViewX);
-						BlindDepthMID->SetScalarParameterValue(TEXT("CenterV"), CenterPixel.Y / ViewY);
-						const float Aspect = static_cast<float>(ViewX) / static_cast<float>(ViewY);
-						BlindDepthMID->SetScalarParameterValue(TEXT("Aspect"), Aspect);
-
-						FVector2D EdgePixel;
-						const FVector EdgeWorld = CharacterLocation + Camera->GetRightVector() * Radius;
-						if (UGameplayStatics::ProjectWorldToScreen(PPController, EdgeWorld, EdgePixel, false))
-						{
-							const float RadiusPixels = FVector2D::Distance(EdgePixel, CenterPixel);
-							BlindDepthMID->SetScalarParameterValue(TEXT("ScreenRadius"), FMath::Max(0.02f, RadiusPixels / ViewY));
-						}
-					}
-				}
-			}
+			BlindDepthMID->SetScalarParameterValue(TEXT("Fade"), 60.0f);
 			PP.AddBlendable(BlindDepthMID, 1.0f);
 			bBlindDepthAdded = true;
 		}
 
-		// 轻度浓雾：让远处过渡更自然（本地生成，仅自己可见）。
+		// 雾：让黑幕边缘更自然（本地生成，仅自己可见）。
 		if (!BlindFogActor.IsValid())
 		{
 			FActorSpawnParameters SpawnParams;
@@ -1177,7 +1167,11 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 	}
 	else
 	{
-		if (BlindFogActor.IsValid()) { BlindFogActor->Destroy(); BlindFogActor = nullptr; }
+		if (BlindFogActor.IsValid())
+		{
+			BlindFogActor->Destroy();
+			BlindFogActor = nullptr;
+		}
 		if (bBlindDepthAdded && BlindDepthMID)
 		{
 			PP.RemoveBlendable(BlindDepthMID);
