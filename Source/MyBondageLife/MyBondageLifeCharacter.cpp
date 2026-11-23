@@ -1106,7 +1106,7 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 	//  · 性欲的粉色主要通过 SceneColorTint + 额外暗角强度体现，两者可同时可见。
 	PP.bOverride_VignetteIntensity = bActive;
 	// 蒙眼改用「深度遮罩」：只看得见周围若干米，远处全黑；暗角只保留适度边框。
-	PP.VignetteIntensity = 1.30f * BlindVisualLevel + 2.2f * LibidoVisualLevel;
+	PP.VignetteIntensity = 1.85f * BlindVisualLevel + 2.2f * LibidoVisualLevel;
 
 	PP.bOverride_VignetteColor = bActive;
 	PP.VignetteColor = bBlind ? FLinearColor(0.0f, 0.0f, 0.0f) : FLinearColor(1.0f, 0.68f, 0.84f);
@@ -1144,7 +1144,7 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 
 			const float Radius = FMath::Clamp(175.0f - 25.0f * BlindVisualLevel, 60.0f, 180.0f);
 			BlindDepthMID->SetScalarParameterValue(TEXT("Radius"), Radius);
-			BlindDepthMID->SetScalarParameterValue(TEXT("Fade"), 60.0f);
+			BlindDepthMID->SetScalarParameterValue(TEXT("Fade"), FMath::Clamp(Radius * 0.45f, 45.0f, 130.0f));
 			PP.AddBlendable(BlindDepthMID, 1.0f);
 			bBlindDepthAdded = true;
 		}
@@ -1158,7 +1158,7 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 		}
 		if (UExponentialHeightFogComponent* FogComp = BlindFogActor.IsValid() ? BlindFogActor->GetComponent() : nullptr)
 		{
-			FogComp->SetFogDensity(0.9f * BlindVisualLevel);
+			FogComp->SetFogDensity(2.6f * BlindVisualLevel);
 			FogComp->SetFogHeightFalloff(0.02f);
 			FogComp->SetFogInscatteringColor(FLinearColor(0.0f, 0.0f, 0.0f));
 			FogComp->SetStartDistance(0.0f);
