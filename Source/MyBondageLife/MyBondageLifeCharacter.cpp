@@ -1115,7 +1115,7 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 	{
 		if (!BlindDepthMID)
 		{
-			if (UMaterialInterface* BlindMat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Effects/M_BlindSphereS.M_BlindSphereS")))
+			if (UMaterialInterface* BlindMat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Effects/M_BlindSphereFade.M_BlindSphereFade")))
 			{
 				BlindDepthMID = UMaterialInstanceDynamic::Create(BlindMat, this);
 				UE_LOG(LogMyBondageLife, Log, TEXT("Blind: material loaded=%s"), BlindDepthMID ? TEXT("ok") : TEXT("null"));
@@ -1144,7 +1144,7 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 			BlindDepthMID->SetScalarParameterValue(TEXT("CharDepth"), FVector::DotProduct(ToCharacter, Camera->GetForwardVector()));
 
 			const float Radius = FMath::Clamp(175.0f - 25.0f * BlindVisualLevel, 60.0f, 180.0f);
-			BlindDepthMID->SetScalarParameterValue(TEXT("Radius"), Radius);
+			BlindDepthMID->SetScalarParameterValue(TEXT("Radius"), Radius);`r`n`t`t`tBlindDepthMID->SetScalarParameterValue(TEXT("MinVisibility"), FMath::Clamp(0.16f - 0.03f * BlindVisualLevel, 0.05f, 0.18f));
 			if (!bBlindDepthAdded) { UE_LOG(LogMyBondageLife, Log, TEXT("Blind: blendable added (Final material), radius=%.0f"), Radius); }
 			PP.AddBlendable(BlindDepthMID, 1.0f);
 			bBlindDepthAdded = true;
