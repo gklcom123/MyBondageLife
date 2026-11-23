@@ -1191,7 +1191,17 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 			if (APlayerController* LocalPC = Cast<APlayerController>(GetController()))
 			{
 				BlindMaskWidget = CreateWidget<UMyBondageLifeBlindMaskWidget>(LocalPC, UMyBondageLifeBlindMaskWidget::StaticClass());
-				if (BlindMaskWidget) { BlindMaskWidget->AddToViewport(200); }
+				if (BlindMaskWidget)
+				{
+					BlindMaskWidget->AddToViewport(200);
+					BlindMaskWidget->SetAnchorsInViewport(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
+					BlindMaskWidget->SetAlignmentInViewport(FVector2D(0.0f, 0.0f));
+					BlindMaskWidget->SetPositionInViewport(FVector2D::ZeroVector, false);
+					int32 VX = 0, VY = 0;
+					if (APlayerController* SizePC = Cast<APlayerController>(GetController())) { SizePC->GetViewportSize(VX, VY); }
+					if (VX > 0 && VY > 0) { BlindMaskWidget->SetDesiredSizeInViewport(FVector2D(VX, VY)); }
+					UE_LOG(LogMyBondageLife, Log, TEXT("Blind: mask added %dx%d"), VX, VY);
+				}
 			}
 		}
 		if (UMyBondageLifeBlindMaskWidget* MaskWidget = Cast<UMyBondageLifeBlindMaskWidget>(BlindMaskWidget))

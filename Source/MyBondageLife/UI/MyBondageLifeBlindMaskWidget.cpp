@@ -20,7 +20,12 @@ TSharedRef<SWidget> UMyBondageLifeBlindMaskWidget::RebuildWidget()
 		if (UMaterialInterface* MaskMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Effects/M_BlindMaskUI.M_BlindMaskUI")))
 		{
 			MaskMID = UMaterialInstanceDynamic::Create(MaskMaterial, this);
-			MaskImage->SetBrushFromMaterial(MaskMID);
+			FSlateBrush MaskBrush;
+			MaskBrush.SetResourceObject(MaskMID);
+			MaskBrush.DrawAs = ESlateBrushDrawType::Image;
+			MaskBrush.ImageSize = FVector2D(4096.0f, 4096.0f);
+			MaskBrush.TintColor = FSlateColor(FLinearColor::White);
+			MaskImage->SetBrush(MaskBrush);
 			MaskImage->SetColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f, 1.0f));
 		}
 	}
