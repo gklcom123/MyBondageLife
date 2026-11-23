@@ -2,6 +2,8 @@
 
 #include "MyBondageLifeCharacter.h"
 
+#include "UI/MyBondageLifeBlindMaskWidget.h"
+
 
 #include "Components/ExponentialHeightFogComponent.h"
 #include "Engine/ExponentialHeightFog.h"
@@ -1106,7 +1108,8 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 	//  · 性欲的粉色主要通过 SceneColorTint + 额外暗角强度体现，两者可同时可见。
 	PP.bOverride_VignetteIntensity = bActive;
 	// 蒙眼改用「深度遮罩」：只看得见周围若干米，远处全黑；暗角只保留适度边框。
-	PP.VignetteIntensity = 2.4f * BlindVisualLevel + 2.2f * LibidoVisualLevel;
+	// 黑边改由 UI 蒙版负责；这里只保留性欲的粉色暗角。
+	PP.VignetteIntensity = 2.2f * LibidoVisualLevel;
 
 	PP.bOverride_VignetteColor = bActive;
 	PP.VignetteColor = bBlind ? FLinearColor(0.0f, 0.0f, 0.0f) : FLinearColor(1.0f, 0.68f, 0.84f);
@@ -1178,6 +1181,28 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 			PP.RemoveBlendable(BlindDepthMID);
 			bBlindDepthAdded = false;
 		}
+	}
+
+	// 蒙眼：屏幕四周黑色蒙版（UI 层，不拦截点击）。
+	if (bBlind && IsLocallyControlled())
+	{
+		if (!BlindMaskWidget)
+		{
+			if (APlayerController* LocalPC = Cast<APlayerController>(GetController()))
+			{
+				BlindMaskWidget = CreateWidget<UMyBondageLifeBlindMaskWidget>(LocalPC, UMyBondageLifeBlindMaskWidget::StaticClass());
+				if (BlindMaskWidget) { BlindMaskWidget->AddToViewport(200); }
+			}
+		}
+		if (UMyBondageLifeBlindMaskWidget* MaskWidget = Cast<UMyBondageLifeBlindMaskWidget>(BlindMaskWidget))
+		{
+			MaskWidget->SetStrength(FMath::Clamp(0.30f + 0.22f * BlindVisualLevel, 0.0f, 0.95f));
+		}
+	}
+	else if (BlindMaskWidget)
+	{
+		BlindMaskWidget->RemoveFromParent();
+		BlindMaskWidget = nullptr;
 	}
 
 	PP.bOverride_AutoExposureBias = bActive;
