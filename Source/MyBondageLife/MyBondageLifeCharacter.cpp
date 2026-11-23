@@ -1115,7 +1115,7 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 	{
 		if (!BlindDepthMID)
 		{
-			if (UMaterialInterface* BlindMat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Effects/M_BlindDepthV3.M_BlindDepthV3")))
+			if (UMaterialInterface* BlindMat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Effects/M_BlindDepthV4.M_BlindDepthV4")))
 			{
 				BlindDepthMID = UMaterialInstanceDynamic::Create(BlindMat, this);
 			}
@@ -1140,9 +1140,10 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 					FVector2D CenterPixel;
 					if (UGameplayStatics::ProjectWorldToScreen(PPController, CharacterLocation, CenterPixel, false))
 					{
-						BlindDepthMID->SetVectorParameterValue(TEXT("CenterUV"), FLinearColor(CenterPixel.X / ViewX, CenterPixel.Y / ViewY, 0.0f, 0.0f));
+						BlindDepthMID->SetScalarParameterValue(TEXT("CenterU"), CenterPixel.X / ViewX);
+						BlindDepthMID->SetScalarParameterValue(TEXT("CenterV"), CenterPixel.Y / ViewY);
 						const float Aspect = static_cast<float>(ViewX) / static_cast<float>(ViewY);
-						BlindDepthMID->SetVectorParameterValue(TEXT("AspectScale"), FLinearColor(Aspect, 1.0f, 0.0f, 0.0f));
+						BlindDepthMID->SetScalarParameterValue(TEXT("Aspect"), Aspect);
 
 						FVector2D EdgePixel;
 						const FVector EdgeWorld = CharacterLocation + Camera->GetRightVector() * Radius;
