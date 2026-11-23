@@ -1145,7 +1145,8 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 
 			const float Radius = FMath::Clamp(175.0f - 25.0f * BlindVisualLevel, 60.0f, 180.0f);
 			BlindDepthMID->SetScalarParameterValue(TEXT("Radius"), Radius);
-			if (!bBlindDepthAdded) { UE_LOG(LogMyBondageLife, Log, TEXT("Blind: blendable added (Final material), radius=%.0f"), Radius); }`r`n`t`t`tPP.AddBlendable(BlindDepthMID, 1.0f);
+			if (!bBlindDepthAdded) { UE_LOG(LogMyBondageLife, Log, TEXT("Blind: blendable added (Final material), radius=%.0f"), Radius); }
+			PP.AddBlendable(BlindDepthMID, 1.0f);
 			bBlindDepthAdded = true;
 		}
 
