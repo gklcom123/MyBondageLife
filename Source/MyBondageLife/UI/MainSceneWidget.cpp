@@ -1032,11 +1032,6 @@ void UMainSceneWidget::OpenRoomInfoPanel(bool bLocal)
 		RoomInfoWidget = CreateWidget<UUserWidget>(this, PanelClass);
 		if (!RoomInfoWidget) { return; }
 		RoomInfoWidget->AddToViewport(60);
-		// 面板尺寸 1000 × 1400，居中显示。
-		RoomInfoWidget->SetAnchorsInViewport(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
-		RoomInfoWidget->SetAlignmentInViewport(FVector2D(0.5f, 0.5f));
-		RoomInfoWidget->SetPositionInViewport(FVector2D::ZeroVector, false);
-		RoomInfoWidget->SetDesiredSizeInViewport(FVector2D(1000.0f, 1400.0f));
 
 		if (UButton* CloseBtn = Cast<UButton>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Close"))))
 		{
