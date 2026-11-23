@@ -36,6 +36,9 @@ class AMyBondageLifeCharacter : public ACharacter
 	UPROPERTY(Transient) TObjectPtr<class UMaterialInstanceDynamic> BlindDepthMID;
 	bool bBlindDepthAdded = false;
 
+	/** 蒙眼时的本地浓雾（客户端本地生成，不参与同步）。 */
+	TWeakObjectPtr<class AExponentialHeightFog> BlindFogActor;
+
 	/**
 	 *  Character display name. Replicated so a server-provided name would reach
 	 *  every client; for now it keeps its default placeholder.

@@ -2,6 +2,10 @@
 
 #include "MyBondageLifeCharacter.h"
 
+
+#include "Components/ExponentialHeightFogComponent.h"
+#include "Engine/ExponentialHeightFog.h"
+
 #include "Core/Garbler/MyBondageLifeGarbler.h"
 
 #include "Core/MyBondageLifeHairCatalog.h"
@@ -1118,20 +1122,40 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 		}
 		if (BlindDepthMID)
 		{
-			const float Radius = FMath::Clamp(430.0f - 110.0f * BlindVisualLevel, 80.0f, 360.0f);
+			const float Radius = FMath::Clamp(175.0f - 25.0f * BlindVisualLevel, 60.0f, 180.0f);
 			BlindDepthMID->SetScalarParameterValue(TEXT("Radius"), Radius);
 			// 以“角色”为圆心：把摄像机到角色的距离从深度里减掉。
 			const float OriginDistance = FVector::DotProduct(GetActorLocation() - Camera->GetComponentLocation(), Camera->GetForwardVector());
 			BlindDepthMID->SetScalarParameterValue(TEXT("OriginDistance"), FMath::Max(0.0f, OriginDistance));
-			BlindDepthMID->SetScalarParameterValue(TEXT("Fade"), 120.0f);
+			BlindDepthMID->SetScalarParameterValue(TEXT("Fade"), 70.0f);
 			PP.AddBlendable(BlindDepthMID, 1.0f);
 			bBlindDepthAdded = true;
 		}
+
+		// 轻度浓雾：让远处过渡更自然（本地生成，仅自己可见）。
+		if (!BlindFogActor.IsValid())
+		{
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			BlindFogActor = GetWorld() ? GetWorld()->SpawnActor<AExponentialHeightFog>(AExponentialHeightFog::StaticClass(), GetActorLocation(), FRotator::ZeroRotator, SpawnParams) : nullptr;
+		}
+		if (UExponentialHeightFogComponent* FogComp = BlindFogActor.IsValid() ? BlindFogActor->GetComponent() : nullptr)
+		{
+			FogComp->SetFogDensity(0.9f * BlindVisualLevel);
+			FogComp->SetFogHeightFalloff(0.02f);
+			FogComp->SetFogInscatteringColor(FLinearColor(0.0f, 0.0f, 0.0f));
+			FogComp->SetStartDistance(0.0f);
+			FogComp->SetVolumetricFog(false);
+		}
 	}
-	else if (bBlindDepthAdded && BlindDepthMID)
+	else
 	{
-		PP.RemoveBlendable(BlindDepthMID);
-		bBlindDepthAdded = false;
+		if (BlindFogActor.IsValid()) { BlindFogActor->Destroy(); BlindFogActor = nullptr; }
+		if (bBlindDepthAdded && BlindDepthMID)
+		{
+			PP.RemoveBlendable(BlindDepthMID);
+			bBlindDepthAdded = false;
+		}
 	}
 
 	PP.bOverride_AutoExposureBias = bActive;
