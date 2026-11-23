@@ -1109,7 +1109,8 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 	PP.bOverride_VignetteIntensity = bActive;
 	// 蒙眼改用「深度遮罩」：只看得见周围若干米，远处全黑；暗角只保留适度边框。
 	// 黑边改由 UI 蒙版负责；这里只保留性欲的粉色暗角。
-	PP.VignetteIntensity = 2.2f * LibidoVisualLevel;
+	// 蒙眼黑边：用引擎 Vignette（强度更高，且只由盲视等级驱动）。
+	PP.VignetteIntensity = 3.2f * BlindVisualLevel + 2.2f * LibidoVisualLevel;
 
 	PP.bOverride_VignetteColor = bActive;
 	PP.VignetteColor = bBlind ? FLinearColor(0.0f, 0.0f, 0.0f) : FLinearColor(1.0f, 0.68f, 0.84f);
@@ -1183,56 +1184,6 @@ void AMyBondageLifeCharacter::ApplyBlindEffect(float InDeltaTime)
 		}
 	}
 
-	// 蒙眼：屏幕四周黑色蒙版（UI 层，不拦截点击）。
-	if (bBlind && IsLocallyControlled())
-	{
-		if (!BlindMaskWidget)
-		{
-			if (APlayerController* LocalPC = Cast<APlayerController>(GetController()))
-			{
-				BlindMaskWidget = CreateWidget<UMyBondageLifeBlindMaskWidget>(LocalPC, UMyBondageLifeBlindMaskWidget::StaticClass());
-				if (BlindMaskWidget)
-				{
-					BlindMaskWidget->AddToViewport(200);
-					BlindMaskWidget->SetAnchorsInViewport(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
-					BlindMaskWidget->SetAlignmentInViewport(FVector2D(0.0f, 0.0f));
-					BlindMaskWidget->SetPositionInViewport(FVector2D::ZeroVector, false);
-					int32 VX = 0, VY = 0;
-					if (APlayerController* SizePC = Cast<APlayerController>(GetController())) { SizePC->GetViewportSize(VX, VY); }
-					if (VX > 0 && VY > 0) { BlindMaskWidget->SetDesiredSizeInViewport(FVector2D(VX, VY)); }
-					UE_LOG(LogMyBondageLife, Log, TEXT("Blind: mask added %dx%d"), VX, VY);
-				}
-			}
-		}
-		if (UMyBondageLifeBlindMaskWidget* MaskWidget = Cast<UMyBondageLifeBlindMaskWidget>(BlindMaskWidget))
-		{
-			MaskWidget->SetStrength(FMath::Clamp(0.30f + 0.22f * BlindVisualLevel, 0.0f, 0.95f));
-		}
-	}
-	else if (BlindMaskWidget)
-	{
-		BlindMaskWidget->RemoveFromParent();
-		BlindMaskWidget = nullptr;
-	}
-
-	PP.bOverride_AutoExposureBias = bActive;
-	PP.AutoExposureBias = -0.55f * BlindVisualLevel;
-
-	// 模糊：性欲比蒙眼更明显地拉近焦平面并压低 F 值。
-	PP.bOverride_DepthOfFieldFstop = bActive;
-	PP.DepthOfFieldFstop = FMath::Max(0.45f, 2.4f - 0.5f * BlindVisualLevel - 0.9f * LibidoVisualLevel);
-
-	PP.bOverride_DepthOfFieldFocalDistance = bActive;
-	PP.DepthOfFieldFocalDistance = FMath::Max(140.0f, 320.0f - 90.0f * LibidoVisualLevel);
-
-	PP.bOverride_DepthOfFieldSensorWidth = bActive;
-	PP.DepthOfFieldSensorWidth = 24.0f;
-
-	// 性欲的粉色染色：越强越明显（不影响蒙眼的黑色暗角）。
-	PP.bOverride_SceneColorTint = bLibido;
-	PP.SceneColorTint = FLinearColor::LerpUsingHSV(FLinearColor::White, FLinearColor(1.0f, 0.84f, 0.93f), FMath::Clamp(LibidoVisualLevel * 0.5f, 0.0f, 1.0f));
-
-}
 void AMyBondageLifeCharacter::ApplyBodyPartHiding()
 {
 	USkeletalMeshComponent* MeshComponent = GetMesh();
