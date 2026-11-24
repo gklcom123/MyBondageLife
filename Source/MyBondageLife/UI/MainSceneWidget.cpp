@@ -1124,6 +1124,7 @@ void UMainSceneWidget::HandleRoomsUpdatedForInfo(const TArray<FMyBondageLifeServ
 	}
 
 	for (const FMyBondageLifeServerRoom& Room : Rooms)
+		UE_LOG(LogMyBondageLife, Log, TEXT("RoomInfo: list room=%s host=%s"), *Room.RoomName, *Room.HostAccount);
 	{
 		if (!MyAccount.IsEmpty() && Room.HostAccount.Equals(MyAccount, ESearchCase::IgnoreCase))
 		{
@@ -1139,6 +1140,7 @@ void UMainSceneWidget::HandleRoomsUpdatedForInfo(const TArray<FMyBondageLifeServ
 void UMainSceneWidget::HandleRoomDetailsForInfo(const FMyBondageLifeServerRoom& Room)
 {
 	FillRoomInfoFromRoom(Room);
+	UE_LOG(LogMyBondageLife, Log, TEXT("RoomInfo: details name=%s max=%d lang=%s mode=%s"), *Room.RoomName, Room.MaxPlayers, *Room.Language, *Room.VisitMode);
 }
 
 void UMainSceneWidget::FillRoomInfoFromRoom(const FMyBondageLifeServerRoom& Room)
