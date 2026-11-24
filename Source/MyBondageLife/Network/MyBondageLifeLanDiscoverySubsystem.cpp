@@ -353,7 +353,7 @@ void UMyBondageLifeLanDiscoverySubsystem::ClearDiscoveredRooms()
 
 FString UMyBondageLifeLanDiscoverySubsystem::SerializeRoom(const FMyBondageLifeRoomInfo& Room)
 {
-	return FString::Printf(TEXT("%s|%s|%s|%s|%d|%d|%d|%s"),
+	return FString::Printf(TEXT("%s|%s|%s|%s|%d|%d|%d|%s|%s|%s|%d|%d|%d|%s|%s|%s"),
 		RoomPacketTag,
 		*SanitizeField(Room.RoomId),
 		*SanitizeField(Room.RoomName),
@@ -361,7 +361,15 @@ FString UMyBondageLifeLanDiscoverySubsystem::SerializeRoom(const FMyBondageLifeR
 		Room.Port,
 		Room.CurrentPlayers,
 		Room.MaxPlayers,
-		*SanitizeField(Room.HostAccount));
+		*SanitizeField(Room.HostAccount),
+		*SanitizeField(Room.Description),
+		*SanitizeField(Room.Language),
+		Room.MaxPlayersSetting,
+		Room.bHasPassword ? 1 : 0,
+		Room.VisitMode,
+		*SanitizeField(Room.Admins),
+		*SanitizeField(Room.Whitelist),
+		*SanitizeField(Room.Blacklist));
 }
 
 bool UMyBondageLifeLanDiscoverySubsystem::DeserializeRoom(const FString& Payload, FMyBondageLifeRoomInfo& OutRoom)
@@ -383,6 +391,17 @@ bool UMyBondageLifeLanDiscoverySubsystem::DeserializeRoom(const FString& Payload
 	if (Fields.Num() >= 8)
 	{
 		OutRoom.HostAccount = Fields[7];
+	}
+	if (Fields.Num() >= 16)
+	{
+		OutRoom.Description = Fields[8];
+		OutRoom.Language = Fields[9];
+		OutRoom.MaxPlayersSetting = FCString::Atoi(*Fields[10]);
+		OutRoom.bHasPassword = Fields[11] == TEXT("1");
+		OutRoom.VisitMode = FCString::Atoi(*Fields[12]);
+		OutRoom.Admins = Fields[13];
+		OutRoom.Whitelist = Fields[14];
+		OutRoom.Blacklist = Fields[15];
 	}
 
 	if (OutRoom.RoomId.IsEmpty() || OutRoom.Port <= 0 || OutRoom.HostAddress.IsEmpty())

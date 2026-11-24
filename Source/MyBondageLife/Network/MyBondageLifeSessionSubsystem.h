@@ -19,6 +19,24 @@
  *
  *  Lives on the GameInstance so the state survives ServerTravel/ClientTravel.
  */
+
+/** 房间信息（创建/修改时使用）。 */
+USTRUCT(BlueprintType)
+struct FMyBondageLifeRoomSettings
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite) FString Name;
+	UPROPERTY(BlueprintReadWrite) FString Description;
+	UPROPERTY(BlueprintReadWrite) FString Password;
+	UPROPERTY(BlueprintReadWrite) FString Language = TEXT("zh");
+	UPROPERTY(BlueprintReadWrite) int32 MaxPlayers = 8;
+	UPROPERTY(BlueprintReadWrite) FString Admins;
+	UPROPERTY(BlueprintReadWrite) FString Whitelist;
+	UPROPERTY(BlueprintReadWrite) FString Blacklist;
+	/** 0 = all, 1 = admins only, 2 = admins + whitelist */
+	UPROPERTY(BlueprintReadWrite) int32 VisitMode = 0;
+};
 UCLASS()
 class MYBONDAGELIFE_API UMyBondageLifeSessionSubsystem : public UGameInstanceSubsystem
 {
@@ -35,6 +53,10 @@ public:
 	/** Opens the current map as a listen server and starts announcing the room. */
 	UFUNCTION(BlueprintCallable, Category = "LAN|Session")
 	bool HostRoom(const FString& InRoomName);
+
+	/** 创建前设置房间信息（LAN/EOS 共用）。 */
+	void SetRoomSettings(const FMyBondageLifeRoomSettings& InSettings) { RoomSettings = InSettings; }
+	const FMyBondageLifeRoomSettings& GetRoomSettings() const { return RoomSettings; }
 
 	/** Travels to a discovered room. */
 	UFUNCTION(BlueprintCallable, Category = "LAN|Session")
@@ -108,6 +130,8 @@ private:
 
 	FString RoomId;
 	FString RoomName;
+
+	FMyBondageLifeRoomSettings RoomSettings;
 	FString HostIp;
 	int32 GamePort = DefaultGamePort;
 	int32 MaxPlayers = DefaultMaxPlayers;

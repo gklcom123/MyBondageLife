@@ -25,6 +25,16 @@ struct FMyBondageLifeRoomInfo
 	UPROPERTY(BlueprintReadOnly, Category = "Room")
 	FString RoomName;
 
+	/** 房间信息（与在线房间一致）。 */
+	UPROPERTY(BlueprintReadOnly) FString Description;
+	UPROPERTY(BlueprintReadOnly) FString Language = TEXT("zh");
+	UPROPERTY(BlueprintReadOnly) int32 MaxPlayersSetting = 8;
+	UPROPERTY(BlueprintReadOnly) bool bHasPassword = false;
+	UPROPERTY(BlueprintReadOnly) int32 VisitMode = 0;
+	UPROPERTY(BlueprintReadOnly) FString Admins;
+	UPROPERTY(BlueprintReadOnly) FString Whitelist;
+	UPROPERTY(BlueprintReadOnly) FString Blacklist;
+
 	/** 房主账号（家具归属判定用）。 */
 	UPROPERTY(BlueprintReadOnly, Category = "Room")
 	FString HostAccount;

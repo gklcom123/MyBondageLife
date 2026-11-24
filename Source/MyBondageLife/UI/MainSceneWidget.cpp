@@ -1,6 +1,9 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "MainSceneWidget.h"
+#include "MainSceneWidget.h"
+#include "Components/CheckBox.h"
+#include "Components/ComboBoxString.h"
+#include "Components/EditableTextBox.h"
 #include "MyBondageLifeUIStyle.h"
 
 #include "Blueprint/WidgetTree.h"
@@ -1017,6 +1020,203 @@ void UMainSceneWidget::HandleJoinLocalRoomClicked()
 	OpenLocalRoomBrowser();
 }
 
+
+
+// ---------------------------------------------------------------------------
+// 房间信息面板
+// ---------------------------------------------------------------------------
+namespace
+{
+	FString TrimField(const FString& In) { return In.TrimStartAndEnd(); }
+
+	bool IsDigitsOnly(const FString& In)
+	{
+		if (In.IsEmpty()) { return false; }
+		for (const TCHAR Ch : In)
+		{
+			if (Ch < '0' || Ch > '9') { return false; }
+		}
+		return true;
+	}
+
+	// 返回规范化后的列表（去空格）；格式非法返回 false。
+	bool NormalizeUidList(const FString& In, FString& Out)
+	{
+		Out.Reset();
+		const FString Trimmed = TrimField(In);
+		if (Trimmed.IsEmpty()) { return true; }
+
+		TArray<FString> Parts;
+		Trimmed.ParseIntoArray(Parts, TEXT(","), false);
+		for (FString& Part : Parts)
+		{
+			Part.TrimStartAndEndInline();
+			if (!IsDigitsOnly(Part)) { return false; }
+		}
+		for (const FString& Part : Parts)
+		{
+			if (!Out.IsEmpty()) { Out += TEXT(","); }
+			Out += Part;
+		}
+		return true;
+	}
+}
+
+void UMainSceneWidget::ShowRoomInfoError(const FString& Message)
+{
+	UE_LOG(LogMyBondageLife, Warning, TEXT("RoomInfo: %s"), *Message);
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 4.0f, FColor::Red, FString::Printf(TEXT("[房间信息] %s"), *Message));
+	}
+}
+
+void UMainSceneWidget::FillRoomInfoDefaults()
+{
+	if (!RoomInfoWidget || !RoomInfoWidget->WidgetTree) { return; }
+	auto SetText = [this](const TCHAR* Name, const FString& Value)
+	{
+		if (UEditableTextBox* Box = Cast<UEditableTextBox>(RoomInfoWidget->WidgetTree->FindWidget(Name)))
+		{
+			Box->SetText(FText::FromString(Value));
+		}
+	};
+
+	FMyBondageLifeRoomSettings Settings;
+	if (UMyBondageLifeSessionSubsystem* Session = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeSessionSubsystem>() : nullptr)
+	{
+		Settings = Session->GetRoomSettings();
+	}
+	if (Settings.Name.IsEmpty())
+	{
+		FString PlayerName = TEXT("玩家");
+		if (UMyBondageLifeAccountSubsystem* Account = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+		{
+			const FString CharacterName = Account->GetCharacterName();
+			PlayerName = CharacterName.IsEmpty() ? Account->GetAccountName() : CharacterName;
+		}
+		Settings.Name = PlayerName + TEXT("的房间");
+		Settings.MaxPlayers = 8;
+		Settings.Language = TEXT("zh");
+		Settings.VisitMode = 0;
+	}
+
+	SetText(TEXT("W_Room_Input_RoomName"), Settings.Name);
+	SetText(TEXT("W_Room_Input_RoomDesc"), Settings.Description);
+	SetText(TEXT("W_Room_Input_RoomSecretWord"), Settings.Password);
+	SetText(TEXT("W_Room_Input_RoomMaxPlayerNum"), FString::FromInt(Settings.MaxPlayers));
+	SetText(TEXT("W_Room_RoomAdminInput"), Settings.Admins);
+	SetText(TEXT("W_Room_RoomWhitelistInput"), Settings.Whitelist);
+	SetText(TEXT("W_Room_RoomBlacklistInput"), Settings.Blacklist);
+
+	if (UComboBoxString* LanguageBox = Cast<UComboBoxString>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_RoomLanguageComboBox"))))
+	{
+		if (LanguageBox->GetOptionCount() == 0)
+		{
+			LanguageBox->AddOption(TEXT("中文"));
+			LanguageBox->AddOption(TEXT("English"));
+			LanguageBox->AddOption(TEXT("한국어"));
+			LanguageBox->AddOption(TEXT("日本語"));
+		}
+		FString Label = TEXT("中文");
+		if (Settings.Language == TEXT("en")) { Label = TEXT("English"); }
+		else if (Settings.Language == TEXT("ko")) { Label = TEXT("한국어"); }
+		else if (Settings.Language == TEXT("ja")) { Label = TEXT("日本語"); }
+		LanguageBox->SetSelectedOption(Label);
+	}
+
+	UCheckBox* AllBox = Cast<UCheckBox>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_VisitMode_ModeCheck_All")));
+	UCheckBox* AdminBox = Cast<UCheckBox>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_VisitMode_ModeCheck_OnlyAdmin")));
+	UCheckBox* WhiteBox = Cast<UCheckBox>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_VisitMode_ModeCheck_OnlyAdminWhitelist")));
+	if (AllBox) { AllBox->SetIsChecked(Settings.VisitMode == 0); }
+	if (AdminBox) { AdminBox->SetIsChecked(Settings.VisitMode == 1); }
+	if (WhiteBox) { WhiteBox->SetIsChecked(Settings.VisitMode == 2); }
+}
+
+bool UMainSceneWidget::ReadRoomInfoSettings(FMyBondageLifeRoomSettings& OutSettings, FString& OutError)
+{
+	if (!RoomInfoWidget || !RoomInfoWidget->WidgetTree) { OutError = TEXT("面板不可用"); return false; }
+
+	auto GetText = [this](const TCHAR* Name) -> FString
+	{
+		if (UEditableTextBox* Box = Cast<UEditableTextBox>(RoomInfoWidget->WidgetTree->FindWidget(Name)))
+		{
+			return TrimField(Box->GetText().ToString());
+		}
+		return FString();
+	};
+
+	OutSettings.Name = GetText(TEXT("W_Room_Input_RoomName"));
+	if (OutSettings.Name.IsEmpty()) { OutError = TEXT("房间名不能为空"); return false; }
+	if (OutSettings.Name.Len() > 10) { OutError = TEXT("房间名不能超过 10 个字符"); return false; }
+
+	OutSettings.Description = GetText(TEXT("W_Room_Input_RoomDesc"));
+	if (OutSettings.Description.Len() > 40) { OutError = TEXT("房间描述不能超过 40 个字符"); return false; }
+
+	OutSettings.Password = GetText(TEXT("W_Room_Input_RoomSecretWord"));
+	if (!OutSettings.Password.IsEmpty())
+	{
+		if (!IsDigitsOnly(OutSettings.Password) || OutSettings.Password.Len() > 8)
+		{
+			OutError = TEXT("密码只能是数字且不超过 8 位");
+			return false;
+		}
+	}
+
+	const FString MaxText = GetText(TEXT("W_Room_Input_RoomMaxPlayerNum"));
+	if (!IsDigitsOnly(MaxText)) { OutError = TEXT("人数上限必须是数字"); return false; }
+	OutSettings.MaxPlayers = FCString::Atoi(*MaxText);
+	if (OutSettings.MaxPlayers < 1 || OutSettings.MaxPlayers > 10)
+	{
+		OutError = TEXT("人数上限需在 1~10 之间");
+		return false;
+	}
+
+	if (!NormalizeUidList(GetText(TEXT("W_Room_RoomAdminInput")), OutSettings.Admins))
+	{
+		OutError = TEXT("管理员列表格式错误（数字+英文逗号）");
+		return false;
+	}
+	if (!NormalizeUidList(GetText(TEXT("W_Room_RoomWhitelistInput")), OutSettings.Whitelist))
+	{
+		OutError = TEXT("白名单格式错误（数字+英文逗号）");
+		return false;
+	}
+	if (!NormalizeUidList(GetText(TEXT("W_Room_RoomBlacklistInput")), OutSettings.Blacklist))
+	{
+		OutError = TEXT("黑名单格式错误（数字+英文逗号）");
+		return false;
+	}
+
+	if (UComboBoxString* LanguageBox = Cast<UComboBoxString>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_RoomLanguageComboBox"))))
+	{
+		const FString Selected = LanguageBox->GetSelectedOption();
+		if (Selected == TEXT("English")) { OutSettings.Language = TEXT("en"); }
+		else if (Selected == TEXT("한국어")) { OutSettings.Language = TEXT("ko"); }
+		else if (Selected == TEXT("日本語")) { OutSettings.Language = TEXT("ja"); }
+		else { OutSettings.Language = TEXT("zh"); }
+	}
+
+	UCheckBox* AllBox = Cast<UCheckBox>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_VisitMode_ModeCheck_All")));
+	UCheckBox* AdminBox = Cast<UCheckBox>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_VisitMode_ModeCheck_OnlyAdmin")));
+	UCheckBox* WhiteBox = Cast<UCheckBox>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_VisitMode_ModeCheck_OnlyAdminWhitelist")));
+
+	// 互斥：以最后勾选的一项为准（优先级 白名单 > 管理员 > 所有人）。
+	const bool bAll = AllBox && AllBox->IsChecked();
+	const bool bAdmin = AdminBox && AdminBox->IsChecked();
+	const bool bWhite = WhiteBox && WhiteBox->IsChecked();
+
+	if (bWhite) { OutSettings.VisitMode = 2; }
+	else if (bAdmin) { OutSettings.VisitMode = 1; }
+	else { OutSettings.VisitMode = 0; }
+
+	// 回写互斥状态，保证界面上始终只有一个勾选。
+	if (AllBox) { AllBox->SetIsChecked(OutSettings.VisitMode == 0); }
+	if (AdminBox) { AdminBox->SetIsChecked(OutSettings.VisitMode == 1); }
+	if (WhiteBox) { WhiteBox->SetIsChecked(OutSettings.VisitMode == 2); }
+
+	return true;
+}
 void UMainSceneWidget::OpenRoomInfoPanel(bool bLocal)
 {
 	bPendingLocalRoom = bLocal;
@@ -1044,6 +1244,7 @@ void UMainSceneWidget::OpenRoomInfoPanel(bool bLocal)
 	}
 
 	RoomInfoWidget->SetVisibility(ESlateVisibility::Visible);
+	FillRoomInfoDefaults();
 	UE_LOG(LogMyBondageLife, Log, TEXT("RoomInfo: opened for %s room"), bLocal ? TEXT("local") : TEXT("online"));
 }
 
@@ -1054,9 +1255,22 @@ void UMainSceneWidget::HandleRoomInfoCloseClicked()
 
 void UMainSceneWidget::HandleRoomInfoConfirmClicked()
 {
+	FMyBondageLifeRoomSettings Settings;
+	FString Error;
+	if (!ReadRoomInfoSettings(Settings, Error))
+	{
+		ShowRoomInfoError(Error);
+		return;
+	}
+
 	const bool bLocal = bPendingLocalRoom;
 	if (RoomInfoWidget) { RoomInfoWidget->SetVisibility(ESlateVisibility::Collapsed); }
 
-	UE_LOG(LogMyBondageLife, Log, TEXT("RoomInfo: confirm %s room"), bLocal ? TEXT("local") : TEXT("online"));
+	if (UMyBondageLifeSessionSubsystem* Session = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeSessionSubsystem>() : nullptr)
+	{
+		Session->SetRoomSettings(Settings);
+	}
+
+	UE_LOG(LogMyBondageLife, Log, TEXT("RoomInfo: confirm %s room name=%s max=%d mode=%d"), bLocal ? TEXT("local") : TEXT("online"), *Settings.Name, Settings.MaxPlayers, Settings.VisitMode);
 	if (bLocal) { CreateLocalRoom(); } else { CreateRoom(); }
 }

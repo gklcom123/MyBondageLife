@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Network/MyBondageLifeSessionSubsystem.h"
 #include "Blueprint/UserWidget.h"
 #include "Network/MyBondageLifeLanTypes.h"
 #include "Network/MyBondageLifeServerRoom.h"
@@ -102,6 +103,10 @@ protected:
 
 	UFUNCTION() void HandleRoomInfoCloseClicked();
 	UFUNCTION() void HandleRoomInfoConfirmClicked();
+
+	void FillRoomInfoDefaults();
+	bool ReadRoomInfoSettings(FMyBondageLifeRoomSettings& OutSettings, FString& OutError);
+	void ShowRoomInfoError(const FString& Message);
 
 	UPROPERTY(Transient) TObjectPtr<class UUserWidget> RoomInfoWidget;
 	bool bPendingLocalRoom = false;
