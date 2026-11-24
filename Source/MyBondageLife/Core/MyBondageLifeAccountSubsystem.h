@@ -947,7 +947,13 @@ private:
 	FString AccountId;
 	FString CharacterName;
 	int32 CharacterClass = 1;
+	/** 账号数字 UID（用于房间名单比对）。 */
+	FString OwnUid;
 	FString Token;
+
+	/** 账号数字 UID（用于房间名单比对）。 */
+
+	const FString& GetUid() const { return OwnUid; }
 	FDateTime CreatedAt;
 
 	/** Body height multiplier (0.9 / 1.0 / 1.1). */

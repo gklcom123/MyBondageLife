@@ -240,6 +240,21 @@ bool UMyBondageLifeAccountSubsystem::ApplyAuthPayload(const TSharedPtr<FJsonObje
 	}
 
 	(*UserObject)->TryGetStringField(TEXT("id"), AccountId);
+
+	// 顶层 uid 优先；兼容 user.uid 及数字/字符串类型。
+	OwnUid.Reset();
+	{
+		auto ReadUid = [](const TSharedPtr<FJsonObject>& Obj, const TCHAR* Field, FString& Out)
+		{
+			if (!Obj.IsValid()) { return; }
+			FString AsString;
+			if (Obj->TryGetStringField(Field, AsString)) { Out = AsString; return; }
+			double AsNumber = 0.0;
+			if (Obj->TryGetNumberField(Field, AsNumber)) { Out = FString::Printf(TEXT("%lld"), static_cast<int64>(AsNumber)); }
+		};
+		ReadUid(Payload, TEXT("uid"), OwnUid);
+		if (OwnUid.IsEmpty()) { ReadUid(*UserObject, TEXT("uid"), OwnUid); }
+	}
 	(*UserObject)->TryGetStringField(TEXT("account"), AccountName);
 	(*UserObject)->TryGetStringField(TEXT("characterName"), CharacterName);
 
