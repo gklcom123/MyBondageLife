@@ -95,6 +95,12 @@ protected:
 	UPROPERTY(Transient) TObjectPtr<class UMyBondageLifePasswordDialog> LocalRoomPasswordDialog;
 	int32 PendingLocalRoomIndex = -1;
 
+	UFUNCTION() void HandleOnlineRoomPasswordConfirmed(const FString& Password);
+	UFUNCTION() void HandleOnlineRoomPasswordCancelled();
+
+	UPROPERTY(Transient) TObjectPtr<class UMyBondageLifePasswordDialog> OnlineRoomPasswordDialog;
+	int32 PendingOnlineRoomIndex = -1;
+
 	/** Asks the room service for the current list. */
 	void RefreshRoomList();
 
