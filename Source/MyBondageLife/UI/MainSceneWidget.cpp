@@ -1124,6 +1124,7 @@ void UMainSceneWidget::HandleRoomsUpdatedForInfo(const TArray<FMyBondageLifeServ
 	}
 
 	for (const FMyBondageLifeServerRoom& Room : Rooms)
+		UE_LOG(LogMyBondageLife, Log, TEXT("RoomInfo: list room=%s host=%s"), *Room.RoomName, *Room.HostAccount);
 	{
 		if (!MyAccount.IsEmpty() && Room.HostAccount.Equals(MyAccount, ESearchCase::IgnoreCase))
 		{
@@ -1138,6 +1139,7 @@ void UMainSceneWidget::HandleRoomsUpdatedForInfo(const TArray<FMyBondageLifeServ
 
 void UMainSceneWidget::HandleRoomDetailsForInfo(const FMyBondageLifeServerRoom& Room)
 {
+	UE_LOG(LogMyBondageLife, Log, TEXT("RoomInfo: details name=%s max=%d lang=%s mode=%s"), *Room.RoomName, Room.MaxPlayers, *Room.Language, *Room.VisitMode);
 	FillRoomInfoFromRoom(Room);
 }
 
@@ -1363,6 +1365,7 @@ void UMainSceneWidget::OpenRoomInfoPanel(bool bLocal)
 		RoomsSub->OnRoomsUpdated.AddUniqueDynamic(this, &UMainSceneWidget::HandleRoomsUpdatedForInfo);
 		RoomsSub->OnRoomDetails.AddUniqueDynamic(this, &UMainSceneWidget::HandleRoomDetailsForInfo);
 		RoomsSub->RefreshRooms();
+		UE_LOG(LogMyBondageLife, Log, TEXT("RoomInfo: requesting room list for defaults"));
 	}
 	UE_LOG(LogMyBondageLife, Log, TEXT("RoomInfo: opened for %s room"), bLocal ? TEXT("local") : TEXT("online"));
 }
