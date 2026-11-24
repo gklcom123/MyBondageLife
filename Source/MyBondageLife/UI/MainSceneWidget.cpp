@@ -38,9 +38,22 @@
 #include "Network/MyBondageLifeLanDiscoverySubsystem.h"
 #include "Network/MyBondageLifeRoomSubsystem.h"
 #include "Network/MyBondageLifeSessionSubsystem.h"
-#include "TimerManager.h"
+#include "TimerManager.h"
+
 
 static UWidget* FindWidgetDeep(UWidgetTree* Tree, const TCHAR* Name);
+
+static UWidget* FindWidgetDeep(UWidgetTree* Tree, const TCHAR* Name)
+{
+	if (!Tree) { return nullptr; }
+	TArray<UWidget*> All;
+	Tree->GetAllWidgets(All);
+	for (UWidget* W : All)
+	{
+		if (W && W->GetName() == Name) { return W; }
+	}
+	return nullptr;
+}
 
 
 namespace
