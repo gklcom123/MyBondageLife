@@ -2,6 +2,8 @@
 
 #include "MainSceneWidget.h"
 
+#include "Components/MultiLineEditableTextBox.h"
+
 
 
 
@@ -41,7 +43,22 @@
 #include "TimerManager.h"
 
 
+
+static FString ReadInputText(UWidget* W)
+{
+	if (UEditableTextBox* Single = Cast<UEditableTextBox>(W)) { return Single->GetText().ToString(); }
+	if (UMultiLineEditableTextBox* Multi = Cast<UMultiLineEditableTextBox>(W)) { return Multi->GetText().ToString(); }
+	return FString();
+}
+
+static void SetInputText(UWidget* W, const FString& Value)
+{
+	if (UEditableTextBox* Single = Cast<UEditableTextBox>(W)) { Single->SetText(FText::FromString(Value)); return; }
+	if (UMultiLineEditableTextBox* Multi = Cast<UMultiLineEditableTextBox>(W)) { Multi->SetText(FText::FromString(Value)); }
+}
 static UWidget* FindWidgetDeep(UWidgetTree* Tree, const TCHAR* Name);
+
+
 
 static UWidget* FindWidgetDeep(UWidgetTree* Tree, const TCHAR* Name)
 {
@@ -1288,27 +1305,20 @@ namespace
 void UMainSceneWidget::BindUidInputFilters()
 {
 	if (!RoomInfoWidget || !RoomInfoWidget->WidgetTree) { return; }
-	if (UEditableTextBox* Box = Cast<UEditableTextBox>(FindWidgetDeep(RoomInfoWidget->WidgetTree, TEXT("W_Room_RoomAdminInput"))))
-	{
-		Box->OnTextChanged.AddUniqueDynamic(this, &UMainSceneWidget::HandleAdminInputChanged);
-	}
-	if (UEditableTextBox* Box = Cast<UEditableTextBox>(FindWidgetDeep(RoomInfoWidget->WidgetTree, TEXT("W_Room_RoomWhitelistInput"))))
-	{
-		Box->OnTextChanged.AddUniqueDynamic(this, &UMainSceneWidget::HandleWhitelistInputChanged);
-	}
-	if (UEditableTextBox* Box = Cast<UEditableTextBox>(FindWidgetDeep(RoomInfoWidget->WidgetTree, TEXT("W_Room_RoomBlacklistInput"))))
-	{
-		Box->OnTextChanged.AddUniqueDynamic(this, &UMainSceneWidget::HandleBlacklistInputChanged);
-	}
+	if (UEditableTextBox* Box = Cast<UEditableTextBox>(FindWidgetDeep(RoomInfoWidget->WidgetTree, TEXT("W_Room_RoomAdminInput")))) { Box->OnTextChanged.AddUniqueDynamic(this, &UMainSceneWidget::HandleAdminInputChanged); }
+	else if (UMultiLineEditableTextBox* MBox = Cast<UMultiLineEditableTextBox>(FindWidgetDeep(RoomInfoWidget->WidgetTree, TEXT("W_Room_RoomAdminInput")))) { MBox->OnTextChanged.AddUniqueDynamic(this, &UMainSceneWidget::HandleAdminInputChanged); }
+	if (UEditableTextBox* Box = Cast<UEditableTextBox>(FindWidgetDeep(RoomInfoWidget->WidgetTree, TEXT("W_Room_RoomWhitelistInput")))) { Box->OnTextChanged.AddUniqueDynamic(this, &UMainSceneWidget::HandleWhitelistInputChanged); }
+	else if (UMultiLineEditableTextBox* MBox = Cast<UMultiLineEditableTextBox>(FindWidgetDeep(RoomInfoWidget->WidgetTree, TEXT("W_Room_RoomWhitelistInput")))) { MBox->OnTextChanged.AddUniqueDynamic(this, &UMainSceneWidget::HandleWhitelistInputChanged); }
+	if (UEditableTextBox* Box = Cast<UEditableTextBox>(FindWidgetDeep(RoomInfoWidget->WidgetTree, TEXT("W_Room_RoomBlacklistInput")))) { Box->OnTextChanged.AddUniqueDynamic(this, &UMainSceneWidget::HandleBlacklistInputChanged); }
+	else if (UMultiLineEditableTextBox* MBox = Cast<UMultiLineEditableTextBox>(FindWidgetDeep(RoomInfoWidget->WidgetTree, TEXT("W_Room_RoomBlacklistInput")))) { MBox->OnTextChanged.AddUniqueDynamic(this, &UMainSceneWidget::HandleBlacklistInputChanged); }
 }
 
 void UMainSceneWidget::HandleAdminInputChanged(const FText& Text)
 {
-	if (UEditableTextBox* Box = RoomInfoWidget && RoomInfoWidget->WidgetTree ? Cast<UEditableTextBox>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_RoomAdminInput"))) : nullptr)
 	{
 		const FString Clean = SanitizeUidText(Text.ToString());
 		UE_LOG(LogMyBondageLife, Log, TEXT("RoomInfo: uid input %s -> %s"), *Text.ToString(), *Clean);
-		if (Clean != Text.ToString()) { Box->SetText(FText::FromString(Clean)); }
+		if (Clean != Text.ToString() && RoomInfoWidget && RoomInfoWidget->WidgetTree) { SetInputText(FindWidgetDeep(RoomInfoWidget->WidgetTree, TEXT("W_Room_RoomAdminInput")), Clean); }
 	}
 }
 
@@ -1403,9 +1413,9 @@ bool UMainSceneWidget::ReadRoomInfoSettings(FMyBondageLifeRoomSettings& OutSetti
 
 	auto GetText = [this](const TCHAR* Name) -> FString
 	{
-		if (UEditableTextBox* Box = Cast<UEditableTextBox>(RoomInfoWidget->WidgetTree->FindWidget(Name)))
+		if (UWidget* Box = FindWidgetDeep(RoomInfoWidget->WidgetTree, Name))
 		{
-			return TrimField(Box->GetText().ToString());
+			return TrimField(ReadInputText(Box));
 		}
 		return FString();
 	};
