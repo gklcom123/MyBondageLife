@@ -81,8 +81,9 @@ void UMyBondageLifeRoomSubsystem::RefreshRooms()
 		});
 }
 
-void UMyBondageLifeRoomSubsystem::CreateRoom(const FString& InRoomName, const FString& InHostPuid, const FString& InMapName, int32 InMaxPlayers)
+void UMyBondageLifeRoomSubsystem::CreateRoom(const FString& InRoomName, const FString& InHostPuid, const FString& InMapName, int32 InMaxPlayers, const FMyBondageLifeRoomSettings& InSettings)
 {
+	HostedRoomSettings = InSettings;
 	if (bRequestInFlight || InHostPuid.IsEmpty())
 	{
 		return;
@@ -100,6 +101,25 @@ void UMyBondageLifeRoomSubsystem::CreateRoom(const FString& InRoomName, const FS
 	Payload->SetStringField(TEXT("mapName"), InMapName);
 	Payload->SetNumberField(TEXT("maxPlayers"), InMaxPlayers);
 	Payload->SetNumberField(TEXT("playerCount"), 1);
+	Payload->SetStringField(TEXT("description"), InSettings.Description);
+	Payload->SetStringField(TEXT("language"), InSettings.Language.IsEmpty() ? TEXT("zh") : InSettings.Language);
+	Payload->SetNumberField(TEXT("maxPlayers"), InSettings.MaxPlayers > 0 ? InSettings.MaxPlayers : InMaxPlayers);
+	if (!InSettings.Password.IsEmpty()) { Payload->SetStringField(TEXT("password"), InSettings.Password); }
+	{
+		TArray<TSharedPtr<FJsonValue>> Array;
+		auto Split = [&Array](const FString& Csv)
+		{
+			TArray<FString> Parts; Csv.ParseIntoArray(Parts, TEXT(","), true);
+			for (FString& P : Parts) { P.TrimStartAndEndInline(); if (!P.IsEmpty()) { Array.Add(MakeShared<FJsonValueString>(P)); } }
+		};
+		Split(InSettings.Admins);
+		Payload->SetArrayField(TEXT("admins"), Array); Array.Reset();
+		Split(InSettings.Whitelist);
+		Payload->SetArrayField(TEXT("whitelist"), Array); Array.Reset();
+		Split(InSettings.Blacklist);
+		Payload->SetArrayField(TEXT("blacklist"), Array);
+	}
+	Payload->SetStringField(TEXT("visitMode"), InSettings.VisitMode == 2 ? TEXT("admin_whitelist") : (InSettings.VisitMode == 1 ? TEXT("admin") : TEXT("all")));
 
 	bRequestInFlight = true;
 	SendRequest(TEXT("/rooms"), TEXT("POST"), Payload,
@@ -115,7 +135,7 @@ void UMyBondageLifeRoomSubsystem::CreateRoom(const FString& InRoomName, const FS
 		});
 }
 
-void UMyBondageLifeRoomSubsystem::JoinRoom(const FString& RoomId)
+void UMyBondageLifeRoomSubsystem::JoinRoom(const FString& RoomId, const FString& Password)
 {
 	if (bRequestInFlight || RoomId.IsEmpty())
 	{
@@ -137,7 +157,9 @@ void UMyBondageLifeRoomSubsystem::JoinRoom(const FString& RoomId)
 	}
 	ShowConnectingOverlay(FText::FromString(TEXT("正在进入房间…")));
 
-	SendRequest(FString::Printf(TEXT("/rooms/%s/join"), *RoomId), TEXT("POST"), nullptr,
+	TSharedPtr<FJsonObject> JoinBody = MakeShared<FJsonObject>();
+	if (!Password.IsEmpty()) { JoinBody->SetStringField(TEXT("password"), Password); }
+	SendRequest(FString::Printf(TEXT("/rooms/%s/join"), *RoomId), TEXT("POST"), JoinBody,
 		[this, Generation](bool bSuccess, int32 StatusCode, const FString& Body)
 		{
 			if (Generation != JoinGeneration)
@@ -599,7 +621,7 @@ void UMyBondageLifeRoomSubsystem::ReopenHostedRoom()
 	}
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("Rooms: 自动重开房间 '%s'"), *HostedRoomName);
-	CreateRoom(HostedRoomName, GetCurrentHostPuid(), HostedRoomMap, HostedRoomMaxPlayers);
+	CreateRoom(HostedRoomName, GetCurrentHostPuid(), HostedRoomMap, HostedRoomMaxPlayers, HostedRoomSettings);
 }
 
 void UMyBondageLifeRoomSubsystem::ReportUnreachable(const FString& RoomId)

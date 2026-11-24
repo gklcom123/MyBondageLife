@@ -255,7 +255,7 @@ void UMyBondageLifeSessionSubsystem::CreatePendingRoom()
 		return;
 	}
 
-	Rooms->CreateRoom(RoomName, PendingHostPuid, PendingMapName, MaxPlayers);
+	Rooms->CreateRoom(RoomName, PendingHostPuid, PendingMapName, MaxPlayers, RoomSettings);
 }
 
 bool UMyBondageLifeSessionSubsystem::JoinServerRoom(const FMyBondageLifeServerRoom& Room)

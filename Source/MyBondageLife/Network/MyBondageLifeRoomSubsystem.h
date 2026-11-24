@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Network/MyBondageLifeSessionSubsystem.h"
 #include "Containers/Ticker.h"
 #include "Interfaces/IHttpRequest.h"
 #include "MyBondageLifeServerRoom.h"
@@ -35,11 +36,11 @@ public:
 
 	/** POST /rooms and start the heartbeat once it succeeds. */
 	UFUNCTION(BlueprintCallable, Category = "Rooms")
-	void CreateRoom(const FString& InRoomName, const FString& InHostPuid, const FString& InMapName, int32 InMaxPlayers);
+	void CreateRoom(const FString& InRoomName, const FString& InHostPuid, const FString& InMapName, int32 InMaxPlayers, const struct FMyBondageLifeRoomSettings& InSettings);
 
 	/** POST /rooms/{id}/join; OnRoomJoined carries the host PUID to connect to. */
 	UFUNCTION(BlueprintCallable, Category = "Rooms")
-	void JoinRoom(const FString& RoomId);
+	void JoinRoom(const FString& RoomId, const FString& Password = FString());
 
 	/** Abandons an in-flight join; a late response is ignored. */
 	UFUNCTION(BlueprintCallable, Category = "Rooms")
@@ -80,6 +81,9 @@ private:
 	void StartHeartbeat();
 	void StopHeartbeat();
 	void SendHeartbeat();
+
+	/** 最近一次创建房间使用的设置（重连/重建时复用）。 */
+	FMyBondageLifeRoomSettings HostedRoomSettings;
 
 	/** Re-create the hosted room after the server closed it (unreachable / expired). */
 	void ReopenHostedRoom();
