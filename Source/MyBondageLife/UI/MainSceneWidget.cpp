@@ -40,8 +40,7 @@
 #include "Network/MyBondageLifeLanDiscoverySubsystem.h"
 #include "Network/MyBondageLifeRoomSubsystem.h"
 #include "Network/MyBondageLifeSessionSubsystem.h"
-#include "TimerManager.h"
-
+#include "TimerManager.h"
 #include "UI/MyBondageLifePasswordDialog.h"
 
 
@@ -586,8 +585,7 @@ void UMainSceneWidget::CreateRoom()
 		return;
 	}
 
-	FString RoomName = Account ? Account->GetDefaultRoomName() : FString(TEXT("Room"));
-	if (Session->GetRoomSettings().Name.IsEmpty() == false) { RoomName = Session->GetRoomSettings().Name; }
+	const FString RoomName = Account ? Account->GetDefaultRoomName() : FString(TEXT("Room"));
 
 	Session->HostRoomWithEOS(RoomName, EOS->GetProductUserId());
 }
@@ -812,11 +810,7 @@ void UMainSceneWidget::JoinRoomByIndex(int32 RoomIndex)
 	bJoinInProgress = true;
 	CloseRoomBrowser();
 
-	if (Room.bIsFull)
-	{
-		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 4.0f, FColor::Red, TEXT("[房间] 房间已满")); }
-		return;
-	}
+	if (Room.bIsFull) { if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 4.0f, FColor::Red, TEXT("[房间] 房间已满")); } return; }
 	if (Room.bHasPassword)
 	{
 		PendingOnlineRoomIndex = RoomIndex;
@@ -964,8 +958,7 @@ void UMainSceneWidget::CreateLocalRoom()
 	}
 
 	UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>();
-	FString RoomName = Account ? Account->GetDefaultRoomName() : FString(TEXT("Room"));
-	if (Session->GetRoomSettings().Name.IsEmpty() == false) { RoomName = Session->GetRoomSettings().Name; }
+	const FString RoomName = Account ? Account->GetDefaultRoomName() : FString(TEXT("Room"));
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("MainScene: creating a local (LAN) room '%s'."), *RoomName);
 
@@ -989,37 +982,6 @@ void UMainSceneWidget::RebuildLocalRoomRows()
 	if (Discovery)
 	{
 		NewRooms = Discovery->GetDiscoveredRooms();
-	// 按自己的 UID 过滤：黑名单永不显示；管理员/白名单模式仅对名单内可见。
-	{
-		FString MyUid;
-		FString MyAccount;
-		if (const UMyBondageLifeAccountSubsystem* SelfAccount = GameInstance ? GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
-		{
-			MyUid = SelfAccount->GetOwnUid();
-			MyAccount = SelfAccount->GetAccountName();
-		}
-
-		auto HasUid = [](const FString& Csv, const FString& Uid)
-		{
-			if (Uid.IsEmpty() || Csv.IsEmpty()) { return false; }
-			TArray<FString> Parts;
-			Csv.ParseIntoArray(Parts, TEXT(","), true);
-			for (FString& P : Parts) { P.TrimStartAndEndInline(); if (P == Uid) { return true; } }
-			return false;
-		};
-
-		for (int32 Index = NewRooms.Num() - 1; Index >= 0; --Index)
-		{
-			const FMyBondageLifeRoomInfo& R = NewRooms[Index];
-			const bool bHost = !MyAccount.IsEmpty() && R.HostAccount.Equals(MyAccount, ESearchCase::IgnoreCase);
-
-			if (!MyUid.IsEmpty() && HasUid(R.Blacklist, MyUid)) { NewRooms.RemoveAt(Index); continue; }
-			if (bHost) { continue; }
-
-			if (R.VisitMode == 1 && !HasUid(R.Admins, MyUid)) { NewRooms.RemoveAt(Index); continue; }
-			if (R.VisitMode == 2 && !HasUid(R.Admins, MyUid) && !HasUid(R.Whitelist, MyUid)) { NewRooms.RemoveAt(Index); continue; }
-		}
-	}
 	}
 
 	// Same change detection as the server list: rebuilding every poll would break
@@ -1107,29 +1069,6 @@ void UMainSceneWidget::JoinLocalRoomByIndex(int32 RoomIndex)
 	}
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("MainScene: joining local room '%s' at %s."), *Room.RoomName, *Room.GetEndpoint());
-
-	const int32 MaxAllowed = Room.MaxPlayersSetting > 0 ? Room.MaxPlayersSetting : Room.MaxPlayers;
-	if (MaxAllowed > 0 && Room.CurrentPlayers >= MaxAllowed)
-	{
-		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 4.0f, FColor::Red, TEXT("[房间] 房间已满")); }
-		return;
-	}
-
-	if (Room.bHasPassword)
-	{
-		PendingLocalRoomIndex = RoomIndex;
-		if (!LocalRoomPasswordDialog)
-		{
-			LocalRoomPasswordDialog = CreateWidget<UMyBondageLifePasswordDialog>(this, UMyBondageLifePasswordDialog::StaticClass());
-			if (LocalRoomPasswordDialog)
-			{
-				LocalRoomPasswordDialog->OnConfirmed.AddUniqueDynamic(this, &UMainSceneWidget::HandleLocalRoomPasswordConfirmed);
-				LocalRoomPasswordDialog->OnCancelled.AddUniqueDynamic(this, &UMainSceneWidget::HandleLocalRoomPasswordCancelled);
-				LocalRoomPasswordDialog->AddToViewport(120);
-			}
-		}
-		return;
-	}
 
 	Session->JoinRoom(Room);
 }
@@ -1639,49 +1578,17 @@ void UMainSceneWidget::HandleRoomInfoConfirmClicked()
 	if (bLocal) { CreateLocalRoom(); } else { CreateRoom(); }
 }
 
-void UMainSceneWidget::HandleLocalRoomPasswordConfirmed(const FString& Password)
-{
-	if (!DisplayedLocalRooms.IsValidIndex(PendingLocalRoomIndex))
-	{
-		PendingLocalRoomIndex = -1;
-		return;
-	}
-
-	const FMyBondageLifeRoomInfo Room = DisplayedLocalRooms[PendingLocalRoomIndex];
-	PendingLocalRoomIndex = -1;
-
-	if (Room.Password != Password)
-	{
-		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 4.0f, FColor::Red, TEXT("[房间] 密码错误")); }
-		return;
-	}
-
-	if (UMyBondageLifeSessionSubsystem* Session = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeSessionSubsystem>() : nullptr)
-	{
-		Session->JoinRoom(Room);
-	}
-}
-
-void UMainSceneWidget::HandleLocalRoomPasswordCancelled()
-{
-	PendingLocalRoomIndex = -1;
-}
-
 void UMainSceneWidget::HandleOnlineRoomPasswordConfirmed(const FString& Password)
 {
-	if (!DisplayedRooms.IsValidIndex(PendingOnlineRoomIndex))
+	if (DisplayedRooms.IsValidIndex(PendingOnlineRoomIndex))
 	{
-		PendingOnlineRoomIndex = -1;
-		return;
+		const FMyBondageLifeServerRoom Room = DisplayedRooms[PendingOnlineRoomIndex];
+		if (UMyBondageLifeRoomSubsystem* Rooms = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeRoomSubsystem>() : nullptr)
+		{
+			Rooms->JoinRoom(Room.RoomId, Password);
+		}
 	}
-
-	const FMyBondageLifeServerRoom Room = DisplayedRooms[PendingOnlineRoomIndex];
 	PendingOnlineRoomIndex = -1;
-
-	if (UMyBondageLifeRoomSubsystem* Rooms = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeRoomSubsystem>() : nullptr)
-	{
-		Rooms->JoinRoom(Room.RoomId, Password);
-	}
 }
 
 void UMainSceneWidget::HandleOnlineRoomPasswordCancelled()

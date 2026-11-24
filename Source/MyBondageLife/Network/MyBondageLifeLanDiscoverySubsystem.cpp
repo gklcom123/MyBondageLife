@@ -353,7 +353,7 @@ void UMyBondageLifeLanDiscoverySubsystem::ClearDiscoveredRooms()
 
 FString UMyBondageLifeLanDiscoverySubsystem::SerializeRoom(const FMyBondageLifeRoomInfo& Room)
 {
-	return FString::Printf(TEXT("%s|%s|%s|%s|%d|%d|%d|%s|%s|%s|%d|%d|%d|%s|%s|%s|%s"),
+	return FString::Printf(TEXT("%s|%s|%s|%s|%d|%d|%d|%s|%s|%s|%d|%d|%d|%s|%s|%s"),
 		RoomPacketTag,
 		*SanitizeField(Room.RoomId),
 		*SanitizeField(Room.RoomName),
@@ -369,14 +369,13 @@ FString UMyBondageLifeLanDiscoverySubsystem::SerializeRoom(const FMyBondageLifeR
 		Room.VisitMode,
 		*SanitizeField(Room.Admins),
 		*SanitizeField(Room.Whitelist),
-		*SanitizeField(Room.Blacklist),
-		*SanitizeField(Room.Password));
+		*SanitizeField(Room.Blacklist));
 }
 
 bool UMyBondageLifeLanDiscoverySubsystem::DeserializeRoom(const FString& Payload, FMyBondageLifeRoomInfo& OutRoom)
 {
 	TArray<FString> Fields;
-	Payload.ParseIntoArray(Fields, TEXT("|"), false);
+	Payload.ParseIntoArray(Fields, TEXT("|"), true);
 
 	if (Fields.Num() < 7 || Fields[0] != RoomPacketTag)
 	{
@@ -403,10 +402,6 @@ bool UMyBondageLifeLanDiscoverySubsystem::DeserializeRoom(const FString& Payload
 		OutRoom.Admins = Fields[13];
 		OutRoom.Whitelist = Fields[14];
 		OutRoom.Blacklist = Fields[15];
-	}
-	if (Fields.Num() >= 17)
-	{
-		OutRoom.Password = Fields[16];
 	}
 
 	if (OutRoom.RoomId.IsEmpty() || OutRoom.Port <= 0 || OutRoom.HostAddress.IsEmpty())
