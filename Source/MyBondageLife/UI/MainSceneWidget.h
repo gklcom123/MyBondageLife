@@ -108,6 +108,13 @@ protected:
 	bool ReadRoomInfoSettings(FMyBondageLifeRoomSettings& OutSettings, FString& OutError);
 	void ShowRoomInfoError(const FString& Message);
 
+	void BindVisitModeCheckboxes();
+	UFUNCTION() void HandleVisitModeAll(bool bChecked);
+	UFUNCTION() void HandleVisitModeAdmin(bool bChecked);
+	UFUNCTION() void HandleVisitModeWhitelist(bool bChecked);
+
+	UPROPERTY(Transient) TObjectPtr<class UComboBoxString> RoomLanguageCombo;
+
 	UPROPERTY(Transient) TObjectPtr<class UUserWidget> RoomInfoWidget;
 	bool bPendingLocalRoom = false;
 

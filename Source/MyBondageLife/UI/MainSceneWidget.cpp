@@ -1073,6 +1073,44 @@ void UMainSceneWidget::ShowRoomInfoError(const FString& Message)
 	}
 }
 
+
+void UMainSceneWidget::HandleVisitModeAll(bool bChecked)
+{
+	if (!bChecked || !RoomInfoWidget || !RoomInfoWidget->WidgetTree) { return; }
+	if (UCheckBox* Admin = Cast<UCheckBox>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_VisitMode_ModeCheck_OnlyAdmin")))) { Admin->SetIsChecked(false); }
+	if (UCheckBox* White = Cast<UCheckBox>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_VisitMode_ModeCheck_OnlyAdminWhitelist")))) { White->SetIsChecked(false); }
+}
+
+void UMainSceneWidget::HandleVisitModeAdmin(bool bChecked)
+{
+	if (!bChecked || !RoomInfoWidget || !RoomInfoWidget->WidgetTree) { return; }
+	if (UCheckBox* All = Cast<UCheckBox>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_VisitMode_ModeCheck_All")))) { All->SetIsChecked(false); }
+	if (UCheckBox* White = Cast<UCheckBox>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_VisitMode_ModeCheck_OnlyAdminWhitelist")))) { White->SetIsChecked(false); }
+}
+
+void UMainSceneWidget::HandleVisitModeWhitelist(bool bChecked)
+{
+	if (!bChecked || !RoomInfoWidget || !RoomInfoWidget->WidgetTree) { return; }
+	if (UCheckBox* All = Cast<UCheckBox>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_VisitMode_ModeCheck_All")))) { All->SetIsChecked(false); }
+	if (UCheckBox* Admin = Cast<UCheckBox>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_VisitMode_ModeCheck_OnlyAdmin")))) { Admin->SetIsChecked(false); }
+}
+
+void UMainSceneWidget::BindVisitModeCheckboxes()
+{
+	if (!RoomInfoWidget || !RoomInfoWidget->WidgetTree) { return; }
+	if (UCheckBox* All = Cast<UCheckBox>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_VisitMode_ModeCheck_All"))))
+	{
+		All->OnCheckStateChanged.AddUniqueDynamic(this, &UMainSceneWidget::HandleVisitModeAll);
+	}
+	if (UCheckBox* Admin = Cast<UCheckBox>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_VisitMode_ModeCheck_OnlyAdmin"))))
+	{
+		Admin->OnCheckStateChanged.AddUniqueDynamic(this, &UMainSceneWidget::HandleVisitModeAdmin);
+	}
+	if (UCheckBox* White = Cast<UCheckBox>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_VisitMode_ModeCheck_OnlyAdminWhitelist"))))
+	{
+		White->OnCheckStateChanged.AddUniqueDynamic(this, &UMainSceneWidget::HandleVisitModeWhitelist);
+	}
+}
 void UMainSceneWidget::FillRoomInfoDefaults()
 {
 	if (!RoomInfoWidget || !RoomInfoWidget->WidgetTree) { return; }
@@ -1246,6 +1284,7 @@ void UMainSceneWidget::OpenRoomInfoPanel(bool bLocal)
 	}
 
 	RoomInfoWidget->SetVisibility(ESlateVisibility::Visible);
+	BindVisitModeCheckboxes();
 	FillRoomInfoDefaults();
 	UE_LOG(LogMyBondageLife, Log, TEXT("RoomInfo: opened for %s room"), bLocal ? TEXT("local") : TEXT("online"));
 }
