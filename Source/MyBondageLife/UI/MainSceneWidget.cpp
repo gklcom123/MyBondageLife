@@ -1,6 +1,10 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "MainSceneWidget.h"
+#include "MainSceneWidget.h"
+
+
+
+
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
 #include "Misc/Paths.h"
@@ -1051,23 +1055,28 @@ namespace
 	// 返回规范化后的列表（去空格）；格式非法返回 false。
 	bool NormalizeUidList(const FString& In, FString& Out)
 	{
-		Out.Reset();
-		const FString Trimmed = TrimField(In);
-		if (Trimmed.IsEmpty()) { return true; }
-
-		TArray<FString> Parts;
-		Trimmed.ParseIntoArray(Parts, TEXT(","), false);
-		for (FString& Part : Parts)
+	// 只允许数字与英文逗号；忽略空白/换行（多行输入）；连续逗号或其它字符判为非法。
+	Out.Reset();
+	bool bExpectDigit = true;
+	bool bAny = false;
+	for (const TCHAR Ch : In)
+	{
+		if (Ch == TEXT(' ') || Ch == TEXT('\t') || Ch == TEXT('\r') || Ch == TEXT('\n')) { continue; }
+		if (Ch == TEXT(','))
 		{
-			Part.TrimStartAndEndInline();
-			if (!IsDigitsOnly(Part)) { return false; }
+			if (bExpectDigit) { return false; }
+			Out += TEXT(",");
+			bExpectDigit = true;
+			continue;
 		}
-		for (const FString& Part : Parts)
-		{
-			if (!Out.IsEmpty()) { Out += TEXT(","); }
-			Out += Part;
-		}
-		return true;
+		if (Ch < '0' || Ch > '9') { return false; }
+		Out += Ch;
+		bExpectDigit = false;
+		bAny = true;
+	}
+	if (!bAny) { return true; }
+	if (bExpectDigit) { return false; }
+	return true;
 	}
 }
 
