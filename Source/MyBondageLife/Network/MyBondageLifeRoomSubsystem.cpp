@@ -687,6 +687,11 @@ bool UMyBondageLifeRoomSubsystem::ParseRoom(const TSharedPtr<FJsonObject>& Objec
 	Object->TryGetStringField(TEXT("mapName"), OutRoom.MapName);
 	Object->TryGetStringField(TEXT("version"), OutRoom.Version);
 	Object->TryGetStringField(TEXT("hostAccount"), OutRoom.HostAccount);
+	Object->TryGetStringField(TEXT("description"), OutRoom.Description);
+	Object->TryGetStringField(TEXT("language"), OutRoom.Language);
+	Object->TryGetStringField(TEXT("visitMode"), OutRoom.VisitMode);
+	Object->TryGetBoolField(TEXT("hasPassword"), OutRoom.bHasPassword);
+	Object->TryGetBoolField(TEXT("isFull"), OutRoom.bIsFull);
 
 	double Number = 0.0;
 	if (Object->TryGetNumberField(TEXT("playerCount"), Number))

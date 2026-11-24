@@ -708,6 +708,7 @@ void UMainSceneWidget::RebuildRoomRows()
 
 		UButton* RowButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
 		RowButton->OnClicked.AddDynamic(RowAction, &UMyBondageLifeRoomRowAction::HandleClicked);
+		if (Room.bIsFull) { RowButton->SetIsEnabled(false); }
 
 		UTextBlock* RowLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
 		RowLabel->SetText(FText::FromString(Room.ToDisplayString()));
@@ -964,6 +965,7 @@ void UMainSceneWidget::RebuildLocalRoomRows()
 
 		UButton* RowButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
 		RowButton->OnClicked.AddDynamic(RowAction, &UMyBondageLifeRoomRowAction::HandleClicked);
+		if (Room.bIsFull) { RowButton->SetIsEnabled(false); }
 
 		UTextBlock* RowLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
 		RowLabel->SetText(FText::FromString(Room.ToDisplayString()));

@@ -30,6 +30,7 @@ struct FMyBondageLifeRoomInfo
 	UPROPERTY(BlueprintReadOnly) FString Language = TEXT("zh");
 	UPROPERTY(BlueprintReadOnly) int32 MaxPlayersSetting = 8;
 	UPROPERTY(BlueprintReadOnly) bool bHasPassword = false;
+	UPROPERTY(BlueprintReadOnly) bool bIsFull = false;
 	UPROPERTY(BlueprintReadOnly) int32 VisitMode = 0;
 	UPROPERTY(BlueprintReadOnly) FString Admins;
 	UPROPERTY(BlueprintReadOnly) FString Whitelist;
