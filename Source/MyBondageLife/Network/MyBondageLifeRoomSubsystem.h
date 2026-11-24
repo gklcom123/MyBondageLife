@@ -71,6 +71,11 @@ public:
 	/** GET /rooms/{id}：房主查看自己房间的完整信息（含名单）。 */
 	void FetchRoomDetails(const FString& RoomId);
 
+	/** GET /rooms/mine：按账号取最近保存的房间配置。 */
+	void FetchMyRoomSettings();
+
+	UPROPERTY(BlueprintAssignable) FMyBondageLifeRoomJoined OnMyRoomSettings;
+
 	UPROPERTY(BlueprintAssignable, Category = "Rooms")
 	FMyBondageLifeRoomJoined OnRoomJoined;
 

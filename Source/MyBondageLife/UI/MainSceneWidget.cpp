@@ -1417,6 +1417,8 @@ void UMainSceneWidget::OpenRoomInfoPanel(bool bLocal)
 	{
 		RoomsSub->OnRoomsUpdated.AddUniqueDynamic(this, &UMainSceneWidget::HandleRoomsUpdatedForInfo);
 		RoomsSub->OnRoomDetails.AddUniqueDynamic(this, &UMainSceneWidget::HandleRoomDetailsForInfo);
+		RoomsSub->OnMyRoomSettings.AddUniqueDynamic(this, &UMainSceneWidget::HandleRoomDetailsForInfo);
+		RoomsSub->FetchMyRoomSettings();
 		RoomsSub->RefreshRooms();
 	}
 	UE_LOG(LogMyBondageLife, Log, TEXT("RoomInfo: opened for %s room"), bLocal ? TEXT("local") : TEXT("online"));

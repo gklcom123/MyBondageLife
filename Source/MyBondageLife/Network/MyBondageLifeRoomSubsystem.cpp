@@ -811,3 +811,50 @@ void UMyBondageLifeRoomSubsystem::FetchRoomDetails(const FString& RoomId)
 			}
 		});
 }
+void UMyBondageLifeRoomSubsystem::FetchMyRoomSettings()
+{
+	TWeakObjectPtr<UMyBondageLifeRoomSubsystem> WeakThis(this);
+	SendRequest(TEXT("/rooms/mine"), TEXT("GET"), nullptr,
+		[WeakThis](bool bSuccess, int32 StatusCode, const FString& Body)
+		{
+			UMyBondageLifeRoomSubsystem* Self = WeakThis.Get();
+			if (!Self || !bSuccess) { return; }
+
+			TSharedPtr<FJsonObject> Root;
+			const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Body);
+			if (!FJsonSerializer::Deserialize(Reader, Root) || !Root.IsValid()) { return; }
+
+			const TSharedPtr<FJsonObject>* RoomObj = nullptr;
+			if (!Root->TryGetObjectField(TEXT("room"), RoomObj) || !RoomObj)
+			{
+				return;
+			}
+
+			FMyBondageLifeServerRoom Room;
+			(*RoomObj)->TryGetStringField(TEXT("name"), Room.RoomName);
+			(*RoomObj)->TryGetStringField(TEXT("description"), Room.Description);
+			(*RoomObj)->TryGetStringField(TEXT("language"), Room.Language);
+			(*RoomObj)->TryGetStringField(TEXT("visitMode"), Room.VisitMode);
+			(*RoomObj)->TryGetBoolField(TEXT("hasPassword"), Room.bHasPassword);
+			double Number = 0.0;
+			if ((*RoomObj)->TryGetNumberField(TEXT("maxPlayers"), Number)) { Room.MaxPlayers = static_cast<int32>(Number); }
+
+			auto ReadArray = [RoomObj](const TCHAR* Field, TArray<FString>& Out)
+			{
+				const TArray<TSharedPtr<FJsonValue>>* Values = nullptr;
+				if ((*RoomObj)->TryGetArrayField(Field, Values) && Values)
+				{
+					for (const TSharedPtr<FJsonValue>& V : *Values)
+					{
+						FString S;
+						if (V.IsValid() && V->TryGetString(S)) { Out.Add(S); }
+					}
+				}
+			};
+			ReadArray(TEXT("admins"), Room.Admins);
+			ReadArray(TEXT("whitelist"), Room.Whitelist);
+			ReadArray(TEXT("blacklist"), Room.Blacklist);
+
+			Self->OnMyRoomSettings.Broadcast(Room);
+		});
+}
