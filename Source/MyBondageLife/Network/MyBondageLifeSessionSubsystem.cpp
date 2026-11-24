@@ -92,7 +92,15 @@ bool UMyBondageLifeSessionSubsystem::HostRoom(const FString& InRoomName)
 		Room.HostAddress = HostIp;
 		Room.Port = GamePort;
 		Room.CurrentPlayers = 1;
-		Room.MaxPlayers = DefaultMaxPlayers;
+		Room.MaxPlayers = RoomSettings.MaxPlayers > 0 ? RoomSettings.MaxPlayers : DefaultMaxPlayers;
+		Room.MaxPlayersSetting = Room.MaxPlayers;
+		Room.Description = RoomSettings.Description;
+		Room.Language = RoomSettings.Language;
+		Room.bHasPassword = !RoomSettings.Password.IsEmpty();
+		Room.VisitMode = RoomSettings.VisitMode;
+		Room.Admins = RoomSettings.Admins;
+		Room.Whitelist = RoomSettings.Whitelist;
+		Room.Blacklist = RoomSettings.Blacklist;
 		if (const UMyBondageLifeAccountSubsystem* Acc = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
 		{
 			Room.HostAccount = Acc->GetAccountName();

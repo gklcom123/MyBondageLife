@@ -69,6 +69,24 @@ struct FMyBondageLifeRoomInfo
 	/** One-line label used by the room list. */
 	FString ToDisplayString() const
 	{
-		return FString::Printf(TEXT("%s      %s      %d/%d"), *RoomName, *GetEndpoint(), CurrentPlayers, MaxPlayers);
-	}
-};
+		FString LanguageText = TEXT("中文");
+		if (Language == TEXT("en")) { LanguageText = TEXT("English"); }
+		else if (Language == TEXT("ko")) { LanguageText = TEXT("한국어"); }
+		else if (Language == TEXT("ja")) { LanguageText = TEXT("日本語"); }
+
+		FString ModeText = TEXT("公开");
+		if (VisitMode == 1) { ModeText = TEXT("仅管理员"); }
+		else if (VisitMode == 2) { ModeText = TEXT("管理员+白名单"); }
+
+		FString Line1 = FString::Printf(TEXT("%s  %s  %s  %d/%d  %s"),
+			*RoomName, *LanguageText,
+			bHasPassword ? TEXT("已加密") : TEXT(""),
+			CurrentPlayers, MaxPlayersSetting > 0 ? MaxPlayersSetting : MaxPlayers,
+			*ModeText);
+
+		if (!Description.IsEmpty())
+		{
+			Line1 += TEXT("\n") + Description;
+		}
+		return Line1;
+	}};
