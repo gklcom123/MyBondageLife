@@ -42,6 +42,15 @@ struct FMyBondageLifeServerRoom
 	FString VisitMode;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Room")
+	TArray<FString> Admins;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Room")
+	TArray<FString> Whitelist;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Room")
+	TArray<FString> Blacklist;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Room")
 	FString SocketName;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Room")

@@ -714,6 +714,19 @@ bool UMyBondageLifeRoomSubsystem::ParseRoom(const TSharedPtr<FJsonObject>& Objec
 	Object->TryGetStringField(TEXT("visitMode"), OutRoom.VisitMode);
 	Object->TryGetBoolField(TEXT("hasPassword"), OutRoom.bHasPassword);
 	Object->TryGetBoolField(TEXT("isFull"), OutRoom.bIsFull);
+	{
+		auto ReadArray = [Object](const TCHAR* Field, TArray<FString>& Out)
+		{
+			const TArray<TSharedPtr<FJsonValue>>* Values = nullptr;
+			if (Object->TryGetArrayField(Field, Values) && Values)
+			{
+				for (const TSharedPtr<FJsonValue>& V : *Values) { FString S; if (V.IsValid() && V->TryGetString(S)) { Out.Add(S); } }
+			}
+		};
+		ReadArray(TEXT("admins"), OutRoom.Admins);
+		ReadArray(TEXT("whitelist"), OutRoom.Whitelist);
+		ReadArray(TEXT("blacklist"), OutRoom.Blacklist);
+	}
 
 	double Number = 0.0;
 	if (Object->TryGetNumberField(TEXT("playerCount"), Number))
@@ -771,4 +784,30 @@ FText UMyBondageLifeRoomSubsystem::MakeErrorText(int32 StatusCode, const FString
 	return FText::FromString(ServerMessage.IsEmpty()
 		? FString::Printf(TEXT("\u623F\u95F4\u64CD\u4F5C\u5931\u8D25\uFF08HTTP %d\uFF09"), StatusCode)
 		: ServerMessage);
+}
+void UMyBondageLifeRoomSubsystem::FetchRoomDetails(const FString& RoomId)
+{
+	if (RoomId.IsEmpty()) { return; }
+
+	TWeakObjectPtr<UMyBondageLifeRoomSubsystem> WeakThis(this);
+	SendRequest(FString::Printf(TEXT("/rooms/%s"), *RoomId), TEXT("GET"), nullptr,
+		[WeakThis](bool bSuccess, int32 StatusCode, const FString& Body)
+		{
+			UMyBondageLifeRoomSubsystem* Self = WeakThis.Get();
+			if (!Self || !bSuccess) { return; }
+
+			TSharedPtr<FJsonObject> Root;
+			const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Body);
+			if (!FJsonSerializer::Deserialize(Reader, Root) || !Root.IsValid()) { return; }
+
+			const TSharedPtr<FJsonObject>* RoomObj = nullptr;
+			if (Root->TryGetObjectField(TEXT("room"), RoomObj) && RoomObj)
+			{
+				FMyBondageLifeServerRoom Room;
+				if (ParseRoom(*RoomObj, Room))
+				{
+					Self->OnRoomDetails.Broadcast(Room);
+				}
+			}
+		});
 }

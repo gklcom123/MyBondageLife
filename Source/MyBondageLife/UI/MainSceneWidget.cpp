@@ -1114,6 +1114,74 @@ void UMainSceneWidget::BindVisitModeCheckboxes()
 		White->OnCheckStateChanged.AddUniqueDynamic(this, &UMainSceneWidget::HandleVisitModeWhitelist);
 	}
 }
+
+void UMainSceneWidget::HandleRoomsUpdatedForInfo(const TArray<FMyBondageLifeServerRoom>& Rooms)
+{
+	FString MyAccount;
+	if (UMyBondageLifeAccountSubsystem* Account = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeAccountSubsystem>() : nullptr)
+	{
+		MyAccount = Account->GetAccountName();
+	}
+
+	for (const FMyBondageLifeServerRoom& Room : Rooms)
+	{
+		if (!MyAccount.IsEmpty() && Room.HostAccount.Equals(MyAccount, ESearchCase::IgnoreCase))
+		{
+			if (UMyBondageLifeRoomSubsystem* RoomsSub = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeRoomSubsystem>() : nullptr)
+			{
+				RoomsSub->FetchRoomDetails(Room.RoomId);
+			}
+			return;
+		}
+	}
+}
+
+void UMainSceneWidget::HandleRoomDetailsForInfo(const FMyBondageLifeServerRoom& Room)
+{
+	FillRoomInfoFromRoom(Room);
+}
+
+void UMainSceneWidget::FillRoomInfoFromRoom(const FMyBondageLifeServerRoom& Room)
+{
+	if (!RoomInfoWidget || !RoomInfoWidget->WidgetTree) { return; }
+	auto SetText = [this](const TCHAR* Name, const FString& Value)
+	{
+		if (UEditableTextBox* Box = Cast<UEditableTextBox>(RoomInfoWidget->WidgetTree->FindWidget(Name)))
+		{
+			Box->SetText(FText::FromString(Value));
+		}
+	};
+
+	SetText(TEXT("W_Room_Input_RoomName"), Room.RoomName);
+	SetText(TEXT("W_Room_Input_RoomDesc"), Room.Description);
+	SetText(TEXT("W_Room_Input_RoomMaxPlayerNum"), FString::FromInt(Room.MaxPlayers));
+	SetText(TEXT("W_Room_RoomAdminInput"), FString::Join(Room.Admins, TEXT(",")));
+	SetText(TEXT("W_Room_RoomWhitelistInput"), FString::Join(Room.Whitelist, TEXT(",")));
+	SetText(TEXT("W_Room_RoomBlacklistInput"), FString::Join(Room.Blacklist, TEXT(",")));
+
+	if (UComboBoxString* LanguageBox = Cast<UComboBoxString>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_RoomLanguageComboBox"))))
+	{
+		FString Label = TEXT("中文");
+		if (Room.Language == TEXT("en")) { Label = TEXT("English"); }
+		else if (Room.Language == TEXT("ko")) { Label = TEXT("한국어"); }
+		else if (Room.Language == TEXT("ja")) { Label = TEXT("日本語"); }
+		if (LanguageBox->GetOptionCount() == 0)
+		{
+			LanguageBox->AddOption(TEXT("中文"));
+			LanguageBox->AddOption(TEXT("English"));
+			LanguageBox->AddOption(TEXT("한국어"));
+			LanguageBox->AddOption(TEXT("日本語"));
+		}
+		LanguageBox->SetSelectedOption(Label);
+	}
+
+	UCheckBox* AllBox = Cast<UCheckBox>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_VisitMode_ModeCheck_All")));
+	UCheckBox* AdminBox = Cast<UCheckBox>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_VisitMode_ModeCheck_OnlyAdmin")));
+	UCheckBox* WhiteBox = Cast<UCheckBox>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_VisitMode_ModeCheck_OnlyAdminWhitelist")));
+	if (AllBox) { AllBox->SetIsChecked(Room.VisitMode == TEXT("all")); }
+	if (AdminBox) { AdminBox->SetIsChecked(Room.VisitMode == TEXT("admin")); }
+	if (WhiteBox) { WhiteBox->SetIsChecked(Room.VisitMode == TEXT("admin_whitelist")); }
+}
 void UMainSceneWidget::FillRoomInfoDefaults()
 {
 	if (!RoomInfoWidget || !RoomInfoWidget->WidgetTree) { return; }
@@ -1289,6 +1357,13 @@ void UMainSceneWidget::OpenRoomInfoPanel(bool bLocal)
 	RoomInfoWidget->SetVisibility(ESlateVisibility::Visible);
 	BindVisitModeCheckboxes();
 	FillRoomInfoDefaults();
+
+	if (UMyBondageLifeRoomSubsystem* RoomsSub = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeRoomSubsystem>() : nullptr)
+	{
+		RoomsSub->OnRoomsUpdated.AddUniqueDynamic(this, &UMainSceneWidget::HandleRoomsUpdatedForInfo);
+		RoomsSub->OnRoomDetails.AddUniqueDynamic(this, &UMainSceneWidget::HandleRoomDetailsForInfo);
+		RoomsSub->RefreshRooms();
+	}
 	UE_LOG(LogMyBondageLife, Log, TEXT("RoomInfo: opened for %s room"), bLocal ? TEXT("local") : TEXT("online"));
 }
 

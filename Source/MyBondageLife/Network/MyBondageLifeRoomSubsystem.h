@@ -66,6 +66,11 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Rooms")
 	FMyBondageLifeRoomsFailed OnRoomsFailed;
 
+	UPROPERTY(BlueprintAssignable) FMyBondageLifeRoomJoined OnRoomDetails;
+
+	/** GET /rooms/{id}：房主查看自己房间的完整信息（含名单）。 */
+	void FetchRoomDetails(const FString& RoomId);
+
 	UPROPERTY(BlueprintAssignable, Category = "Rooms")
 	FMyBondageLifeRoomJoined OnRoomJoined;
 

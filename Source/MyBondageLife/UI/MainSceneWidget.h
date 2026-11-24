@@ -105,6 +105,9 @@ protected:
 	UFUNCTION() void HandleRoomInfoConfirmClicked();
 
 	void FillRoomInfoDefaults();
+	void FillRoomInfoFromRoom(const struct FMyBondageLifeServerRoom& Room);
+	UFUNCTION() void HandleRoomsUpdatedForInfo(const TArray<struct FMyBondageLifeServerRoom>& Rooms);
+	UFUNCTION() void HandleRoomDetailsForInfo(const struct FMyBondageLifeServerRoom& Room);
 	bool ReadRoomInfoSettings(FMyBondageLifeRoomSettings& OutSettings, FString& OutError);
 	void ShowRoomInfoError(const FString& Message);
 
