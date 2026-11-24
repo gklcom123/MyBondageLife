@@ -114,6 +114,10 @@ protected:
 	void ShowRoomInfoError(const FString& Message);
 
 	void BindVisitModeCheckboxes();
+	void BindUidInputFilters();
+	UFUNCTION() void HandleAdminInputChanged(const FText& Text);
+	UFUNCTION() void HandleWhitelistInputChanged(const FText& Text);
+	UFUNCTION() void HandleBlacklistInputChanged(const FText& Text);
 	UFUNCTION() void HandleVisitModeAll(bool bChecked);
 	UFUNCTION() void HandleVisitModeAdmin(bool bChecked);
 	UFUNCTION() void HandleVisitModeWhitelist(bool bChecked);
