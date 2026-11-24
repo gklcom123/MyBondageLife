@@ -105,6 +105,8 @@ protected:
 	UFUNCTION() void HandleRoomInfoConfirmClicked();
 
 	void FillRoomInfoDefaults();
+	void SaveRoomInfoCache(const FMyBondageLifeRoomSettings& Settings);
+	bool LoadRoomInfoCache(FMyBondageLifeRoomSettings& OutSettings);
 	void FillRoomInfoFromRoom(const struct FMyBondageLifeServerRoom& Room);
 	UFUNCTION() void HandleRoomsUpdatedForInfo(const TArray<struct FMyBondageLifeServerRoom>& Rooms);
 	UFUNCTION() void HandleRoomDetailsForInfo(const struct FMyBondageLifeServerRoom& Room);

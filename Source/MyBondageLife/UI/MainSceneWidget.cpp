@@ -1,6 +1,10 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "MainSceneWidget.h"
+#include "MainSceneWidget.h"
+#include "Serialization/JsonSerializer.h"
+#include "Serialization/JsonWriter.h"
+#include "Misc/Paths.h"
+#include "Misc/FileHelper.h"
 
 
 
@@ -1182,6 +1186,53 @@ void UMainSceneWidget::FillRoomInfoFromRoom(const FMyBondageLifeServerRoom& Room
 	if (AdminBox) { AdminBox->SetIsChecked(Room.VisitMode == TEXT("admin")); }
 	if (WhiteBox) { WhiteBox->SetIsChecked(Room.VisitMode == TEXT("admin_whitelist")); }
 }
+
+namespace
+{
+	FString RoomInfoCachePath()
+	{
+		return FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("RoomInfo.json"));
+	}
+}
+
+void UMainSceneWidget::SaveRoomInfoCache(const FMyBondageLifeRoomSettings& Settings)
+{
+	TSharedPtr<FJsonObject> Root = MakeShared<FJsonObject>();
+	Root->SetStringField(TEXT("name"), Settings.Name);
+	Root->SetStringField(TEXT("description"), Settings.Description);
+	Root->SetStringField(TEXT("language"), Settings.Language);
+	Root->SetNumberField(TEXT("maxPlayers"), Settings.MaxPlayers);
+	Root->SetNumberField(TEXT("visitMode"), Settings.VisitMode);
+	Root->SetStringField(TEXT("admins"), Settings.Admins);
+	Root->SetStringField(TEXT("whitelist"), Settings.Whitelist);
+	Root->SetStringField(TEXT("blacklist"), Settings.Blacklist);
+
+	FString Body;
+	const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Body);
+	FJsonSerializer::Serialize(Root.ToSharedRef(), Writer);
+	FFileHelper::SaveStringToFile(Body, *RoomInfoCachePath(), FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
+}
+
+bool UMainSceneWidget::LoadRoomInfoCache(FMyBondageLifeRoomSettings& OutSettings)
+{
+	FString Body;
+	if (!FFileHelper::LoadFileToString(Body, *RoomInfoCachePath())) { return false; }
+
+	TSharedPtr<FJsonObject> Root;
+	const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Body);
+	if (!FJsonSerializer::Deserialize(Reader, Root) || !Root.IsValid()) { return false; }
+
+	Root->TryGetStringField(TEXT("name"), OutSettings.Name);
+	Root->TryGetStringField(TEXT("description"), OutSettings.Description);
+	Root->TryGetStringField(TEXT("language"), OutSettings.Language);
+	double Number = 0.0;
+	if (Root->TryGetNumberField(TEXT("maxPlayers"), Number)) { OutSettings.MaxPlayers = static_cast<int32>(Number); }
+	if (Root->TryGetNumberField(TEXT("visitMode"), Number)) { OutSettings.VisitMode = static_cast<int32>(Number); }
+	Root->TryGetStringField(TEXT("admins"), OutSettings.Admins);
+	Root->TryGetStringField(TEXT("whitelist"), OutSettings.Whitelist);
+	Root->TryGetStringField(TEXT("blacklist"), OutSettings.Blacklist);
+	return !OutSettings.Name.IsEmpty();
+}
 void UMainSceneWidget::FillRoomInfoDefaults()
 {
 	if (!RoomInfoWidget || !RoomInfoWidget->WidgetTree) { return; }
@@ -1197,6 +1248,10 @@ void UMainSceneWidget::FillRoomInfoDefaults()
 	if (UMyBondageLifeSessionSubsystem* Session = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeSessionSubsystem>() : nullptr)
 	{
 		Settings = Session->GetRoomSettings();
+	}
+	if (Settings.Name.IsEmpty())
+	{
+		LoadRoomInfoCache(Settings);
 	}
 	if (Settings.Name.IsEmpty())
 	{
@@ -1388,6 +1443,7 @@ void UMainSceneWidget::HandleRoomInfoConfirmClicked()
 	if (UMyBondageLifeSessionSubsystem* Session = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeSessionSubsystem>() : nullptr)
 	{
 		Session->SetRoomSettings(Settings);
+		SaveRoomInfoCache(Settings);
 	}
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("RoomInfo: confirm %s room name=%s max=%d mode=%d"), bLocal ? TEXT("local") : TEXT("online"), *Settings.Name, Settings.MaxPlayers, Settings.VisitMode);
