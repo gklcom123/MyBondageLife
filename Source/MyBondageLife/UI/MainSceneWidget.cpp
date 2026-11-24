@@ -1152,53 +1152,20 @@ void UMainSceneWidget::FillRoomInfoDefaults()
 	SetText(TEXT("W_Room_RoomWhitelistInput"), Settings.Whitelist);
 	SetText(TEXT("W_Room_RoomBlacklistInput"), Settings.Blacklist);
 
-	// 语言选择：设计器控件可能不是 UComboBoxString，统一运行时创建干净的下拉框。
-	UWidget* NamedLanguage = RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_RoomLanguageComboBox"));
-	UE_LOG(LogMyBondageLife, Log, TEXT("RoomInfo: language widget=%s"), NamedLanguage ? *NamedLanguage->GetClass()->GetName() : TEXT("NULL"));
-
-	UComboBoxString* SourceCombo = Cast<UComboBoxString>(NamedLanguage);
-	if (!SourceCombo && NamedLanguage)
+	if (UComboBoxString* LanguageBox = Cast<UComboBoxString>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_RoomLanguageComboBox"))))
 	{
-		TArray<UWidget*> AllWidgets;
-		RoomInfoWidget->WidgetTree->GetAllWidgets(AllWidgets);
-		for (UWidget* W : AllWidgets)
+		if (LanguageBox->GetOptionCount() == 0)
 		{
-			if (UComboBoxString* Found = Cast<UComboBoxString>(W)) { SourceCombo = Found; break; }
+			LanguageBox->AddOption(TEXT("中文"));
+			LanguageBox->AddOption(TEXT("English"));
+			LanguageBox->AddOption(TEXT("한국어"));
+			LanguageBox->AddOption(TEXT("日本語"));
 		}
-	}
-
-	if (!RoomLanguageCombo)
-	{
-		RoomLanguageCombo = WidgetTree->ConstructWidget<UComboBoxString>(UComboBoxString::StaticClass(), TEXT("W_RoomLanguageRuntime"));
-		UWidget* AnchorWidget = SourceCombo ? static_cast<UWidget*>(SourceCombo) : NamedLanguage;
-		if (AnchorWidget && Cast<UPanelWidget>(AnchorWidget->GetParent()))
-		{
-			Cast<UPanelWidget>(AnchorWidget->GetParent())->AddChild(RoomLanguageCombo);
-		}
-		else if (UCanvasPanel* TempCanvas = Cast<UCanvasPanel>(WidgetTree->RootWidget))
-		{
-			if (UCanvasPanelSlot* CanvasSlot = TempCanvas->AddChildToCanvas(RoomLanguageCombo))
-			{
-				CanvasSlot->SetAnchors(FAnchors(0.5f, 0.2f, 0.5f, 0.2f));
-				CanvasSlot->SetAlignment(FVector2D(0.5f, 0.5f));
-				CanvasSlot->SetSize(FVector2D(240.0f, 44.0f));
-			}
-		}
-		RoomLanguageCombo->AddOption(TEXT("中文"));
-		RoomLanguageCombo->AddOption(TEXT("English"));
-		RoomLanguageCombo->AddOption(TEXT("한국어"));
-		RoomLanguageCombo->AddOption(TEXT("日本語"));
-	}
-
-	if (SourceCombo) { SourceCombo->SetVisibility(ESlateVisibility::Collapsed); }
-	if (NamedLanguage && NamedLanguage != SourceCombo) { NamedLanguage->SetVisibility(ESlateVisibility::Collapsed); }
-	RoomLanguageCombo->SetVisibility(ESlateVisibility::Visible);
-	{
 		FString Label = TEXT("中文");
 		if (Settings.Language == TEXT("en")) { Label = TEXT("English"); }
 		else if (Settings.Language == TEXT("ko")) { Label = TEXT("한국어"); }
 		else if (Settings.Language == TEXT("ja")) { Label = TEXT("日本語"); }
-		RoomLanguageCombo->SetSelectedOption(Label);
+		LanguageBox->SetSelectedOption(Label);
 	}
 
 	UCheckBox* AllBox = Cast<UCheckBox>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_VisitMode_ModeCheck_All")));
@@ -1264,7 +1231,7 @@ bool UMainSceneWidget::ReadRoomInfoSettings(FMyBondageLifeRoomSettings& OutSetti
 		return false;
 	}
 
-	if (UComboBoxString* LanguageBox = RoomLanguageCombo)
+	if (UComboBoxString* LanguageBox = Cast<UComboBoxString>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_RoomLanguageComboBox"))))
 	{
 		const FString Selected = LanguageBox->GetSelectedOption();
 		if (Selected == TEXT("English")) { OutSettings.Language = TEXT("en"); }
