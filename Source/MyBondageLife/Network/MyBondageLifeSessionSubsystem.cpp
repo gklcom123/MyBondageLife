@@ -101,6 +101,7 @@ bool UMyBondageLifeSessionSubsystem::HostRoom(const FString& InRoomName)
 		Room.Admins = RoomSettings.Admins;
 		Room.Whitelist = RoomSettings.Whitelist;
 		Room.Blacklist = RoomSettings.Blacklist;
+		Room.Password = RoomSettings.Password;
 		if (const UMyBondageLifeAccountSubsystem* Acc = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
 		{
 			Room.HostAccount = Acc->GetAccountName();

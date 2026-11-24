@@ -36,6 +36,9 @@ struct FMyBondageLifeRoomInfo
 	UPROPERTY(BlueprintReadOnly) FString Whitelist;
 	UPROPERTY(BlueprintReadOnly) FString Blacklist;
 
+	/** 仅局域网明文密码（不显示）。 */
+	UPROPERTY(BlueprintReadOnly) FString Password;
+
 	/** 房主账号（家具归属判定用）。 */
 	UPROPERTY(BlueprintReadOnly, Category = "Room")
 	FString HostAccount;
