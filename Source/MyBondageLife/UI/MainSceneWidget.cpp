@@ -38,7 +38,10 @@
 #include "Network/MyBondageLifeLanDiscoverySubsystem.h"
 #include "Network/MyBondageLifeRoomSubsystem.h"
 #include "Network/MyBondageLifeSessionSubsystem.h"
-#include "TimerManager.h"
+#include "TimerManager.h"
+
+static UWidget* FindWidgetDeep(UWidgetTree* Tree, const TCHAR* Name);
+
 
 namespace
 {
@@ -1272,15 +1275,15 @@ namespace
 void UMainSceneWidget::BindUidInputFilters()
 {
 	if (!RoomInfoWidget || !RoomInfoWidget->WidgetTree) { return; }
-	if (UEditableTextBox* Box = Cast<UEditableTextBox>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_RoomAdminInput"))))
+	if (UEditableTextBox* Box = Cast<UEditableTextBox>(FindWidgetDeep(RoomInfoWidget->WidgetTree, TEXT("W_Room_RoomAdminInput"))))
 	{
 		Box->OnTextChanged.AddUniqueDynamic(this, &UMainSceneWidget::HandleAdminInputChanged);
 	}
-	if (UEditableTextBox* Box = Cast<UEditableTextBox>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_RoomWhitelistInput"))))
+	if (UEditableTextBox* Box = Cast<UEditableTextBox>(FindWidgetDeep(RoomInfoWidget->WidgetTree, TEXT("W_Room_RoomWhitelistInput"))))
 	{
 		Box->OnTextChanged.AddUniqueDynamic(this, &UMainSceneWidget::HandleWhitelistInputChanged);
 	}
-	if (UEditableTextBox* Box = Cast<UEditableTextBox>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_RoomBlacklistInput"))))
+	if (UEditableTextBox* Box = Cast<UEditableTextBox>(FindWidgetDeep(RoomInfoWidget->WidgetTree, TEXT("W_Room_RoomBlacklistInput"))))
 	{
 		Box->OnTextChanged.AddUniqueDynamic(this, &UMainSceneWidget::HandleBlacklistInputChanged);
 	}
@@ -1291,6 +1294,7 @@ void UMainSceneWidget::HandleAdminInputChanged(const FText& Text)
 	if (UEditableTextBox* Box = RoomInfoWidget && RoomInfoWidget->WidgetTree ? Cast<UEditableTextBox>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_RoomAdminInput"))) : nullptr)
 	{
 		const FString Clean = SanitizeUidText(Text.ToString());
+		UE_LOG(LogMyBondageLife, Log, TEXT("RoomInfo: uid input %s -> %s"), *Text.ToString(), *Clean);
 		if (Clean != Text.ToString()) { Box->SetText(FText::FromString(Clean)); }
 	}
 }
@@ -1300,6 +1304,7 @@ void UMainSceneWidget::HandleWhitelistInputChanged(const FText& Text)
 	if (UEditableTextBox* Box = RoomInfoWidget && RoomInfoWidget->WidgetTree ? Cast<UEditableTextBox>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_RoomWhitelistInput"))) : nullptr)
 	{
 		const FString Clean = SanitizeUidText(Text.ToString());
+		UE_LOG(LogMyBondageLife, Log, TEXT("RoomInfo: uid input %s -> %s"), *Text.ToString(), *Clean);
 		if (Clean != Text.ToString()) { Box->SetText(FText::FromString(Clean)); }
 	}
 }
@@ -1309,6 +1314,7 @@ void UMainSceneWidget::HandleBlacklistInputChanged(const FText& Text)
 	if (UEditableTextBox* Box = RoomInfoWidget && RoomInfoWidget->WidgetTree ? Cast<UEditableTextBox>(RoomInfoWidget->WidgetTree->FindWidget(TEXT("W_Room_RoomBlacklistInput"))) : nullptr)
 	{
 		const FString Clean = SanitizeUidText(Text.ToString());
+		UE_LOG(LogMyBondageLife, Log, TEXT("RoomInfo: uid input %s -> %s"), *Text.ToString(), *Clean);
 		if (Clean != Text.ToString()) { Box->SetText(FText::FromString(Clean)); }
 	}
 }
