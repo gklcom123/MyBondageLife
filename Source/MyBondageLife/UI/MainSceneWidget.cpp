@@ -1192,9 +1192,9 @@ void UMainSceneWidget::FillRoomInfoFromRoom(const FMyBondageLifeServerRoom& Room
 	if (!RoomInfoWidget || !RoomInfoWidget->WidgetTree) { return; }
 	auto SetText = [this](const TCHAR* Name, const FString& Value)
 	{
-		if (UEditableTextBox* Box = Cast<UEditableTextBox>(RoomInfoWidget->WidgetTree->FindWidget(Name)))
+		if (UWidget* Box = FindWidgetDeep(RoomInfoWidget->WidgetTree, Name))
 		{
-			Box->SetText(FText::FromString(Value));
+			SetInputText(Box, Value);
 		}
 	};
 
@@ -1346,9 +1346,9 @@ void UMainSceneWidget::FillRoomInfoDefaults()
 	if (!RoomInfoWidget || !RoomInfoWidget->WidgetTree) { return; }
 	auto SetText = [this](const TCHAR* Name, const FString& Value)
 	{
-		if (UEditableTextBox* Box = Cast<UEditableTextBox>(RoomInfoWidget->WidgetTree->FindWidget(Name)))
+		if (UWidget* Box = FindWidgetDeep(RoomInfoWidget->WidgetTree, Name))
 		{
-			Box->SetText(FText::FromString(Value));
+			SetInputText(Box, Value);
 		}
 	};
 
