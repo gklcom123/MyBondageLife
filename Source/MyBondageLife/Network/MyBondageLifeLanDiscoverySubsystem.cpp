@@ -376,7 +376,7 @@ FString UMyBondageLifeLanDiscoverySubsystem::SerializeRoom(const FMyBondageLifeR
 bool UMyBondageLifeLanDiscoverySubsystem::DeserializeRoom(const FString& Payload, FMyBondageLifeRoomInfo& OutRoom)
 {
 	TArray<FString> Fields;
-	Payload.ParseIntoArray(Fields, TEXT("|"), true);
+	Payload.ParseIntoArray(Fields, TEXT("|"), false);
 
 	if (Fields.Num() < 7 || Fields[0] != RoomPacketTag)
 	{
