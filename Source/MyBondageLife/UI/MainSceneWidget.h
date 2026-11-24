@@ -89,6 +89,12 @@ protected:
 	/** Travels to a room discovered on the LAN. */
 	void JoinLocalRoomByIndex(int32 RoomIndex);
 
+	UFUNCTION() void HandleLocalRoomPasswordConfirmed(const FString& Password);
+	UFUNCTION() void HandleLocalRoomPasswordCancelled();
+
+	UPROPERTY(Transient) TObjectPtr<class UMyBondageLifePasswordDialog> LocalRoomPasswordDialog;
+	int32 PendingLocalRoomIndex = -1;
+
 	/** Asks the room service for the current list. */
 	void RefreshRoomList();
 

@@ -40,7 +40,8 @@
 #include "Network/MyBondageLifeLanDiscoverySubsystem.h"
 #include "Network/MyBondageLifeRoomSubsystem.h"
 #include "Network/MyBondageLifeSessionSubsystem.h"
-#include "TimerManager.h"
+#include "TimerManager.h"
+#include "UI/MyBondageLifePasswordDialog.h"
 
 
 
@@ -1053,6 +1054,29 @@ void UMainSceneWidget::JoinLocalRoomByIndex(int32 RoomIndex)
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("MainScene: joining local room '%s' at %s."), *Room.RoomName, *Room.GetEndpoint());
 
+	const int32 MaxAllowed = Room.MaxPlayersSetting > 0 ? Room.MaxPlayersSetting : Room.MaxPlayers;
+	if (MaxAllowed > 0 && Room.CurrentPlayers >= MaxAllowed)
+	{
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 4.0f, FColor::Red, TEXT("[房间] 房间已满")); }
+		return;
+	}
+
+	if (Room.bHasPassword)
+	{
+		PendingLocalRoomIndex = RoomIndex;
+		if (!LocalRoomPasswordDialog)
+		{
+			LocalRoomPasswordDialog = CreateWidget<UMyBondageLifePasswordDialog>(this, UMyBondageLifePasswordDialog::StaticClass());
+			if (LocalRoomPasswordDialog)
+			{
+				LocalRoomPasswordDialog->OnConfirmed.AddUniqueDynamic(this, &UMainSceneWidget::HandleLocalRoomPasswordConfirmed);
+				LocalRoomPasswordDialog->OnCancelled.AddUniqueDynamic(this, &UMainSceneWidget::HandleLocalRoomPasswordCancelled);
+				LocalRoomPasswordDialog->AddToViewport(120);
+			}
+		}
+		return;
+	}
+
 	Session->JoinRoom(Room);
 }
 
@@ -1559,4 +1583,32 @@ void UMainSceneWidget::HandleRoomInfoConfirmClicked()
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("RoomInfo: confirm %s room name=%s max=%d mode=%d"), bLocal ? TEXT("local") : TEXT("online"), *Settings.Name, Settings.MaxPlayers, Settings.VisitMode);
 	if (bLocal) { CreateLocalRoom(); } else { CreateRoom(); }
+}
+
+void UMainSceneWidget::HandleLocalRoomPasswordConfirmed(const FString& Password)
+{
+	if (!DisplayedLocalRooms.IsValidIndex(PendingLocalRoomIndex))
+	{
+		PendingLocalRoomIndex = -1;
+		return;
+	}
+
+	const FMyBondageLifeRoomInfo Room = DisplayedLocalRooms[PendingLocalRoomIndex];
+	PendingLocalRoomIndex = -1;
+
+	if (Room.Password != Password)
+	{
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 4.0f, FColor::Red, TEXT("[房间] 密码错误")); }
+		return;
+	}
+
+	if (UMyBondageLifeSessionSubsystem* Session = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeSessionSubsystem>() : nullptr)
+	{
+		Session->JoinRoom(Room);
+	}
+}
+
+void UMainSceneWidget::HandleLocalRoomPasswordCancelled()
+{
+	PendingLocalRoomIndex = -1;
 }
