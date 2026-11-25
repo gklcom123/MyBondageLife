@@ -1239,6 +1239,7 @@ void AMyBondageLifeCharacter::ApplyBodyPartHiding()
 		}
 	}
 	OriginalBodyMaterials.Reset();
+	OutfitBaseMaterials.Reset();
 
 	if (!HiddenBodyMaterial)
 	{
@@ -1260,6 +1261,45 @@ void AMyBondageLifeCharacter::ApplyBodyPartHiding()
 		MeshComponent->SetMaterial(MaterialIndex, HiddenBodyMaterial);
 
 		UE_LOG(LogMyBondageLife, Verbose, TEXT("Hide: %s -> material %d"), *PartName.ToString(), MaterialIndex);
+	}
+
+	// 对所有衣物网格：同名材质槽（如 socks 的 sock1/sock2）也一起隐藏/恢复。
+	{
+		TSet<FName> AllPartsForOutfits = RestraintHiddenParts;
+		AllPartsForOutfits.Append(OutfitHiddenParts);
+		if (HiddenBodyMaterial)
+		{
+			for (const TPair<int32, TObjectPtr<USkeletalMeshComponent>>& OutfitPair : OutfitComponents)
+			{
+				USkeletalMeshComponent* OutfitMesh = OutfitPair.Value;
+				if (!OutfitMesh || !OutfitMesh->GetSkeletalMeshAsset()) { continue; }
+
+				TArray<TObjectPtr<UMaterialInterface>>* BaseMats = OutfitBaseMaterials.Find(OutfitMesh);
+				if (!BaseMats)
+				{
+					TArray<TObjectPtr<UMaterialInterface>> Cached;
+					for (int32 MatIndex = 0; MatIndex < OutfitMesh->GetNumMaterials(); ++MatIndex)
+					{
+						Cached.Add(OutfitMesh->GetMaterial(MatIndex));
+					}
+					BaseMats = &OutfitBaseMaterials.Add(OutfitMesh, MoveTemp(Cached));
+				}
+
+				TArray<FName> SlotNames;
+				SlotNames = OutfitMesh->GetMaterialSlotNames();
+				const int32 NumMats = OutfitMesh->GetNumMaterials();
+				for (int32 MatIndex = 0; MatIndex < NumMats && MatIndex < BaseMats->Num(); ++MatIndex)
+				{
+					const FName SlotName = SlotNames.IsValidIndex(MatIndex) ? SlotNames[MatIndex] : NAME_None;
+					const bool bHideSlot = AllPartsForOutfits.Contains(SlotName);
+					OutfitMesh->SetMaterial(MatIndex, bHideSlot ? HiddenBodyMaterial.Get() : (*BaseMats)[MatIndex].Get());
+					if (bHideSlot)
+					{
+						UE_LOG(LogMyBondageLife, Verbose, TEXT("Hide(outfit): %s -> material %d"), *SlotName.ToString(), MatIndex);
+					}
+				}
+			}
+		}
 	}
 }
 

@@ -628,6 +628,9 @@ public:
 	UPROPERTY(Transient)
 	TMap<FName, TObjectPtr<class UMaterialInterface>> OriginalBodyMaterials;
 
+	/** 衣物网格的原始材质（用于 HideBodyPart 在同名材质槽上隐藏/恢复）。 */
+	TMap<TObjectPtr<class USkeletalMeshComponent>, TArray<TObjectPtr<class UMaterialInterface>>> OutfitBaseMaterials;
+
 	float BlindVisualLevel = 0.0f;
 
 	bool bOutfitBaseCaptured = false;
