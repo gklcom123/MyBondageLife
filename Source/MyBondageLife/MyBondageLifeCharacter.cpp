@@ -1309,6 +1309,7 @@ void AMyBondageLifeCharacter::ApplyBodyPartHiding()
 					const TSet<FName>* OwnParts = OutfitComponentHideParts.Find(OutfitMesh);
 					const bool bHidesItself = OwnParts && OwnParts->Contains(SlotName);
 					const bool bHideSlot = AllPartsForOutfits.Contains(SlotName) && !bHidesItself;
+					UE_LOG(LogMyBondageLife, Log, TEXT("Hide(outfit): mesh=%s slot=%s own=%d hide=%d"), *OutfitMesh->GetName(), *SlotName.ToString(), bHidesItself ? 1 : 0, bHideSlot ? 1 : 0);
 					OutfitMesh->SetMaterial(MatIndex, bHideSlot ? HiddenBodyMaterial.Get() : (*BaseMats)[MatIndex].Get());
 					if (bHideSlot)
 					{
