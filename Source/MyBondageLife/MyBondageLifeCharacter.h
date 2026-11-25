@@ -631,6 +631,9 @@ public:
 	/** 衣物网格的原始材质（用于 HideBodyPart 在同名材质槽上隐藏/恢复）。 */
 	TMap<TObjectPtr<class USkeletalMeshComponent>, TArray<TObjectPtr<class UMaterialInterface>>> OutfitBaseMaterials;
 
+	/** 每件衣物自身声明要隐藏的材质槽（自己的槽不隐藏自己）。 */
+	TMap<TObjectPtr<class USkeletalMeshComponent>, TSet<FName>> OutfitComponentHideParts;
+
 	float BlindVisualLevel = 0.0f;
 
 	bool bOutfitBaseCaptured = false;

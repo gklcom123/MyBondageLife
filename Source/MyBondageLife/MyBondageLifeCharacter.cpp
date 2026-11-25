@@ -862,6 +862,12 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 		// 用实际穿着的槽位做 key（DT 里的 Slot 可能和穿着槽位不一致）
 		const int32 WornSlotIndex = OutfitSlots.IsValidIndex(Index) ? OutfitSlots[Index] : Item->Slot;
 		OutfitComponents.Add(WornSlotIndex, Component);
+
+		{
+			TSet<FName> OwnParts;
+			for (const FString& HidePart : Item->HideBodyParts) { OwnParts.Add(FName(*HidePart)); }
+			OutfitComponentHideParts.Add(Component, MoveTemp(OwnParts));
+		}
 			Component->SetGenerateOverlapEvents(false);
 			Component->SetSkeletalMeshAsset(WornMesh);
 
@@ -1240,6 +1246,7 @@ void AMyBondageLifeCharacter::ApplyBodyPartHiding()
 	}
 	OriginalBodyMaterials.Reset();
 	OutfitBaseMaterials.Reset();
+	OutfitComponentHideParts.Reset();
 
 	if (!HiddenBodyMaterial)
 	{
@@ -1291,7 +1298,9 @@ void AMyBondageLifeCharacter::ApplyBodyPartHiding()
 				for (int32 MatIndex = 0; MatIndex < NumMats && MatIndex < BaseMats->Num(); ++MatIndex)
 				{
 					const FName SlotName = SlotNames.IsValidIndex(MatIndex) ? SlotNames[MatIndex] : NAME_None;
-					const bool bHideSlot = AllPartsForOutfits.Contains(SlotName);
+					const TSet<FName>* OwnParts = OutfitComponentHideParts.Find(OutfitMesh);
+					const bool bHidesItself = OwnParts && OwnParts->Contains(SlotName);
+					const bool bHideSlot = AllPartsForOutfits.Contains(SlotName) && !bHidesItself;
 					OutfitMesh->SetMaterial(MatIndex, bHideSlot ? HiddenBodyMaterial.Get() : (*BaseMats)[MatIndex].Get());
 					if (bHideSlot)
 					{
@@ -1383,6 +1392,12 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 		// 用实际穿着的槽位做 key（DT 里的 Slot 可能和穿着槽位不一致）
 		const int32 WornSlotIndex = OutfitSlots.IsValidIndex(Index) ? OutfitSlots[Index] : Item->Slot;
 		OutfitComponents.Add(WornSlotIndex, Component);
+
+		{
+			TSet<FName> OwnParts;
+			for (const FString& HidePart : Item->HideBodyParts) { OwnParts.Add(FName(*HidePart)); }
+			OutfitComponentHideParts.Add(Component, MoveTemp(OwnParts));
+		}
 		Component->SetGenerateOverlapEvents(false);
 
 		// 同骨骼：跟随身体动画；否则挂到同名 socket。
