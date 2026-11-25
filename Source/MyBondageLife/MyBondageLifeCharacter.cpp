@@ -1350,11 +1350,13 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 		if (bSameSkeleton)
 		{
 			Component->SetMasterPoseComponent(BodyMesh);
+			UE_LOG(LogMyBondageLife, Log, TEXT("Outfit: id=%s sameSkeleton=1 bounds=%s"), *Item->ItemId.ToString(), *Component->Bounds.BoxExtent.ToString());
 		}
 		else
 		{
 			Component->AttachToComponent(BodyMesh,
 				FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+			UE_LOG(LogMyBondageLife, Log, TEXT("Outfit: id=%s skeletonMismatch bodySkel=%s itemSkel=%s"), *Item->ItemId.ToString(), *BodyMesh->GetSkeletalMeshAsset()->GetSkeleton()->GetName(), *MeshAsset->GetSkeleton()->GetName());
 		}
 	}
 
