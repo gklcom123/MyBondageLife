@@ -1281,6 +1281,7 @@ void AMyBondageLifeCharacter::OnRep_Outfits()
 
 void AMyBondageLifeCharacter::ApplyOutfits()
 {
+	UE_LOG(LogMyBondageLife, Log, TEXT("Outfit: ApplyOutfits items=%d"), OutfitItemIds.Num());
 	USkeletalMeshComponent* BodyMesh = GetMesh();
 	if (!BodyMesh)
 	{
@@ -1306,12 +1307,14 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 	for (int32 Index = 0; Index < OutfitItemIds.Num(); ++Index)
 	{
 		const FMyBondageLifeOutfitItem* Item = FMyBondageLifeOutfitCatalog::Find(OutfitItemIds[Index]);
+		UE_LOG(LogMyBondageLife, Log, TEXT("Outfit: id=%s item=%s"), *OutfitItemIds[Index].ToString(), Item ? TEXT("found") : TEXT("NULL"));
 		if (!Item)
 		{
 			continue;
 		}
 
 		USkeletalMesh* MeshAsset = Item->Mesh.LoadSynchronous();
+		UE_LOG(LogMyBondageLife, Log, TEXT("Outfit: id=%s meshPath=%s loaded=%s slot=%d"), *Item->ItemId.ToString(), *Item->Mesh.ToString(), MeshAsset ? TEXT("OK") : TEXT("FAILED"), Item->Slot);
 		if (!MeshAsset)
 		{
 			continue;
