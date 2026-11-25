@@ -1440,6 +1440,42 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 	}
 
 	OutfitFeetOffset = FeetOffset;
+	// 鞋子槽（10）如果有 sock1/sock2 材质槽，就把袜子槽（9）同名槽的材质复制过去。
+	{
+		const TObjectPtr<USkeletalMeshComponent>* SocksPtr = OutfitComponents.Find(9);
+		const TObjectPtr<USkeletalMeshComponent>* ShoesPtr = OutfitComponents.Find(10);
+		USkeletalMeshComponent* SocksMesh = SocksPtr ? SocksPtr->Get() : nullptr;
+		USkeletalMeshComponent* ShoesMesh = ShoesPtr ? ShoesPtr->Get() : nullptr;
+		if (SocksMesh && ShoesMesh)
+		{
+			const TArray<FName> SockSlots = SocksMesh->GetMaterialSlotNames();
+			const TArray<FName> ShoeSlots = ShoesMesh->GetMaterialSlotNames();
+			TArray<TObjectPtr<UMaterialInterface>>* ShoeBaseMats = OutfitBaseMaterials.Find(ShoesMesh);
+
+			for (int32 ShoeIndex = 0; ShoeIndex < ShoeSlots.Num(); ++ShoeIndex)
+			{
+				const FName SlotName = ShoeSlots[ShoeIndex];
+				if (!SlotName.ToString().Equals(TEXT("sock1"), ESearchCase::IgnoreCase)
+					&& !SlotName.ToString().Equals(TEXT("sock2"), ESearchCase::IgnoreCase))
+				{
+					continue;
+				}
+
+				const int32 SockIndex = SockSlots.IndexOfByKey(SlotName);
+				if (SockIndex == INDEX_NONE) { continue; }
+
+				UMaterialInterface* SockMaterial = SocksMesh->GetMaterial(SockIndex);
+				if (!SockMaterial) { continue; }
+
+				ShoesMesh->SetMaterial(ShoeIndex, SockMaterial);
+				if (ShoeBaseMats && ShoeBaseMats->IsValidIndex(ShoeIndex))
+				{
+					(*ShoeBaseMats)[ShoeIndex] = SockMaterial;
+				}
+				UE_LOG(LogMyBondageLife, Log, TEXT("Outfit: copied %s material from socks to shoes"), *SlotName.ToString());
+			}
+		}
+	}
 	ApplyOutfitCapsule();
 	ApplySkin();
 	ApplyOutfitColors();
