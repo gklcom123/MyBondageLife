@@ -1401,6 +1401,13 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 		// 用实际穿着的槽位做 key（DT 里的 Slot 可能和穿着槽位不一致）
 		const int32 WornSlotIndex = OutfitSlots.IsValidIndex(Index) ? OutfitSlots[Index] : Item->Slot;
 		OutfitComponents.Add(WornSlotIndex, Component);
+
+		// 记录这件衣物自己声明的隐藏槽（自己的槽不隐藏自己）。
+		{
+			TSet<FName> OwnParts;
+			for (const FString& HidePart : Item->HideBodyParts) { OwnParts.Add(FName(*HidePart)); }
+			OutfitComponentHideParts.Add(Component, MoveTemp(OwnParts));
+		}
 		{
 			TArray<TObjectPtr<UMaterialInterface>> InitialMats;
 			for (int32 MatIndex = 0; MatIndex < Component->GetNumMaterials(); ++MatIndex)
