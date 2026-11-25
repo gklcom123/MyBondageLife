@@ -1254,7 +1254,6 @@ void AMyBondageLifeCharacter::ApplyBodyPartHiding()
 	}
 	OriginalBodyMaterials.Reset();
 	OutfitBaseMaterials.Reset();
-	OutfitComponentHideParts.Reset();
 
 	if (!HiddenBodyMaterial)
 	{
@@ -1361,6 +1360,7 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 
 	float FeetOffset = 0.0f;
 	OutfitHiddenParts.Reset();
+	OutfitComponentHideParts.Reset();
 
 	for (int32 Index = 0; Index < OutfitItemIds.Num(); ++Index)
 	{
