@@ -862,6 +862,14 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 		// 用实际穿着的槽位做 key（DT 里的 Slot 可能和穿着槽位不一致）
 		const int32 WornSlotIndex = OutfitSlots.IsValidIndex(Index) ? OutfitSlots[Index] : Item->Slot;
 		OutfitComponents.Add(WornSlotIndex, Component);
+		{
+			TArray<TObjectPtr<UMaterialInterface>> InitialMats;
+			for (int32 MatIndex = 0; MatIndex < Component->GetNumMaterials(); ++MatIndex)
+			{
+				InitialMats.Add(Component->GetMaterial(MatIndex));
+			}
+			OutfitBaseMaterials.Add(Component, MoveTemp(InitialMats));
+		}
 
 		{
 			TSet<FName> OwnParts;
@@ -1392,6 +1400,14 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 		// 用实际穿着的槽位做 key（DT 里的 Slot 可能和穿着槽位不一致）
 		const int32 WornSlotIndex = OutfitSlots.IsValidIndex(Index) ? OutfitSlots[Index] : Item->Slot;
 		OutfitComponents.Add(WornSlotIndex, Component);
+		{
+			TArray<TObjectPtr<UMaterialInterface>> InitialMats;
+			for (int32 MatIndex = 0; MatIndex < Component->GetNumMaterials(); ++MatIndex)
+			{
+				InitialMats.Add(Component->GetMaterial(MatIndex));
+			}
+			OutfitBaseMaterials.Add(Component, MoveTemp(InitialMats));
+		}
 
 		{
 			TSet<FName> OwnParts;
