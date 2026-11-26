@@ -84,7 +84,8 @@
 #include "UI/MyBondageLifeUIStyle.h"
 #include "UI/MyBondageLifeSettingsWidget.h"
 #include "UI/MyBondageLifeWardrobeButtonWidget.h"
-#include "UI/MyBondageLifePlayerInfoEntryWidget.h"
+#include "UI/MyBondageLifePlayerInfoEntryWidget.h"
+#include "Core/MyBondageLifeHairCatalog.h"
 
 
 namespace { static FString ApplyLibidoStutter(const FString& InText, float Libido); }
@@ -6424,3 +6425,19 @@ void AMyBondageLifePlayerController::ToggleQuestOverlay()
 	}
 	UE_LOG(LogMyBondageLife, Log, TEXT("Quest: overlay %s"), bQuestOverlayVisible ? TEXT("on") : TEXT("off"));
 }
+
+static FAutoConsoleCommandWithWorldAndArgs GReloadHair(
+	TEXT("mbl.reload_hair"),
+	TEXT("Re-read DT_Hair and re-apply the current hair style (after editing the table)."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>&, UWorld* World)
+	{
+		FMyBondageLifeHairCatalog::Refresh();
+		UE_LOG(LogMyBondageLife, Log, TEXT("Hair: catalog reloaded (%d styles)."), FMyBondageLifeHairCatalog::GetStyleCount());
+		if (World)
+		{
+			for (TActorIterator<AMyBondageLifeCharacter> It(World); It; ++It)
+			{
+				It->ApplyHairStyle();
+			}
+		}
+	}));
