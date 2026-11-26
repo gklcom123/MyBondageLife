@@ -1307,8 +1307,10 @@ void AMyBondageLifeCharacter::ApplyBodyPartHiding()
 					const TSet<FName>* OwnParts = OutfitComponentHideParts.Find(OutfitMesh);
 					const bool bHidesItself = OwnParts && OwnParts->Contains(SlotName);
 					const bool bHideSlot = AllPartsForOutfits.Contains(SlotName) && !bHidesItself;
+					UE_LOG(LogMyBondageLife, Log, TEXT("Hide(outfit) eval: slot=%s own=%d parts=%d hide=%d"), *SlotName.ToString(), bHidesItself ? 1 : 0, AllPartsForOutfits.Num(), (AllPartsForOutfits.Contains(SlotName) && !bHidesItself) ? 1 : 0);
 					UE_LOG(LogMyBondageLife, Log, TEXT("Hide(outfit): mesh=%s slot=%s own=%d hide=%d"), *OutfitMesh->GetName(), *SlotName.ToString(), bHidesItself ? 1 : 0, bHideSlot ? 1 : 0);
 					OutfitMesh->SetMaterial(MatIndex, bHideSlot ? HiddenBodyMaterial.Get() : (*BaseMats)[MatIndex].Get());
+					UE_LOG(LogMyBondageLife, Log, TEXT("Hide(outfit): slot=%s hide=%d base=%s now=%s"), *SlotName.ToString(), bHideSlot ? 1 : 0, (*BaseMats)[MatIndex] ? *(*BaseMats)[MatIndex]->GetName() : TEXT("null"), OutfitMesh->GetMaterial(MatIndex) ? *OutfitMesh->GetMaterial(MatIndex)->GetName() : TEXT("null"));
 					if (bHideSlot)
 					{
 						UE_LOG(LogMyBondageLife, Verbose, TEXT("Hide(outfit): %s -> material %d"), *SlotName.ToString(), MatIndex);
