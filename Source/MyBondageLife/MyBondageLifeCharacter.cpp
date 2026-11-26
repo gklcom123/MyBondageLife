@@ -1367,6 +1367,15 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 	for (int32 Index = 0; Index < OutfitItemIds.Num(); ++Index)
 	{
 		const FMyBondageLifeOutfitItem* Item = FMyBondageLifeOutfitCatalog::Find(OutfitItemIds[Index]);
+		if (!Item)
+		{
+			UE_LOG(LogMyBondageLife, Warning, TEXT("Outfit: id=%s missing at apply time, retrying in 0.5s"), *OutfitItemIds[Index].ToString());
+			if (UWorld* World = GetWorld())
+			{
+				FTimerHandle RetryHandle;
+				World->GetTimerManager().SetTimer(RetryHandle, FTimerDelegate::CreateWeakLambda(this, [this]() { ApplyOutfits(); }), 0.5f, false);
+			}
+		}
 		UE_LOG(LogMyBondageLife, Log, TEXT("Outfit: id=%s item=%s"), *OutfitItemIds[Index].ToString(), Item ? TEXT("found") : TEXT("NULL"));
 		if (!Item)
 		{
