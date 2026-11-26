@@ -1937,6 +1937,7 @@ void UMyBondageLifeAccountSubsystem::RefreshOutfits(const FString& InAccount)
 
 					TMap<int32, FString> ParsedColors;
 					ParseOutfitColors(Item, ParsedColors);
+					UE_LOG(LogMyBondageLife, Log, TEXT("Outfit colors: slot=%d item=%s c1=%s c2=%s c3=%s"), ParsedSlot, *ItemId, ParsedColors.Contains(1) ? *ParsedColors[1] : TEXT("-"), ParsedColors.Contains(2) ? *ParsedColors[2] : TEXT("-"), ParsedColors.Contains(3) ? *ParsedColors[3] : TEXT("-"));
 					ColorResult.Add(ParsedSlot, ParsedColors);
 					}
 				}
@@ -2105,6 +2106,7 @@ void UMyBondageLifeAccountSubsystem::RefreshOutfitsForAccount(const FString& InA
 
 					TMap<int32, FString> ParsedColors;
 					ParseOutfitColors(Item, ParsedColors);
+					UE_LOG(LogMyBondageLife, Log, TEXT("Outfit colors: slot=%d item=%s c1=%s c2=%s c3=%s"), ParsedSlot, *ItemId, ParsedColors.Contains(1) ? *ParsedColors[1] : TEXT("-"), ParsedColors.Contains(2) ? *ParsedColors[2] : TEXT("-"), ParsedColors.Contains(3) ? *ParsedColors[3] : TEXT("-"));
 					ColorResult.Add(ParsedSlot, ParsedColors);
 					}
 				}
