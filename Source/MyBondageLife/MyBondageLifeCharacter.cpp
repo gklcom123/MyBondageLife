@@ -1307,7 +1307,9 @@ void AMyBondageLifeCharacter::ApplyBodyPartHiding()
 					const FName SlotName = SlotNames.IsValidIndex(MatIndex) ? SlotNames[MatIndex] : NAME_None;
 					const TSet<FName>* OwnParts = OutfitComponentHideParts.Find(OutfitMesh);
 					const bool bHidesItself = OwnParts && OwnParts->Contains(SlotName);
-					const bool bHideSlot = AllPartsForOutfits.Contains(SlotName) && !bHidesItself;
+					// 拘束声明的槽位必须隐藏，即使这件衣物自己也声明了同名槽。
+					const bool bFromRestraint = RestraintHiddenParts.Contains(SlotName);
+					const bool bHideSlot = AllPartsForOutfits.Contains(SlotName) && (!bHidesItself || bFromRestraint);
 					UE_LOG(LogMyBondageLife, Log, TEXT("Hide(outfit): mesh=%s slot=%s own=%d hide=%d"), *OutfitMesh->GetName(), *SlotName.ToString(), bHidesItself ? 1 : 0, bHideSlot ? 1 : 0);
 					OutfitMesh->SetMaterial(MatIndex, bHideSlot ? HiddenBodyMaterial.Get() : (*BaseMats)[MatIndex].Get());
 					if (bHideSlot)
