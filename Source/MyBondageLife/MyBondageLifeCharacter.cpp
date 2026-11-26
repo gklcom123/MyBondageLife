@@ -1292,7 +1292,15 @@ void AMyBondageLifeCharacter::ApplyBodyPartHiding()
 					const bool bHideSlot = AllPartsForOutfits.Contains(SlotName) && !bHidesItself;
 					UE_LOG(LogMyBondageLife, Log, TEXT("Hide(outfit) eval: slot=%s own=%d parts=%d hide=%d"), *SlotName.ToString(), bHidesItself ? 1 : 0, AllPartsForOutfits.Num(), (AllPartsForOutfits.Contains(SlotName) && !bHidesItself) ? 1 : 0);
 					UE_LOG(LogMyBondageLife, Log, TEXT("Hide(outfit): mesh=%s slot=%s own=%d hide=%d"), *OutfitMesh->GetName(), *SlotName.ToString(), bHidesItself ? 1 : 0, bHideSlot ? 1 : 0);
-					OutfitMesh->SetMaterial(MatIndex, bHideSlot ? HiddenBodyMaterial.Get() : (*BaseMats)[MatIndex].Get());
+					if (bHideSlot)
+					{
+						OutfitMesh->SetMaterial(MatIndex, HiddenBodyMaterial.Get());
+					}
+					else if (OutfitMesh->GetMaterial(MatIndex) == HiddenBodyMaterial.Get())
+					{
+						// 只恢复被隐藏过的槽，避免覆盖颜色动态材质。
+						OutfitMesh->SetMaterial(MatIndex, (*BaseMats)[MatIndex].Get());
+					}
 					UE_LOG(LogMyBondageLife, Log, TEXT("Hide(outfit): slot=%s hide=%d base=%s now=%s"), *SlotName.ToString(), bHideSlot ? 1 : 0, (*BaseMats)[MatIndex] ? *(*BaseMats)[MatIndex]->GetName() : TEXT("null"), OutfitMesh->GetMaterial(MatIndex) ? *OutfitMesh->GetMaterial(MatIndex)->GetName() : TEXT("null"));
 					if (bHideSlot)
 					{
