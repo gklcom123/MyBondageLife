@@ -2336,11 +2336,11 @@ void UMyBondageLifeAccountSubsystem::SetOutfitColor(int32 Slot, int32 Channel, c
 	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
 	const FString Path = FString::Printf(TEXT("/users/%s/outfits/%d/colors"), *Target, Slot);
 	SendFriendApiRequest(TEXT("PUT"), Path, Body,
-		[WeakThis](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		[WeakThis, Slot, Path](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
 		{
 			if (!bOk)
 			{
-				UE_LOG(LogMyBondageLife, Warning, TEXT("Outfit colors: save failed (%d)."), StatusCode);
+				UE_LOG(LogMyBondageLife, Warning, TEXT("Outfit colors: save failed slot=%d status=%d path=%s"), Slot, StatusCode, *Path);
 			}
 		});
 }
