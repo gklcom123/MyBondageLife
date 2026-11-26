@@ -859,23 +859,6 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 			Component->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		Component->SetCollisionProfileName(TEXT("CharacterMesh"));
 
-		// 用实际穿着的槽位做 key（DT 里的 Slot 可能和穿着槽位不一致）
-		const int32 WornSlotIndex = OutfitSlots.IsValidIndex(Index) ? OutfitSlots[Index] : Item->Slot;
-		OutfitComponents.Add(WornSlotIndex, Component);
-		{
-			TArray<TObjectPtr<UMaterialInterface>> InitialMats;
-			for (int32 MatIndex = 0; MatIndex < Component->GetNumMaterials(); ++MatIndex)
-			{
-				InitialMats.Add(Component->GetMaterial(MatIndex));
-			}
-			OutfitBaseMaterials.Add(Component, MoveTemp(InitialMats));
-		}
-
-		{
-			TSet<FName> OwnParts;
-			for (const FString& HidePart : Item->HideBodyParts) { OwnParts.Add(FName(*HidePart)); }
-			OutfitComponentHideParts.Add(Component, MoveTemp(OwnParts));
-		}
 			Component->SetGenerateOverlapEvents(false);
 			Component->SetSkeletalMeshAsset(WornMesh);
 
@@ -1409,31 +1392,23 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 		Component->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		Component->SetCollisionProfileName(TEXT("CharacterMesh"));
 
-		// 用实际穿着的槽位做 key（DT 里的 Slot 可能和穿着槽位不一致）
-		const int32 WornSlotIndex = OutfitSlots.IsValidIndex(Index) ? OutfitSlots[Index] : Item->Slot;
-		OutfitComponents.Add(WornSlotIndex, Component);
+		Component->SetGenerateOverlapEvents(false);
+		// 注册到槽位表（隐藏/恢复逻辑依赖这张表）。
+		{
+			const int32 WornSlotIndex = OutfitSlots.IsValidIndex(Index) ? OutfitSlots[Index] : Item->Slot;
+			OutfitComponents.Add(WornSlotIndex, Component);
 
-		// 记录这件衣物自己声明的隐藏槽（自己的槽不隐藏自己）。
-		{
-			TSet<FName> OwnParts;
-			for (const FString& HidePart : Item->HideBodyParts) { OwnParts.Add(FName(*HidePart)); }
-			OutfitComponentHideParts.Add(Component, MoveTemp(OwnParts));
-		}
-		{
 			TArray<TObjectPtr<UMaterialInterface>> InitialMats;
 			for (int32 MatIndex = 0; MatIndex < Component->GetNumMaterials(); ++MatIndex)
 			{
 				InitialMats.Add(Component->GetMaterial(MatIndex));
 			}
 			OutfitBaseMaterials.Add(Component, MoveTemp(InitialMats));
-		}
 
-		{
 			TSet<FName> OwnParts;
 			for (const FString& HidePart : Item->HideBodyParts) { OwnParts.Add(FName(*HidePart)); }
 			OutfitComponentHideParts.Add(Component, MoveTemp(OwnParts));
 		}
-		Component->SetGenerateOverlapEvents(false);
 
 		// 同骨骼：跟随身体动画；否则挂到同名 socket。
 		const bool bSameSkeleton = MeshAsset->GetSkeleton() == BodyMesh->GetSkeletalMeshAsset()->GetSkeleton();
