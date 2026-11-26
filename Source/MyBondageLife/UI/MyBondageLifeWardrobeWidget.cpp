@@ -680,7 +680,9 @@ void UMyBondageLifeWardrobeWidget::RefreshHairLabel()
 	}
 
 	HairId = FMyBondageLifeHairCatalog::ClampId(HairId);
-	HairValueLabel->SetText(FText::FromString(FString::Printf(TEXT("%d \u53F7"), HairId)));   // "N 号"
+	const FMyBondageLifeHairStyle* Style = FMyBondageLifeHairCatalog::FindStyle(HairId);
+	const FString HairText = (Style && !Style->DisplayName.IsEmpty()) ? Style->DisplayName : FString::Printf(TEXT("%d \u53F7"), HairId);
+	HairValueLabel->SetText(FText::FromString(HairText));
 
 	RefreshHairArrowStates();
 }

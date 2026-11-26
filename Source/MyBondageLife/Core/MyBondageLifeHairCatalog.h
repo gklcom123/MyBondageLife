@@ -15,6 +15,9 @@ struct FMyBondageLifeHairStyle
 	/** Mesh worn for this style (may be null when the row is unfinished). */
 	TSoftObjectPtr<USkeletalMesh> Mesh;
 
+	/** Optional display name from the row's HairName field. */
+	FString DisplayName;
+
 	/** Row name, only used for logging. */
 	FName RowName;
 };

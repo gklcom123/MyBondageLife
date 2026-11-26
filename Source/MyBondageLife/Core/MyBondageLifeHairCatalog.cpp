@@ -28,6 +28,28 @@ namespace
 		return 0;
 	}
 
+
+	/** Reads the optional HairName field (FText or FString, Blueprint struct). */
+	void ReadRowDisplayName(const UScriptStruct* RowStruct, const uint8* RowData, FMyBondageLifeHairStyle& Style)
+	{
+		for (TFieldIterator<FTextProperty> It(RowStruct); It; ++It)
+		{
+			if (It->GetName().Contains(TEXT("HairName"), ESearchCase::IgnoreCase))
+			{
+				Style.DisplayName = It->GetPropertyValue_InContainer(RowData).ToString();
+				if (!Style.DisplayName.IsEmpty()) { return; }
+			}
+		}
+		for (TFieldIterator<FStrProperty> It(RowStruct); It; ++It)
+		{
+			if (It->GetName().Contains(TEXT("HairName"), ESearchCase::IgnoreCase))
+			{
+				Style.DisplayName = It->GetPropertyValue_InContainer(RowData);
+				if (!Style.DisplayName.IsEmpty()) { return; }
+			}
+		}
+	}
+
 	/** Reads the mesh out of a row; handles both hard and soft object references. */
 	void ReadRowMesh(const UScriptStruct* RowStruct, const uint8* RowData, FMyBondageLifeHairStyle& Style)
 	{
@@ -152,6 +174,7 @@ void FMyBondageLifeHairCatalog::Refresh()
 		const int32 NamedId = IdFromRowName(RowName);
 		Style.Id = NamedId > 0 ? NamedId : ReadRowId(RowStruct, RowData);
 		ReadRowMesh(RowStruct, RowData, Style);
+		ReadRowDisplayName(RowStruct, RowData, Style);
 
 		if (Style.Id <= 0)
 		{
