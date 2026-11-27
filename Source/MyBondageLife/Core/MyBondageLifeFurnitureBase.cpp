@@ -77,3 +77,13 @@ FVector AMyBondageLifeFurnitureBase::GetInteractionLocation() const
 {
 	return GetInteractionTransform().GetLocation();
 }
+TArray<uint8> AMyBondageLifeFurnitureBase::GetIgnoredRestraintSlots() const
+{
+	TArray<uint8> Result;
+	Result.Reserve(IgnoreRestraintPart.Num());
+	for (const FMyBondageLifeIgnoreRestraintSlot& Entry : IgnoreRestraintPart)
+	{
+		Result.Add(Entry.Slot);
+	}
+	return Result;
+}

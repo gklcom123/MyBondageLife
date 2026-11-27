@@ -7,6 +7,16 @@
 #include "MyBondageLifeFurnitureBase.generated.h"
 
 class USceneComponent;
+
+/** 家具互动时忽略的拘束槽位（下拉选择 Enum_RestraintSlot）。 */
+USTRUCT(BlueprintType)
+struct FMyBondageLifeIgnoreRestraintSlot
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Furniture", meta = (Enum = "/Game/DataTable/Enum_RestraintSlot.Enum_RestraintSlot"))
+	uint8 Slot = 0;
+};
 class UAnimMontage;
 
 /**
@@ -77,6 +87,10 @@ public:
 	float InteractRange = 220.0f;
 
 	/** 互动时临时失效的拘束槽位（Enum_RestraintSlot）；这些槽不渲染、也不产生效果。 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Furniture", meta = (Enum = "/Game/DataTable/Enum_RestraintSlot.Enum_RestraintSlot"))
-	TArray<uint8> IgnoreRestraintPart;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Furniture")
+	TArray<FMyBondageLifeIgnoreRestraintSlot> IgnoreRestraintPart;
+
+	/** 便捷读取：转成槽位索引数组。 */
+	UFUNCTION(BlueprintPure, Category = "Furniture")
+	TArray<uint8> GetIgnoredRestraintSlots() const;
 };

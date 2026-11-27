@@ -5018,7 +5018,7 @@ void AMyBondageLifePlayerController::AttachToFurniture(AMyBondageLifeFurnitureBa
 	ActiveFurniture = Furniture;
 	if (AMyBondageLifeCharacter* FurniturePawn = Cast<AMyBondageLifeCharacter>(GetPawn()))
 	{
-		FurniturePawn->SetFurnitureIgnoredRestraintSlots(Furniture->IgnoreRestraintPart);
+		FurniturePawn->SetFurnitureIgnoredRestraintSlots(Furniture->GetIgnoredRestraintSlots());
 	}
 	bInFurniture = true;
 	StartFurnitureFacingTimer();
