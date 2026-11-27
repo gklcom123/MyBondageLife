@@ -5,6 +5,8 @@
 
 #include "Components/SceneComponent.h"
 
+#include "UObject/Class.h"
+
 AMyBondageLifeFurnitureBase::AMyBondageLifeFurnitureBase()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -77,13 +79,45 @@ FVector AMyBondageLifeFurnitureBase::GetInteractionLocation() const
 {
 	return GetInteractionTransform().GetLocation();
 }
+TArray<FString> AMyBondageLifeFurnitureBase::GetRestraintSlotOptions() const
+{
+	TArray<FString> Options;
+	if (const UEnum* Enum = LoadObject<UEnum>(nullptr, TEXT("/Game/DataTable/Enum_RestraintSlot.Enum_RestraintSlot")))
+	{
+		for (int32 Index = 0; Index < Enum->NumEnums() - 1; ++Index)
+		{
+			Options.Add(Enum->GetDisplayNameTextByIndex(Index).ToString());
+		}
+	}
+	return Options;
+}
+
 TArray<uint8> AMyBondageLifeFurnitureBase::GetIgnoredRestraintSlots() const
 {
 	TArray<uint8> Result;
-	Result.Reserve(IgnoreRestraintPart.Num());
-	for (const FMyBondageLifeIgnoreRestraintSlot& Entry : IgnoreRestraintPart)
+	UEnum* Enum = LoadObject<UEnum>(nullptr, TEXT("/Game/DataTable/Enum_RestraintSlot.Enum_RestraintSlot"));
+	if (!Enum)
 	{
-		Result.Add(Entry.Slot);
+		return Result;
+	}
+
+	for (const FName& SlotName : IgnoreRestraintPart)
+	{
+		if (SlotName.IsNone())
+		{
+			continue;
+		}
+
+		for (int32 Index = 0; Index < Enum->NumEnums() - 1; ++Index)
+		{
+			const FString DisplayName = Enum->GetDisplayNameTextByIndex(Index).ToString();
+			const FString InternalName = Enum->GetNameStringByIndex(Index);
+			if (DisplayName == SlotName.ToString() || InternalName == SlotName.ToString())
+			{
+				Result.Add(static_cast<uint8>(Index));
+				break;
+			}
+		}
 	}
 	return Result;
 }
