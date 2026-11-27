@@ -388,6 +388,13 @@ protected:
 	UPROPERTY(ReplicatedUsing = OnRep_Restraints, BlueprintReadOnly, Category="Restraint", meta = (AllowPrivateAccess = "true"))
 	TArray<int32> RestraintSlots;
 
+	/** 腿部拘束类型（Enum_LegBoundType），传给动画蓝图。 */
+	UPROPERTY(ReplicatedUsing = OnRep_LegBoundType)
+	uint8 LegBoundType = 0;
+
+	UFUNCTION() void OnRep_LegBoundType();
+	void ApplyLegBoundType();
+
 	/** DT_Restraint row names of the equipped items. */
 	UPROPERTY(Replicated, BlueprintReadOnly, Category="Restraint", meta = (AllowPrivateAccess = "true"))
 	TArray<FName> RestraintItemIds;

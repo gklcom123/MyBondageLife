@@ -178,6 +178,7 @@ void AMyBondageLifeCharacter::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(AMyBondageLifeCharacter, OutfitSlots);
 	DOREPLIFETIME(AMyBondageLifeCharacter, OutfitItemIds);
 	DOREPLIFETIME(AMyBondageLifeCharacter, OutfitColorHex);
+	DOREPLIFETIME(AMyBondageLifeCharacter, LegBoundType);
 	DOREPLIFETIME(AMyBondageLifeCharacter, AccountName);
 	DOREPLIFETIME(AMyBondageLifeCharacter, SkinId);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bSitting);
@@ -798,6 +799,7 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 	int32 BestGagSlot = MAX_int32;
 
 	TSet<FName> HiddenParts;
+	uint8 NewLegBoundType = 0;
 
 	for (int32 Index = 0; Index < RestraintItemIds.Num(); ++Index)
 	{
@@ -821,6 +823,10 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 			RestraintBlindLevel = FMath::Max(RestraintBlindLevel, FMath::Clamp(Item->BlindLevel, 1, 3));
 		}
 		bRestraintLeg |= Item->bRestraintLeg;
+		if (Item->bRestraintLeg && Item->LegBoundType > 0)
+		{
+			NewLegBoundType = static_cast<uint8>(FMath::Max<int32>(NewLegBoundType, Item->LegBoundType));
+		}
 		bCantMove |= Item->bCantMove;
 		bInPetMode |= Item->bInPetMode;
 
@@ -892,15 +898,18 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 		RestraintItemIds.Num(), bRestraintArm ? 1 : 0, bRestraintLeg ? 1 : 0, bCantMove ? 1 : 0, bInPetMode ? 1 : 0);
 
 	RestraintHiddenParts = HiddenParts;
+	LegBoundType = NewLegBoundType;
 	ApplySkin();
 	ApplyRestraintColors();
 	ApplyBodyPartHiding();
+	ApplyLegBoundType();
 }
 
 FName AMyBondageLifeCharacter::GetGagProfileId() const
 {
 	// 找第一件"算作堵嘴"的已穿戴道具，用它的 Enum_GagType 决定用哪个混淆档位。
 	TSet<FName> HiddenParts;
+	uint8 NewLegBoundType = 0;
 
 	for (int32 Index = 0; Index < RestraintItemIds.Num(); ++Index)
 	{
@@ -2365,5 +2374,53 @@ void AMyBondageLifeCharacter::ServerLeaveFurniture_Implementation()
 	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
 	{
 		MoveComp->SetMovementMode(MOVE_Walking);
+	}
+}
+
+void AMyBondageLifeCharacter::OnRep_LegBoundType()
+{
+	ApplyLegBoundType();
+}
+
+void AMyBondageLifeCharacter::ApplyLegBoundType()
+{
+	USkeletalMeshComponent* BodyMesh = GetMesh();
+	if (!BodyMesh)
+	{
+		return;
+	}
+
+	UAnimInstance* Anim = BodyMesh->GetAnimInstance();
+	if (!Anim)
+	{
+		if (UWorld* World = GetWorld())
+		{
+			FTimerHandle RetryHandle;
+			World->GetTimerManager().SetTimer(RetryHandle, FTimerDelegate::CreateWeakLambda(this, [this]() { ApplyLegBoundType(); }), 0.25f, false);
+		}
+		return;
+	}
+
+	FProperty* Property = Anim->GetClass()->FindPropertyByName(TEXT("LegBoundType"));
+	if (!Property)
+	{
+		UE_LOG(LogMyBondageLife, Warning, TEXT("LegBound: anim instance %s has no 'LegBoundType' property."), *Anim->GetClass()->GetName());
+		return;
+	}
+
+	if (FByteProperty* ByteProperty = CastField<FByteProperty>(Property))
+	{
+		ByteProperty->SetPropertyValue_InContainer(Anim, LegBoundType);
+	}
+	else if (FEnumProperty* EnumProperty = CastField<FEnumProperty>(Property))
+	{
+		if (FByteProperty* Underlying = CastField<FByteProperty>(EnumProperty->GetUnderlyingProperty()))
+		{
+			Underlying->SetPropertyValue_InContainer(Anim, LegBoundType);
+		}
+	}
+	else if (FIntProperty* IntProperty = CastField<FIntProperty>(Property))
+	{
+		IntProperty->SetPropertyValue_InContainer(Anim, static_cast<int32>(LegBoundType));
 	}
 }

@@ -268,6 +268,7 @@ void FMyBondageLifeRestraintCatalog::Refresh()
 		Item.BlindLevel = FMath::Clamp(ReadInt(RowStruct, RowData, { TEXT("BlindLevel"), TEXT("BlindLevel?") }), 0, 3);
 		ReadStringArray(RowStruct, RowData, { TEXT("HideBodyPart"), TEXT("HideBodyPart?") }, Item.HideBodyParts);
 		Item.bRestraintLeg = ReadBool(RowStruct, RowData, { TEXT("RestranitLeg"), TEXT("RestraintLeg"), TEXT("RestranitLeg?"), TEXT("RestraintLeg?") });
+		Item.LegBoundType = ReadInt(RowStruct, RowData, { TEXT("LegBoundType") });
 		Item.bCantMove = ReadBool(RowStruct, RowData, { TEXT("CantMove"), TEXT("CantMove?") });
 		Item.bInPetMode = ReadBool(RowStruct, RowData, { TEXT("InPetMode") });
 

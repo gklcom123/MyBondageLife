@@ -41,6 +41,9 @@ struct FMyBondageLifeRestraintItem
 	/** 该拘束要隐藏的身体材质插槽名（upbody/leg/yab_fac/hand/...）。 */
 	TArray<FString> HideBodyParts;
 	bool bRestraintLeg = false;
+
+	/** 腿部拘束类型（Enum_LegBoundType），0=Leg_Free。 */
+	int32 LegBoundType = 0;
 	bool bCantMove = false;
 	bool bInPetMode = false;
 
