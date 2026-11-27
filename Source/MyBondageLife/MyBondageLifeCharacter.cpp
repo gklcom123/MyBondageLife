@@ -2051,7 +2051,11 @@ void AMyBondageLifeCharacter::PlayBondageMontage()
 	}
 	else
 	{
-		static const TCHAR* MontagePath =
+		// 腿部拘束：Leg_Free(0) 用原动画；Leg_Together(1)/Leg_Pet(2) 用 legbondage 动画。
+		const bool bLegBound = LegBoundType != 0;
+		static const TCHAR* FreeMontagePath = TEXT("/Game/Characters/MainCharc/FinalYab/Animation/IKAnmi_bondage_Montage.IKAnmi_bondage_Montage");
+		static const TCHAR* LegMontagePath = TEXT("/Game/Characters/MainCharc/FinalYab/Animation/IKAnmi_bondage_legbondage_Montage.IKAnmi_bondage_legbondage_Montage");
+		const TCHAR* MontagePath = bLegBound ? LegMontagePath : FreeMontagePath;
 			TEXT("/Game/Characters/MainCharc/FinalYab/Animation/IKAnmi_bondage_Montage.IKAnmi_bondage_Montage");
 
 		if (UAnimMontage* Montage = LoadObject<UAnimMontage>(nullptr, MontagePath))
