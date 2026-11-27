@@ -82,6 +82,11 @@ class AMyBondageLifeCharacter : public ACharacter
 	UPROPERTY(ReplicatedUsing = OnRep_RestraintPose, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
 	bool bRestraintPoseActive = false;
 
+public:
+	/** 家具互动：临时忽略这些拘束槽位。 */
+	UFUNCTION(BlueprintCallable, Category = "Restraint")
+	void SetFurnitureIgnoredRestraintSlots(const TArray<uint8>& Slots) { SetIgnoredRestraintSlots(Slots); }
+
 protected:
 
 	/** Jump Input Action */
@@ -387,6 +392,15 @@ protected:
 	/** Slot index per equipped item (parallel to RestraintItemIds). */
 	UPROPERTY(ReplicatedUsing = OnRep_Restraints, BlueprintReadOnly, Category="Restraint", meta = (AllowPrivateAccess = "true"))
 	TArray<int32> RestraintSlots;
+
+	/** 家具互动期间临时失效的拘束槽位。 */
+	UPROPERTY(ReplicatedUsing = OnRep_IgnoredRestraintSlots)
+	TArray<uint8> IgnoredRestraintSlots;
+
+	UFUNCTION() void OnRep_IgnoredRestraintSlots();
+	UFUNCTION(Server, Reliable) void ServerSetIgnoredRestraintSlots(const TArray<uint8>& Slots);
+	void SetIgnoredRestraintSlots(const TArray<uint8>& Slots);
+	bool IsRestraintSlotIgnored(int32 Slot) const;
 
 	/** 腿部拘束类型（Enum_LegBoundType），传给动画蓝图。 */
 	UPROPERTY(ReplicatedUsing = OnRep_LegBoundType)

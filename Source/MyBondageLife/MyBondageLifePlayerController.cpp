@@ -84,7 +84,8 @@
 #include "UI/MyBondageLifeUIStyle.h"
 #include "UI/MyBondageLifeSettingsWidget.h"
 #include "UI/MyBondageLifeWardrobeButtonWidget.h"
-#include "UI/MyBondageLifePlayerInfoEntryWidget.h"
+#include "UI/MyBondageLifePlayerInfoEntryWidget.h"
+
 #include "Core/MyBondageLifeHairCatalog.h"
 
 
@@ -5015,6 +5016,10 @@ void AMyBondageLifePlayerController::AttachToFurniture(AMyBondageLifeFurnitureBa
 	}
 
 	ActiveFurniture = Furniture;
+	if (AMyBondageLifeCharacter* FurniturePawn = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		FurniturePawn->SetFurnitureIgnoredRestraintSlots(Furniture->IgnoreRestraintPart);
+	}
 	bInFurniture = true;
 	StartFurnitureFacingTimer();
 
@@ -5104,6 +5109,10 @@ void AMyBondageLifePlayerController::DetachFromFurniture(bool bMoveForward)
 	GetWorldTimerManager().ClearTimer(FurnitureFacingTimer);
 
 	ActiveFurniture = nullptr;
+	if (AMyBondageLifeCharacter* FurniturePawn = Cast<AMyBondageLifeCharacter>(GetPawn()))
+	{
+		FurniturePawn->SetFurnitureIgnoredRestraintSlots(TArray<uint8>());
+	}
 	bInFurniture = false;
 	PendingFurnitureKey.Reset();
 	LastFurnitureHint.Reset();

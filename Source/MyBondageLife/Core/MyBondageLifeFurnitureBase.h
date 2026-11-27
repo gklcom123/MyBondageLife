@@ -75,4 +75,8 @@ public:
 	/** 交互距离（厘米）。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Furniture")
 	float InteractRange = 220.0f;
+
+	/** 互动时临时失效的拘束槽位（Enum_RestraintSlot）；这些槽不渲染、也不产生效果。 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Furniture", meta = (Enum = "/Game/DataTable/Enum_RestraintSlot.Enum_RestraintSlot"))
+	TArray<uint8> IgnoreRestraintPart;
 };

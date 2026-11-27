@@ -179,6 +179,7 @@ void AMyBondageLifeCharacter::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(AMyBondageLifeCharacter, OutfitItemIds);
 	DOREPLIFETIME(AMyBondageLifeCharacter, OutfitColorHex);
 	DOREPLIFETIME(AMyBondageLifeCharacter, LegBoundType);
+	DOREPLIFETIME(AMyBondageLifeCharacter, IgnoredRestraintSlots);
 	DOREPLIFETIME(AMyBondageLifeCharacter, AccountName);
 	DOREPLIFETIME(AMyBondageLifeCharacter, SkinId);
 	DOREPLIFETIME(AMyBondageLifeCharacter, bSitting);
@@ -810,6 +811,12 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 		}
 
 		// The derived states are a logical OR across every worn item.
+		const int32 Slot = RestraintSlots.IsValidIndex(Index) ? RestraintSlots[Index] : Item->Slot;
+		if (IsRestraintSlotIgnored(Slot))
+		{
+			continue;
+		}
+
 		bRestraintArm |= Item->bRestraintArm;
 		bRestraintInGag |= Item->bInGag;
 		for (const FString& PartName : Item->HideBodyParts)
@@ -830,7 +837,6 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 		bCantMove |= Item->bCantMove;
 		bInPetMode |= Item->bInPetMode;
 
-		const int32 Slot = RestraintSlots.IsValidIndex(Index) ? RestraintSlots[Index] : Item->Slot;
 
 		// Several items may bring a pose: the lowest slot wins (configuration error).
 		if (UAnimMontage* Montage = Item->UpAnmi.LoadSynchronous())
@@ -2423,4 +2429,36 @@ void AMyBondageLifeCharacter::ApplyLegBoundType()
 	{
 		IntProperty->SetPropertyValue_InContainer(Anim, static_cast<int32>(LegBoundType));
 	}
+}
+
+void AMyBondageLifeCharacter::OnRep_IgnoredRestraintSlots()
+{
+	ApplyRestraints();
+}
+
+bool AMyBondageLifeCharacter::IsRestraintSlotIgnored(int32 Slot) const
+{
+	return Slot >= 0 && Slot <= 255 && IgnoredRestraintSlots.Contains(static_cast<uint8>(Slot));
+}
+
+void AMyBondageLifeCharacter::SetIgnoredRestraintSlots(const TArray<uint8>& Slots)
+{
+	if (IgnoredRestraintSlots == Slots)
+	{
+		return;
+	}
+
+	IgnoredRestraintSlots = Slots;
+	ApplyRestraints();
+
+	if (!HasAuthority())
+	{
+		ServerSetIgnoredRestraintSlots(Slots);
+	}
+}
+
+void AMyBondageLifeCharacter::ServerSetIgnoredRestraintSlots_Implementation(const TArray<uint8>& Slots)
+{
+	IgnoredRestraintSlots = Slots;
+	ApplyRestraints();
 }
