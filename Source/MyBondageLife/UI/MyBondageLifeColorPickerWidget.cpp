@@ -287,6 +287,7 @@ void UMyBondageLifeColorPickerWidget::OpenForColor(int32 InSlot, int32 InChannel
 
 	PickerSlot = InSlot;
 	PickerChannel = InChannel;
+	if (HexColor.Len() != 7) { PendingColor = FLinearColor::White; }
 
 	if (HexColor.Len() == 7 && HexColor.StartsWith(TEXT("#")))
 	{
@@ -296,6 +297,7 @@ void UMyBondageLifeColorPickerWidget::OpenForColor(int32 InSlot, int32 InChannel
 		Saturation = Hsv.G;
 		Brightness = Hsv.B;
 		Hue *= 360.0f;
+		PendingColor = Color;
 	}
 
 	bUpdatingSliders = true;
@@ -317,13 +319,9 @@ void UMyBondageLifeColorPickerWidget::OpenForColor(int32 InSlot, int32 InChannel
 	RefreshPreview();
 	SetVisibility(ESlateVisibility::Visible);
 	{
-		const FLinearColor Applied = FLinearColor::MakeFromHSV8(static_cast<uint8>(FMath::Clamp(Hue, 0.0f, 360.0f) / 360.0f * 255.0f), static_cast<uint8>(FMath::Clamp(Saturation, 0.0f, 1.0f) * 255.0f), static_cast<uint8>(FMath::Clamp(Brightness, 0.0f, 1.0f) * 255.0f));
-		const FString Msg = FString::Printf(TEXT("Picker[%s] slot=%d ch=%d in=%s HSV=(%.1f,%.3f,%.3f) hex=%s | HexBox=%s(%s) Preview=%s tint=%s"),
-			*GetName(), PickerSlot, PickerChannel, *HexColor, Hue, Saturation, Brightness,
-			*Applied.ToFColor(true).ToHex().LeftChop(2),
-			HexBox ? *HexBox->GetText().ToString() : TEXT("<null>"), HexBox ? *HexBox->GetName() : TEXT("-"),
-			PreviewImage ? *PreviewImage->GetName() : TEXT("<null>"),
-			PreviewImage ? *PreviewImage->GetBrush().TintColor.GetSpecifiedColor().ToFColor(true).ToHex().LeftChop(2) : TEXT("-"));
+		const FString UiHex = HexBox ? HexBox->GetText().ToString() : TEXT("<null>");
+		const FString Msg = FString::Printf(TEXT("读取到的服务器配色为：%s，计算的配色为：%s，计算的HSV为：(%.1f, %.3f, %.3f)，UI面板中实际显示的RGB值为：%s"),
+			*HexColor, *PendingColor.ToFColor(true).ToHex().LeftChop(2), Hue, Saturation, Brightness, *UiHex);
 		UE_LOG(LogMyBondageLife, Log, TEXT("%s"), *Msg);
 		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Yellow, Msg); }
 	}
@@ -342,10 +340,7 @@ void UMyBondageLifeColorPickerWidget::ClosePicker()
 
 void UMyBondageLifeColorPickerWidget::RefreshPreview()
 {
-	const FLinearColor Color = FLinearColor::MakeFromHSV8(
-		static_cast<uint8>(FMath::Clamp(Hue, 0.0f, 360.0f) / 360.0f * 255.0f),
-		static_cast<uint8>(FMath::Clamp(Saturation, 0.0f, 1.0f) * 255.0f),
-		static_cast<uint8>(FMath::Clamp(Brightness, 0.0f, 1.0f) * 255.0f));
+	const FLinearColor Color = PendingColor;
 
 	if (PreviewImage)
 	{
@@ -365,6 +360,7 @@ void UMyBondageLifeColorPickerWidget::HandleHueChanged(float Value)
 	if (HueSlider) { Min = HueSlider->GetMinValue(); Max = HueSlider->GetMaxValue(); }
 	const float Norm = (Max - Min) > KINDA_SMALL_NUMBER ? FMath::Clamp((Value - Min) / (Max - Min), 0.0f, 1.0f) : FMath::Clamp(Value, 0.0f, 1.0f);
 	Hue = Norm * 360.0f;
+	PendingColor = FLinearColor::MakeFromHSV8(static_cast<uint8>(FMath::Clamp(Hue, 0.0f, 360.0f) / 360.0f * 255.0f), static_cast<uint8>(FMath::Clamp(Saturation, 0.0f, 1.0f) * 255.0f), static_cast<uint8>(FMath::Clamp(Brightness, 0.0f, 1.0f) * 255.0f));
 	RefreshPreview();
 }
 
@@ -374,6 +370,7 @@ void UMyBondageLifeColorPickerWidget::HandleSaturationChanged(float Value)
 	float Min = 0.0f, Max = 1.0f;
 	if (SaturationSlider) { Min = SaturationSlider->GetMinValue(); Max = SaturationSlider->GetMaxValue(); }
 	Saturation = (Max - Min) > KINDA_SMALL_NUMBER ? FMath::Clamp((Value - Min) / (Max - Min), 0.0f, 1.0f) : FMath::Clamp(Value, 0.0f, 1.0f);
+	PendingColor = FLinearColor::MakeFromHSV8(static_cast<uint8>(FMath::Clamp(Hue, 0.0f, 360.0f) / 360.0f * 255.0f), static_cast<uint8>(FMath::Clamp(Saturation, 0.0f, 1.0f) * 255.0f), static_cast<uint8>(FMath::Clamp(Brightness, 0.0f, 1.0f) * 255.0f));
 	RefreshPreview();
 }
 
@@ -383,6 +380,7 @@ void UMyBondageLifeColorPickerWidget::HandleValueChanged(float Value)
 	float Min = 0.0f, Max = 1.0f;
 	if (ValueSlider) { Min = ValueSlider->GetMinValue(); Max = ValueSlider->GetMaxValue(); }
 	Brightness = (Max - Min) > KINDA_SMALL_NUMBER ? FMath::Clamp((Value - Min) / (Max - Min), 0.0f, 1.0f) : FMath::Clamp(Value, 0.0f, 1.0f);
+	PendingColor = FLinearColor::MakeFromHSV8(static_cast<uint8>(FMath::Clamp(Hue, 0.0f, 360.0f) / 360.0f * 255.0f), static_cast<uint8>(FMath::Clamp(Saturation, 0.0f, 1.0f) * 255.0f), static_cast<uint8>(FMath::Clamp(Brightness, 0.0f, 1.0f) * 255.0f));
 	RefreshPreview();
 }
 
@@ -397,6 +395,7 @@ void UMyBondageLifeColorPickerWidget::HandleHexCommitted(const FText& Text, ETex
 		Saturation = Hsv.G;
 		Brightness = Hsv.B;
 		Hue *= 360.0f;
+		PendingColor = Color;
 		RefreshPreview();
 	}
 }

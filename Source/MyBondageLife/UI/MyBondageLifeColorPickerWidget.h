@@ -67,6 +67,7 @@ protected:
 	float Hue = 0.0f;
 	float Saturation = 1.0f;
 	float Brightness = 1.0f;
+	FLinearColor PendingColor = FLinearColor::White;
 
 	UPROPERTY(Transient) TObjectPtr<UBorder> RootPanel;
 	UPROPERTY(Transient) TObjectPtr<USlider> HueSlider;
