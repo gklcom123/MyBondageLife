@@ -2777,7 +2777,7 @@ void UMyBondageLifeWardrobeWidget::OpenOutfitColorPicker(int32 SlotIndex, int32 
 	{
 		if (const AMyBondageLifeCharacter* Char = Cast<AMyBondageLifeCharacter>(GetOwningPlayerPawn()))
 		{
-			CurrentHex = Char->GetOutfitDefaultColorHex(SlotIndex, Channel);
+			CurrentHex = Char->GetOutfitDefaultColorHexForUI(SlotIndex, Channel);
 		}
 	}
 	OutfitColorPicker->OpenForColor(SlotIndex, Channel, CurrentHex);
@@ -2843,7 +2843,7 @@ void UMyBondageLifeWardrobeWidget::OpenRestraintColorPicker(int32 SlotIndex, int
 	{
 		if (const AMyBondageLifeCharacter* Char = Cast<AMyBondageLifeCharacter>(GetOwningPlayerPawn()))
 		{
-			CurrentHex = Char->GetOutfitDefaultColorHex(SlotIndex, Channel);
+			CurrentHex = Char->GetOutfitDefaultColorHexForUI(SlotIndex, Channel);
 		}
 	}
 	OutfitColorPicker->OpenForColor(SlotIndex, Channel, CurrentHex);

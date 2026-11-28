@@ -87,6 +87,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Restraint")
 	void SetFurnitureIgnoredRestraintSlots(const TArray<uint8>& Slots) { SetIgnoredRestraintSlots(Slots); }
 
+	/** UI 用：材质默认颜色。 */
+	FString GetOutfitDefaultColorHexForUI(int32 Slot, int32 Channel) const { return GetOutfitDefaultColorHex(Slot, Channel); }
+	FString GetRestraintDefaultColorHexForUI(int32 Slot, int32 Channel) const { return GetRestraintDefaultColorHex(Slot, Channel); }
+
 protected:
 
 	/** Jump Input Action */
