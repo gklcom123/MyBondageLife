@@ -364,21 +364,28 @@ void UMyBondageLifeColorPickerWidget::RefreshPreview()
 void UMyBondageLifeColorPickerWidget::HandleHueChanged(float Value)
 {
 	if (bUpdatingSliders) { return; }
-	Hue = FMath::Clamp(Value, 0.0f, 1.0f) * 360.0f;
+	float Min = 0.0f, Max = 1.0f;
+	if (HueSlider) { Min = HueSlider->GetMinValue(); Max = HueSlider->GetMaxValue(); }
+	const float Norm = (Max - Min) > KINDA_SMALL_NUMBER ? FMath::Clamp((Value - Min) / (Max - Min), 0.0f, 1.0f) : FMath::Clamp(Value, 0.0f, 1.0f);
+	Hue = Norm * 360.0f;
 	RefreshPreview();
 }
 
 void UMyBondageLifeColorPickerWidget::HandleSaturationChanged(float Value)
 {
 	if (bUpdatingSliders) { return; }
-	Saturation = FMath::Clamp(Value, 0.0f, 1.0f);
+	float Min = 0.0f, Max = 1.0f;
+	if (SaturationSlider) { Min = SaturationSlider->GetMinValue(); Max = SaturationSlider->GetMaxValue(); }
+	Saturation = (Max - Min) > KINDA_SMALL_NUMBER ? FMath::Clamp((Value - Min) / (Max - Min), 0.0f, 1.0f) : FMath::Clamp(Value, 0.0f, 1.0f);
 	RefreshPreview();
 }
 
 void UMyBondageLifeColorPickerWidget::HandleValueChanged(float Value)
 {
 	if (bUpdatingSliders) { return; }
-	Brightness = FMath::Clamp(Value, 0.0f, 1.0f);
+	float Min = 0.0f, Max = 1.0f;
+	if (ValueSlider) { Min = ValueSlider->GetMinValue(); Max = ValueSlider->GetMaxValue(); }
+	Brightness = (Max - Min) > KINDA_SMALL_NUMBER ? FMath::Clamp((Value - Min) / (Max - Min), 0.0f, 1.0f) : FMath::Clamp(Value, 0.0f, 1.0f);
 	RefreshPreview();
 }
 

@@ -2777,8 +2777,8 @@ void UMyBondageLifeWardrobeWidget::OpenOutfitColorPicker(int32 SlotIndex, int32 
 	{
 		if (const AMyBondageLifeCharacter* Char = Cast<AMyBondageLifeCharacter>(GetOwningPlayerPawn()))
 		{
-			CurrentHex = Char->GetAppliedOutfitColorHexForUI(SlotIndex, Channel);
-			if (CurrentHex.IsEmpty()) { CurrentHex = Char->GetOutfitDefaultColorHexForUI(SlotIndex, Channel); }
+			CurrentHex = Char->GetAppliedRestraintColorHexForUI(SlotIndex, Channel);
+			if (CurrentHex.IsEmpty()) { CurrentHex = Char->GetRestraintDefaultColorHexForUI(SlotIndex, Channel); }
 		}
 	}
 	OutfitColorPicker->OpenForColor(SlotIndex, Channel, CurrentHex);
@@ -2844,8 +2844,8 @@ void UMyBondageLifeWardrobeWidget::OpenRestraintColorPicker(int32 SlotIndex, int
 	{
 		if (const AMyBondageLifeCharacter* Char = Cast<AMyBondageLifeCharacter>(GetOwningPlayerPawn()))
 		{
-			CurrentHex = Char->GetAppliedOutfitColorHexForUI(SlotIndex, Channel);
-			if (CurrentHex.IsEmpty()) { CurrentHex = Char->GetOutfitDefaultColorHexForUI(SlotIndex, Channel); }
+			CurrentHex = Char->GetAppliedRestraintColorHexForUI(SlotIndex, Channel);
+			if (CurrentHex.IsEmpty()) { CurrentHex = Char->GetRestraintDefaultColorHexForUI(SlotIndex, Channel); }
 		}
 	}
 	OutfitColorPicker->OpenForColor(SlotIndex, Channel, CurrentHex);
