@@ -99,6 +99,8 @@ public:
 	int32 GetMaxPlayers() const { return MaxPlayers; }
 
 	/** 房间展示用：语言与访问模式。 */
+	void SetJoinedRoomInfo(const FString& InName, int32 InMax) { RoomName = InName; MaxPlayers = InMax; }
+
 	void SetRoomDisplayMeta(const FString& InLanguage, int32 InVisitMode) { RoomLanguage = InLanguage; RoomVisitMode = InVisitMode; }
 	FString GetRoomLanguage() const { return RoomLanguage; }
 	int32 GetRoomVisitMode() const { return RoomVisitMode; }

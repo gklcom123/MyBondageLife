@@ -585,7 +585,8 @@ void UMainSceneWidget::CreateRoom()
 		return;
 	}
 
-	const FString RoomName = Account ? Account->GetDefaultRoomName() : FString(TEXT("Room"));
+	FString RoomName = Account ? Account->GetDefaultRoomName() : FString(TEXT("Room"));
+	if (!Session->GetRoomSettings().Name.IsEmpty()) { RoomName = Session->GetRoomSettings().Name; }
 
 	Session->HostRoomWithEOS(RoomName, EOS->GetProductUserId());
 }
@@ -831,6 +832,7 @@ void UMainSceneWidget::JoinRoomByIndex(int32 RoomIndex)
 		int32 ModeValue = Room.VisitMode == TEXT("admin") ? 1 : (Room.VisitMode == TEXT("admin_whitelist") ? 2 : 0);
 		S->SetRoomDisplayMeta(Room.Language, ModeValue);
 	}
+	if (UMyBondageLifeSessionSubsystem* S2 = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeSessionSubsystem>() : nullptr) { S2->SetJoinedRoomInfo(Room.RoomName, Room.MaxPlayers); }
 	Rooms->JoinRoom(Room.RoomId);
 }
 
@@ -963,7 +965,8 @@ void UMainSceneWidget::CreateLocalRoom()
 	}
 
 	UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>();
-	const FString RoomName = Account ? Account->GetDefaultRoomName() : FString(TEXT("Room"));
+	FString RoomName = Account ? Account->GetDefaultRoomName() : FString(TEXT("Room"));
+	if (!Session->GetRoomSettings().Name.IsEmpty()) { RoomName = Session->GetRoomSettings().Name; }
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("MainScene: creating a local (LAN) room '%s'."), *RoomName);
 
@@ -1595,6 +1598,7 @@ void UMainSceneWidget::HandleOnlineRoomPasswordConfirmed(const FString& Password
 				int32 ModeValue = Room.VisitMode == TEXT("admin") ? 1 : (Room.VisitMode == TEXT("admin_whitelist") ? 2 : 0);
 				S->SetRoomDisplayMeta(Room.Language, ModeValue);
 			}
+			if (UMyBondageLifeSessionSubsystem* S2 = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeSessionSubsystem>() : nullptr) { S2->SetJoinedRoomInfo(Room.RoomName, Room.MaxPlayers); }
 			Rooms->JoinRoom(Room.RoomId, Password);
 		}
 	}

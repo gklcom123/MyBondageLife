@@ -71,7 +71,7 @@ bool UMyBondageLifeSessionSubsystem::HostRoom(const FString& InRoomName)
 	RoomId = FGuid::NewGuid().ToString(EGuidFormats::Short);
 	HostIp = ResolveLocalIPv4();
 	GamePort = DefaultGamePort;
-	MaxPlayers = DefaultMaxPlayers;
+	MaxPlayers = RoomSettings.MaxPlayers > 0 ? RoomSettings.MaxPlayers : DefaultMaxPlayers;
 	bInSession = true;
 	bHosting = true;
 
@@ -135,6 +135,7 @@ bool UMyBondageLifeSessionSubsystem::JoinRoom(const FMyBondageLifeRoomInfo& Room
 
 	RoomId = Room.RoomId;
 	RoomName = Room.RoomName;
+	MaxPlayers = Room.MaxPlayers;
 	if (UMyBondageLifeRoomSubsystem* Rooms = GameInstance->GetSubsystem<UMyBondageLifeRoomSubsystem>())
 	{
 		Rooms->SetCurrentRoomHostAccount(Room.HostAccount);
@@ -194,7 +195,7 @@ bool UMyBondageLifeSessionSubsystem::HostRoomWithEOS(const FString& InRoomName, 
 	RoomId.Reset();
 	HostIp = HostPuid;
 	GamePort = DefaultGamePort;
-	MaxPlayers = DefaultMaxPlayers;
+	MaxPlayers = RoomSettings.MaxPlayers > 0 ? RoomSettings.MaxPlayers : DefaultMaxPlayers;
 	bInSession = true;
 	bHosting = true;
 
@@ -276,6 +277,7 @@ bool UMyBondageLifeSessionSubsystem::JoinServerRoom(const FMyBondageLifeServerRo
 
 	RoomId = Room.RoomId;
 	RoomName = Room.RoomName;
+	MaxPlayers = Room.MaxPlayers;
 	if (UMyBondageLifeRoomSubsystem* Rooms = GameInstance->GetSubsystem<UMyBondageLifeRoomSubsystem>())
 	{
 		Rooms->SetCurrentRoomHostAccount(Room.HostAccount);
