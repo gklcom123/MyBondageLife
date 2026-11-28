@@ -91,6 +91,20 @@ public:
 	void SetMakeupIndexPublic(int32 NewMakeupIndex) { SetMakeupIndex(NewMakeupIndex); }
 	void SetEyeIndexPublic(int32 NewEyeIndex) { SetEyeIndex(NewEyeIndex); }
 
+	/** 身体比例（0=小,1=正常,2=大,3=超大），通过动画蓝图 Scale Bone 生效。 */
+	UPROPERTY(ReplicatedUsing = OnRep_BodyProportions)
+	int32 BreastIndex = 1;
+	UPROPERTY(ReplicatedUsing = OnRep_BodyProportions)
+	int32 WaistIndex = 1;
+	UPROPERTY(ReplicatedUsing = OnRep_BodyProportions)
+	int32 ThighIndex = 1;
+
+	UFUNCTION() void OnRep_BodyProportions();
+	void ApplyBodyProportions();
+	UFUNCTION(BlueprintCallable, Category = "Appearance")
+	void SetBodyProportions(int32 NewBreast, int32 NewWaist, int32 NewThigh);
+	void SetBodyProportionsPublic(int32 B, int32 W, int32 T) { SetBodyProportions(B, W, T); }
+
 	/** UI 用：材质默认颜色。 */
 	FString GetOutfitDefaultColorHexForUI(int32 Slot, int32 Channel) const { return GetOutfitDefaultColorHex(Slot, Channel); }
 

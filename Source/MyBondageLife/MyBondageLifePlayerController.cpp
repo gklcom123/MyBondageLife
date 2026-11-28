@@ -1626,7 +1626,7 @@ void AMyBondageLifePlayerController::ApplyCharacterNameToPawn()
 	if (AMyBondageLifeCharacter* PlayerCharacter = Cast<AMyBondageLifeCharacter>(GetPawn()))
 	{
 		PlayerCharacter->SetCharacterIdentity(FText::FromString(RoleName), RoleClass, CreatedAtUnix, Account->GetHeightScale(), Account->GetHairIndex());
-		if (Account) { PlayerCharacter->SetMakeupIndexPublic(Account->GetMakeupIndex()); PlayerCharacter->SetEyeIndexPublic(Account->GetEyeIndex()); }
+		if (Account) { PlayerCharacter->SetMakeupIndexPublic(Account->GetMakeupIndex()); PlayerCharacter->SetEyeIndexPublic(Account->GetEyeIndex()); PlayerCharacter->SetBodyProportionsPublic(Account->GetBreastIndex(), Account->GetWaistIndex(), Account->GetThighIndex()); }
 	}
 
 	ServerSetCharacterInfo(RoleName, RoleClass, CreatedAtUnix, Account->GetHeightScale(), Account->GetHairIndex());

@@ -272,6 +272,29 @@ protected:
 	UFUNCTION() void HandleEyeDownClicked();
 	UFUNCTION() void HandleEyeUpClicked();
 
+	// 身体比例：乳房 / 上身 / 下身
+	UPROPERTY(Transient) TObjectPtr<UButton> BreastDownButton;
+	UPROPERTY(Transient) TObjectPtr<UButton> BreastUpButton;
+	UPROPERTY(Transient) TObjectPtr<UTextBlock> BreastValueLabel;
+	UPROPERTY(Transient) TObjectPtr<UButton> WaistDownButton;
+	UPROPERTY(Transient) TObjectPtr<UButton> WaistUpButton;
+	UPROPERTY(Transient) TObjectPtr<UTextBlock> WaistValueLabel;
+	UPROPERTY(Transient) TObjectPtr<UButton> ThighDownButton;
+	UPROPERTY(Transient) TObjectPtr<UButton> ThighUpButton;
+	UPROPERTY(Transient) TObjectPtr<UTextBlock> ThighValueLabel;
+	int32 BreastSizeIndex = 1;
+	int32 WaistSizeIndex = 1;
+	int32 ThighSizeIndex = 1;
+
+	void StepBodyProportion(int32 Kind, int32 Delta);
+	void RefreshBodyProportionLabels();
+	UFUNCTION() void HandleBreastDownClicked();
+	UFUNCTION() void HandleBreastUpClicked();
+	UFUNCTION() void HandleWaistDownClicked();
+	UFUNCTION() void HandleWaistUpClicked();
+	UFUNCTION() void HandleThighDownClicked();
+	UFUNCTION() void HandleThighUpClicked();
+
 	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UTextBlock> HairDownLabel;
 

@@ -542,6 +542,71 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 	EyeUpButton->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleEyeUpClicked);
 
 	RefreshEyeLabel();
+	// ------------------------------------------------- body proportion rows
+	auto AddProportionRow = [this, &AddHairArrow](const TCHAR* Caption, float Y, int32 Kind, TObjectPtr<UButton>& DownOut, TObjectPtr<UTextBlock>& ValueOut, TObjectPtr<UButton>& UpOut)
+	{
+		UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		Label->SetText(FText::FromString(Caption));
+		Label->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
+		{
+			FSlateFontInfo CaptionFont = Label->GetFont();
+			CaptionFont.Size = 28;
+			CaptionFont.FontObject = MyBondageLifeUI::LoadUIFont();
+			Label->SetFont(CaptionFont);
+		}
+		if (UCanvasPanelSlot* CaptionSlot = BodyPage->AddChildToCanvas(Label))
+		{
+			CaptionSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
+			CaptionSlot->SetPosition(FVector2D(56.0f, Y + 20.0f));
+			CaptionSlot->SetAutoSize(true);
+		}
+
+		DownOut = AddHairArrow(TEXT("<"), 180.0f);
+		if (UCanvasPanelSlot* DownSlot = Cast<UCanvasPanelSlot>(DownOut->GetParent()->Slot))
+		{
+			DownSlot->SetPosition(FVector2D(180.0f, Y));
+		}
+		switch (Kind)
+		{
+		case 0: DownOut->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleBreastDownClicked); break;
+		case 1: DownOut->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleWaistDownClicked); break;
+		default: DownOut->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleThighDownClicked); break;
+		}
+
+		ValueOut = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		ValueOut->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
+		ValueOut->SetJustification(ETextJustify::Center);
+		{
+			FSlateFontInfo ValueFont = ValueOut->GetFont();
+			ValueFont.Size = 28;
+			ValueFont.FontObject = MyBondageLifeUI::LoadUIFont();
+			ValueOut->SetFont(ValueFont);
+		}
+		if (UCanvasPanelSlot* ValueSlot = BodyPage->AddChildToCanvas(ValueOut))
+		{
+			ValueSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
+			ValueSlot->SetPosition(FVector2D(276.0f, Y + 12.0f));
+			ValueSlot->SetSize(FVector2D(170.0f, 44.0f));
+		}
+
+		UpOut = AddHairArrow(TEXT(">"), 470.0f);
+		if (UCanvasPanelSlot* UpSlot = Cast<UCanvasPanelSlot>(UpOut->GetParent()->Slot))
+		{
+			UpSlot->SetPosition(FVector2D(470.0f, Y));
+		}
+		switch (Kind)
+		{
+		case 0: UpOut->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleBreastUpClicked); break;
+		case 1: UpOut->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleWaistUpClicked); break;
+		default: UpOut->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleThighUpClicked); break;
+		}
+	};
+
+	AddProportionRow(TEXT("\u4E73\u623F\uFF1A"), 730.0f, 0, BreastDownButton, BreastValueLabel, BreastUpButton);
+	AddProportionRow(TEXT("\u4E0A\u8EAB\u5C3A\u5BF8\uFF1A"), 830.0f, 1, WaistDownButton, WaistValueLabel, WaistUpButton);
+	AddProportionRow(TEXT("\u4E0B\u8EAB\u5C3A\u5BF8\uFF1A"), 930.0f, 2, ThighDownButton, ThighValueLabel, ThighUpButton);
+
+	RefreshBodyProportionLabels();
 
 	RefreshSkinLabel();
 
@@ -599,6 +664,11 @@ void UMyBondageLifeWardrobeWidget::NativeConstruct()
 
 	EyeId = FMyBondageLifeEyeCatalog::ClampId(Account ? Account->GetEyeIndex() : 1);
 	RefreshEyeLabel();
+
+	BreastSizeIndex = Account ? FMath::Clamp(Account->GetBreastIndex(), 0, 3) : 1;
+	WaistSizeIndex = Account ? FMath::Clamp(Account->GetWaistIndex(), 0, 2) : 1;
+	ThighSizeIndex = Account ? FMath::Clamp(Account->GetThighIndex(), 0, 2) : 1;
+	RefreshBodyProportionLabels();
 }
 
 void UMyBondageLifeWardrobeWidget::SelectTab(int32 TabIndex)
@@ -2315,6 +2385,16 @@ bool UMyBondageLifeWardrobeWidget::TryAdoptBlueprintLayout()
 	EyeDownButton = FindNamedButton(WidgetTree, TEXT("W_Eye_Down"), TEXT("EyeDownButton"));
 	EyeUpButton = FindNamedButton(WidgetTree, TEXT("W_Eye_Up"), TEXT("EyeUpButton"));
 
+	BreastValueLabel = FindEither<UTextBlock>(WidgetTree, TEXT("W_Breast_Value"), TEXT("BreastValueLabel"));
+	BreastDownButton = FindNamedButton(WidgetTree, TEXT("W_Breast_Down"), TEXT("BreastDownButton"));
+	BreastUpButton = FindNamedButton(WidgetTree, TEXT("W_Breast_Up"), TEXT("BreastUpButton"));
+	WaistValueLabel = FindEither<UTextBlock>(WidgetTree, TEXT("W_Waist_Value"), TEXT("WaistValueLabel"));
+	WaistDownButton = FindNamedButton(WidgetTree, TEXT("W_Waist_Down"), TEXT("WaistDownButton"));
+	WaistUpButton = FindNamedButton(WidgetTree, TEXT("W_Waist_Up"), TEXT("WaistUpButton"));
+	ThighValueLabel = FindEither<UTextBlock>(WidgetTree, TEXT("W_Thigh_Value"), TEXT("ThighValueLabel"));
+	ThighDownButton = FindNamedButton(WidgetTree, TEXT("W_Thigh_Down"), TEXT("ThighDownButton"));
+	ThighUpButton = FindNamedButton(WidgetTree, TEXT("W_Thigh_Up"), TEXT("ThighUpButton"));
+
 	if (!MakeupValueLabel && BodyPage)
 	{
 		UButton* Down = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
@@ -2397,6 +2477,12 @@ void UMyBondageLifeWardrobeWidget::WireAdoptedLayout()
 	if (MakeupUpButton) { MakeupUpButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleMakeupUpClicked); }
 	if (EyeDownButton) { EyeDownButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleEyeDownClicked); }
 	if (EyeUpButton) { EyeUpButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleEyeUpClicked); }
+	if (BreastDownButton) { BreastDownButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleBreastDownClicked); }
+	if (BreastUpButton) { BreastUpButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleBreastUpClicked); }
+	if (WaistDownButton) { WaistDownButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleWaistDownClicked); }
+	if (WaistUpButton) { WaistUpButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleWaistUpClicked); }
+	if (ThighDownButton) { ThighDownButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleThighDownClicked); }
+	if (ThighUpButton) { ThighUpButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleThighUpClicked); }
 	}
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("Wardrobe: adopted layout wired."));
@@ -3175,3 +3261,54 @@ void UMyBondageLifeWardrobeWidget::HandleEyeUpClicked()
 {
 	StepEye(1);
 }
+
+
+void UMyBondageLifeWardrobeWidget::RefreshBodyProportionLabels()
+{
+	static const TCHAR* BreastNames[] = { TEXT("\u5C0F\u53F7"), TEXT("\u6B63\u5E38"), TEXT("\u5927\u53F7"), TEXT("\u8D85\u5927\u53F7") };
+	static const TCHAR* SizeNames[] = { TEXT("\u5C0F\u53F7"), TEXT("\u6B63\u5E38"), TEXT("\u5927\u53F7") };
+
+	BreastSizeIndex = FMath::Clamp(BreastSizeIndex, 0, 3);
+	WaistSizeIndex = FMath::Clamp(WaistSizeIndex, 0, 2);
+	ThighSizeIndex = FMath::Clamp(ThighSizeIndex, 0, 2);
+
+	if (BreastValueLabel) { BreastValueLabel->SetText(FText::FromString(BreastNames[BreastSizeIndex])); }
+	if (WaistValueLabel) { WaistValueLabel->SetText(FText::FromString(SizeNames[WaistSizeIndex])); }
+	if (ThighValueLabel) { ThighValueLabel->SetText(FText::FromString(SizeNames[ThighSizeIndex])); }
+
+	if (BreastDownButton) { BreastDownButton->SetIsEnabled(BreastSizeIndex > 0); }
+	if (BreastUpButton) { BreastUpButton->SetIsEnabled(BreastSizeIndex < 3); }
+	if (WaistDownButton) { WaistDownButton->SetIsEnabled(WaistSizeIndex > 0); }
+	if (WaistUpButton) { WaistUpButton->SetIsEnabled(WaistSizeIndex < 2); }
+	if (ThighDownButton) { ThighDownButton->SetIsEnabled(ThighSizeIndex > 0); }
+	if (ThighUpButton) { ThighUpButton->SetIsEnabled(ThighSizeIndex < 2); }
+}
+
+void UMyBondageLifeWardrobeWidget::StepBodyProportion(int32 Kind, int32 Delta)
+{
+	if (Kind == 0) { BreastSizeIndex = FMath::Clamp(BreastSizeIndex + Delta, 0, 3); }
+	else if (Kind == 1) { WaistSizeIndex = FMath::Clamp(WaistSizeIndex + Delta, 0, 2); }
+	else { ThighSizeIndex = FMath::Clamp(ThighSizeIndex + Delta, 0, 2); }
+
+	RefreshBodyProportionLabels();
+
+	if (AMyBondageLifeCharacter* Character = Cast<AMyBondageLifeCharacter>(GetOwningPlayerPawn()))
+	{
+		Character->SetBodyProportionsPublic(BreastSizeIndex, WaistSizeIndex, ThighSizeIndex);
+	}
+
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
+		{
+			Account->RequestUpdateBodyProportions(BreastSizeIndex, WaistSizeIndex, ThighSizeIndex);
+		}
+	}
+}
+
+void UMyBondageLifeWardrobeWidget::HandleBreastDownClicked() { StepBodyProportion(0, -1); }
+void UMyBondageLifeWardrobeWidget::HandleBreastUpClicked() { StepBodyProportion(0, 1); }
+void UMyBondageLifeWardrobeWidget::HandleWaistDownClicked() { StepBodyProportion(1, -1); }
+void UMyBondageLifeWardrobeWidget::HandleWaistUpClicked() { StepBodyProportion(1, 1); }
+void UMyBondageLifeWardrobeWidget::HandleThighDownClicked() { StepBodyProportion(2, -1); }
+void UMyBondageLifeWardrobeWidget::HandleThighUpClicked() { StepBodyProportion(2, 1); }

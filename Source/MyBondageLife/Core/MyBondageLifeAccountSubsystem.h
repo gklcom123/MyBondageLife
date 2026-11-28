@@ -291,6 +291,9 @@ struct FMyBondageLifeUserProfile
 	int32 HairIndex = 1;
 	int32 MakeupIndex = 1;
 	int32 EyeIndex = 1;
+	int32 BreastIndex = 1;
+	int32 WaistIndex = 1;
+	int32 ThighIndex = 1;
 
 	int32 SkinId = 1;
 
@@ -480,6 +483,13 @@ public:
 
 	/** 保存眼睛编号到服务端（PATCH /users/me/eye）。 */
 	void RequestUpdateEye(int32 NewEyeIndex);
+
+	/** 身体比例序号（0=小,1=正常,2=大,3=超大）。 */
+	int32 GetBreastIndex() const { return BreastIndex; }
+	int32 GetWaistIndex() const { return WaistIndex; }
+	int32 GetThighIndex() const { return ThighIndex; }
+
+	void RequestUpdateBodyProportions(int32 NewBreast, int32 NewWaist, int32 NewThigh);
 
 	/** PATCH /users/me - persists a new hair style and applies it locally. */
 	UFUNCTION(BlueprintCallable, Category = "Account")
@@ -981,6 +991,9 @@ private:
 	int32 HairIndex = 1;
 	int32 MakeupIndex = 1;
 	int32 EyeIndex = 1;
+	int32 BreastIndex = 1;
+	int32 WaistIndex = 1;
+	int32 ThighIndex = 1;
 
 	int32 SkinId = 1;
 

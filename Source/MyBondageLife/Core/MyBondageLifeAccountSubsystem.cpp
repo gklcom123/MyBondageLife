@@ -277,6 +277,22 @@ bool UMyBondageLifeAccountSubsystem::ApplyAuthPayload(const TSharedPtr<FJsonObje
 		{
 			EyeIndex = FMath::Clamp(static_cast<int32>(EyeValue), 1, 64);
 		}
+
+		double BreastValue = 1.0;
+		if ((*UserObject)->TryGetNumberField(TEXT("breastIndex"), BreastValue))
+		{
+			BreastIndex = FMath::Clamp(static_cast<int32>(BreastValue), 0, 3);
+		}
+		double WaistValue = 1.0;
+		if ((*UserObject)->TryGetNumberField(TEXT("waistIndex"), WaistValue))
+		{
+			WaistIndex = FMath::Clamp(static_cast<int32>(WaistValue), 0, 2);
+		}
+		double ThighValue = 1.0;
+		if ((*UserObject)->TryGetNumberField(TEXT("thighIndex"), ThighValue))
+		{
+			ThighIndex = FMath::Clamp(static_cast<int32>(ThighValue), 0, 2);
+		}
 	}
 
 	double ClassValue = 1.0;
@@ -3698,5 +3714,33 @@ void UMyBondageLifeAccountSubsystem::RequestUpdateEye(int32 NewEyeIndex)
 			}
 			Self->EyeIndex = ClampedIndex;
 			Self->OnEyeChanged.Broadcast(Self->EyeIndex);
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::RequestUpdateBodyProportions(int32 NewBreast, int32 NewWaist, int32 NewThigh)
+{
+	const int32 Breast = FMath::Clamp(NewBreast, 0, 3);
+	const int32 Waist = FMath::Clamp(NewWaist, 0, 2);
+	const int32 Thigh = FMath::Clamp(NewThigh, 0, 2);
+
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetNumberField(TEXT("breastIndex"), Breast);
+	Body->SetNumberField(TEXT("waistIndex"), Waist);
+	Body->SetNumberField(TEXT("thighIndex"), Thigh);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	SendFriendApiRequest(TEXT("PATCH"), TEXT("/users/me/body-proportions"), Body,
+		[WeakThis, Breast, Waist, Thigh](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self) { return; }
+			if (!bOk)
+			{
+				UE_LOG(LogMyBondageLife, Warning, TEXT("BodyProportions: update rejected (%d)."), StatusCode);
+				return;
+			}
+			Self->BreastIndex = Breast;
+			Self->WaistIndex = Waist;
+			Self->ThighIndex = Thigh;
 		});
 }

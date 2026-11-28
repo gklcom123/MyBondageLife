@@ -184,6 +184,9 @@ void AMyBondageLifeCharacter::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(AMyBondageLifeCharacter, OutfitColorHex);
 	DOREPLIFETIME(AMyBondageLifeCharacter, MakeupIndex);
 	DOREPLIFETIME(AMyBondageLifeCharacter, EyeIndex);
+	DOREPLIFETIME(AMyBondageLifeCharacter, BreastIndex);
+	DOREPLIFETIME(AMyBondageLifeCharacter, WaistIndex);
+	DOREPLIFETIME(AMyBondageLifeCharacter, ThighIndex);
 	DOREPLIFETIME(AMyBondageLifeCharacter, LegBoundType);
 	DOREPLIFETIME(AMyBondageLifeCharacter, IgnoredRestraintSlots);
 	DOREPLIFETIME(AMyBondageLifeCharacter, AccountName);
@@ -2771,4 +2774,56 @@ void AMyBondageLifeCharacter::ApplyEye()
 		if (Emissive) { Mid->SetTextureParameterValue(EmissiveParam, Emissive); }
 		if (UV) { Mid->SetTextureParameterValue(UVParam, UV); }
 	}
+}
+
+
+void AMyBondageLifeCharacter::OnRep_BodyProportions()
+{
+	ApplyBodyProportions();
+}
+
+void AMyBondageLifeCharacter::SetBodyProportions(int32 NewBreast, int32 NewWaist, int32 NewThigh)
+{
+	BreastIndex = FMath::Clamp(NewBreast, 0, 3);
+	WaistIndex = FMath::Clamp(NewWaist, 0, 2);
+	ThighIndex = FMath::Clamp(NewThigh, 0, 2);
+	ApplyBodyProportions();
+}
+
+void AMyBondageLifeCharacter::ApplyBodyProportions()
+{
+	USkeletalMeshComponent* BodyMesh = GetMesh();
+	if (!BodyMesh)
+	{
+		return;
+	}
+
+	UAnimInstance* Anim = BodyMesh->GetAnimInstance();
+	if (!Anim)
+	{
+		if (UWorld* World = GetWorld())
+		{
+			FTimerHandle RetryHandle;
+			World->GetTimerManager().SetTimer(RetryHandle, FTimerDelegate::CreateWeakLambda(this, [this]() { ApplyBodyProportions(); }), 0.25f, false);
+		}
+		return;
+	}
+
+	auto SetIntProperty = [Anim](const TCHAR* Name, int32 Value)
+	{
+		FProperty* Property = Anim->GetClass()->FindPropertyByName(Name);
+		if (!Property) { return; }
+		if (FIntProperty* IntProperty = CastField<FIntProperty>(Property))
+		{
+			IntProperty->SetPropertyValue_InContainer(Anim, Value);
+		}
+		else if (FByteProperty* ByteProperty = CastField<FByteProperty>(Property))
+		{
+			ByteProperty->SetPropertyValue_InContainer(Anim, static_cast<uint8>(Value));
+		}
+	};
+
+	SetIntProperty(TEXT("BreastIndex"), BreastIndex);
+	SetIntProperty(TEXT("WaistIndex"), WaistIndex);
+	SetIntProperty(TEXT("ThighIndex"), ThighIndex);
 }
