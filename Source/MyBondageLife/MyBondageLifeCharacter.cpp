@@ -1327,6 +1327,9 @@ void AMyBondageLifeCharacter::ApplyBodyPartHiding()
 			}
 		}
 	}
+
+	// 恢复隐藏后重新应用染色，避免恢复成原始材质。
+	ApplyOutfitColors();
 }
 
 // ---------------------------------------------------------------------------

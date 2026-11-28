@@ -577,6 +577,8 @@ void UMyBondageLifeWardrobeWidget::SetPanelOpen(bool bOpen)
 		if (!bOpen)
 		{
 			ResetToOwnMode();
+			// 关闭衣柜时一并关闭所有二级/三级面板（调色板、选择器、上锁菜单等）。
+			while (CloseTopPopup()) {}
 		}
 	}
 

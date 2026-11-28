@@ -325,8 +325,8 @@ void UMyBondageLifeColorPickerWidget::OpenForColor(int32 InSlot, int32 InChannel
 		const FString UiHex = HexBox ? HexBox->GetText().ToString() : TEXT("<null>");
 		const FString Msg = FString::Printf(TEXT("读取到的服务器配色为：%s，计算的配色为：%s，计算的HSV为：(%.1f, %.3f, %.3f)，UI面板中实际显示的RGB值为：%s"),
 			*HexColor, *PendingColor.ToFColor(true).ToHex().LeftChop(2), Hue, Saturation, Brightness, *UiHex);
-		UE_LOG(LogMyBondageLife, Log, TEXT("%s"), *Msg);
-		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Yellow, Msg); }
+		// UE_LOG(LogMyBondageLife, Log, TEXT("%s"), *Msg);
+		// if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Yellow, Msg); }
 	}
 	{
 		const FLinearColor DebugHsvColor = FLinearColor::MakeFromHSV8(
