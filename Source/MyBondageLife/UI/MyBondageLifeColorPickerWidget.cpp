@@ -283,6 +283,8 @@ void UMyBondageLifeColorPickerWidget::BuildLayout()
 
 void UMyBondageLifeColorPickerWidget::OpenForColor(int32 InSlot, int32 InChannel, const FString& HexColor)
 {
+	EnsureWidgetsBound();
+
 	PickerSlot = InSlot;
 	PickerChannel = InChannel;
 
@@ -426,4 +428,46 @@ void UMyBondageLifeColorPickerWidget::HandleHexChanged(const FText& Text)
 	if (ValueSlider) { ValueSlider->SetValue(Brightness); }
 	if (PreviewImage) { PreviewImage->SetColorAndOpacity(Color); }
 	bUpdatingHex = false;
+}
+
+void UMyBondageLifeColorPickerWidget::EnsureWidgetsBound()
+{
+	if (!WidgetTree)
+	{
+		return;
+	}
+
+	if (!HueSlider) { HueSlider = Cast<USlider>(WidgetTree->FindWidget(TEXT("W_ColorPicker_Hue"))); }
+	if (!SaturationSlider) { SaturationSlider = Cast<USlider>(WidgetTree->FindWidget(TEXT("W_ColorPicker_Saturation"))); }
+	if (!ValueSlider) { ValueSlider = Cast<USlider>(WidgetTree->FindWidget(TEXT("W_ColorPicker_Value"))); }
+	if (!HexBox) { HexBox = Cast<UEditableTextBox>(WidgetTree->FindWidget(TEXT("W_ColorPicker_Hex"))); }
+	if (!PreviewImage) { PreviewImage = Cast<UImage>(WidgetTree->FindWidget(TEXT("W_ColorPicker_Preview"))); }
+	if (!ConfirmButton) { ConfirmButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_ColorPicker_Confirm"))); }
+	if (!CancelButton) { CancelButton = Cast<UButton>(WidgetTree->FindWidget(TEXT("W_ColorPicker_Cancel"))); }
+
+	if (HueSlider)
+	{
+		HueSlider->SetMinValue(0.0f);
+		HueSlider->SetMaxValue(1.0f);
+		HueSlider->OnValueChanged.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleHueChanged);
+	}
+	if (SaturationSlider)
+	{
+		SaturationSlider->SetMinValue(0.0f);
+		SaturationSlider->SetMaxValue(1.0f);
+		SaturationSlider->OnValueChanged.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleSaturationChanged);
+	}
+	if (ValueSlider)
+	{
+		ValueSlider->SetMinValue(0.0f);
+		ValueSlider->SetMaxValue(1.0f);
+		ValueSlider->OnValueChanged.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleValueChanged);
+	}
+	if (HexBox)
+	{
+		HexBox->OnTextCommitted.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleHexCommitted);
+		HexBox->OnTextChanged.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleHexChanged);
+	}
+	if (ConfirmButton) { ConfirmButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleConfirmClicked); }
+	if (CancelButton) { CancelButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleCancelClicked); }
 }

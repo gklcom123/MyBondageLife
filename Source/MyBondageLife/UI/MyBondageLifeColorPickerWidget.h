@@ -47,6 +47,7 @@ public:
 protected:
 
 	void BuildLayout();
+	void EnsureWidgetsBound();
 	void RefreshPreview();
 
 	UFUNCTION() void HandleHueChanged(float Value);
