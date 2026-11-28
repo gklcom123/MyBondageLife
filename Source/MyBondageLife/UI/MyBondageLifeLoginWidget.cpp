@@ -192,6 +192,10 @@ void UMyBondageLifeLoginWidget::BuildLayout()
 	OpenRegisterButton = CreateActionButton(LoginPanel, TextRegister, ButtonHeight, true);
 	OpenRegisterButton->OnClicked.AddDynamic(this, &UMyBondageLifeLoginWidget::HandleOpenRegisterClicked);
 
+	// 游戏设置（与游戏内设置界面一致）
+	UButton* SettingsButton = CreateActionButton(LoginPanel, TEXT("\u6E38\u620F\u8BBE\u7F6E"), ButtonHeight, true);
+	SettingsButton->OnClicked.AddDynamic(this, &UMyBondageLifeLoginWidget::HandleSettingsClicked);
+
 	LoginStatusLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("LoginStatusLabel"));
 	LoginStatusLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.85f, 0.45f, 0.45f)));
 	LoginStatusLabel->SetJustification(ETextJustify::Center);
