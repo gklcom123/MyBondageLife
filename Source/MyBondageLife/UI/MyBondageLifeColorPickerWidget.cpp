@@ -286,16 +286,6 @@ void UMyBondageLifeColorPickerWidget::OpenForColor(int32 InSlot, int32 InChannel
 	EnsureWidgetsBound();
 
 	PickerSlot = InSlot;
-	{
-		const bool bValidHex = HexColor.Len() == 7 && HexColor.StartsWith(TEXT("#"));
-		FLinearColor DebugColor = FLinearColor::White;
-		if (bValidHex) { DebugColor = FLinearColor::FromSRGBColor(FColor::FromHex(HexColor)); }
-		const FString DebugMsg = FString::Printf(TEXT("ColorPicker[%s] open slot=%d ch=%d hex=%s valid=%d rgb=%s widgets H=%d S=%d V=%d Hex=%d Preview=%d"),
-			*GetName(), InSlot, InChannel, *HexColor, bValidHex ? 1 : 0, *DebugColor.ToFColor(true).ToHex().LeftChop(2),
-			HueSlider ? 1 : 0, SaturationSlider ? 1 : 0, ValueSlider ? 1 : 0, HexBox ? 1 : 0, PreviewImage ? 1 : 0);
-		UE_LOG(LogMyBondageLife, Log, TEXT("%s"), *DebugMsg);
-		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 6.0f, FColor::Yellow, DebugMsg); }
-	}
 	PickerChannel = InChannel;
 
 	if (HexColor.Len() == 7 && HexColor.StartsWith(TEXT("#")))
@@ -327,14 +317,21 @@ void UMyBondageLifeColorPickerWidget::OpenForColor(int32 InSlot, int32 InChannel
 	RefreshPreview();
 	SetVisibility(ESlateVisibility::Visible);
 	{
+		const FLinearColor Applied = FLinearColor::MakeFromHSV8(static_cast<uint8>(FMath::Clamp(Hue, 0.0f, 360.0f) / 360.0f * 255.0f), static_cast<uint8>(FMath::Clamp(Saturation, 0.0f, 1.0f) * 255.0f), static_cast<uint8>(FMath::Clamp(Brightness, 0.0f, 1.0f) * 255.0f));
+		const FString Msg = FString::Printf(TEXT("Picker[%s] slot=%d ch=%d in=%s HSV=(%.1f,%.3f,%.3f) hex=%s | HexBox=%s(%s) Preview=%s tint=%s"),
+			*GetName(), PickerSlot, PickerChannel, *HexColor, Hue, Saturation, Brightness,
+			*Applied.ToFColor(true).ToHex().LeftChop(2),
+			HexBox ? *HexBox->GetText().ToString() : TEXT("<null>"), HexBox ? *HexBox->GetName() : TEXT("-"),
+			PreviewImage ? *PreviewImage->GetName() : TEXT("<null>"),
+			PreviewImage ? *PreviewImage->GetBrush().TintColor.GetSpecifiedColor().ToFColor(true).ToHex().LeftChop(2) : TEXT("-"));
+		UE_LOG(LogMyBondageLife, Log, TEXT("%s"), *Msg);
+		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Yellow, Msg); }
+	}
+	{
 		const FLinearColor DebugHsvColor = FLinearColor::MakeFromHSV8(
 			static_cast<uint8>(FMath::Clamp(Hue, 0.0f, 360.0f) / 360.0f * 255.0f),
 			static_cast<uint8>(FMath::Clamp(Saturation, 0.0f, 1.0f) * 255.0f),
 			static_cast<uint8>(FMath::Clamp(Brightness, 0.0f, 1.0f) * 255.0f));
-		const FString DebugHsv = FString::Printf(TEXT("ColorPicker[%s] HSV slot=%d ch=%d H=%.1f S=%.3f V=%.3f hex=%s"),
-			*GetName(), PickerSlot, PickerChannel, Hue, Saturation, Brightness, *DebugHsvColor.ToFColor(true).ToHex().LeftChop(2));
-		UE_LOG(LogMyBondageLife, Log, TEXT("%s"), *DebugHsv);
-		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 6.0f, FColor::Yellow, DebugHsv); }
 	}
 }
 
