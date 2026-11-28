@@ -146,6 +146,16 @@ void UMyBondageLifeColorPickerWidget::BuildLayout()
 		AddRow(TEXT("#"), [this](UWidgetTree*) -> UWidget* { return HexBox; });
 		HexBox->OnTextCommitted.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleHexCommitted);
 		HexBox->OnTextChanged.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleHexChanged);
+
+	// 无论滑块/文本框是自建还是从 WBP 接管，都统一绑定，避免接管时不响应拖动。
+	if (HueSlider) { HueSlider->OnValueChanged.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleHueChanged); }
+	if (SaturationSlider) { SaturationSlider->OnValueChanged.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleSaturationChanged); }
+	if (ValueSlider) { ValueSlider->OnValueChanged.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleValueChanged); }
+	if (HexBox)
+	{
+		HexBox->OnTextCommitted.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleHexCommitted);
+		HexBox->OnTextChanged.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleHexChanged);
+	}
 	}
 
 	UHorizontalBox* Buttons = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
@@ -239,6 +249,16 @@ void UMyBondageLifeColorPickerWidget::BuildLayout()
 	{
 		HexBox->OnTextCommitted.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleHexCommitted);
 		HexBox->OnTextChanged.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleHexChanged);
+
+	// 无论滑块/文本框是自建还是从 WBP 接管，都统一绑定，避免接管时不响应拖动。
+	if (HueSlider) { HueSlider->OnValueChanged.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleHueChanged); }
+	if (SaturationSlider) { SaturationSlider->OnValueChanged.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleSaturationChanged); }
+	if (ValueSlider) { ValueSlider->OnValueChanged.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleValueChanged); }
+	if (HexBox)
+	{
+		HexBox->OnTextCommitted.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleHexCommitted);
+		HexBox->OnTextChanged.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleHexChanged);
+	}
 	}
 	if (ConfirmButton)
 	{
@@ -270,6 +290,16 @@ void UMyBondageLifeColorPickerWidget::OpenForColor(int32 InSlot, int32 InChannel
 	}
 
 	if (HueSlider) { HueSlider->SetValue(Hue / 360.0f); }
+	if (HexColor.Len() != 7 || !HexColor.StartsWith(TEXT("#")))
+	{
+		// 没有配置颜色时回到默认白色，避免沿用上一次打开时的取值。
+		Hue = 0.0f;
+		Saturation = 0.0f;
+		Brightness = 1.0f;
+		if (HueSlider) { HueSlider->SetValue(0.0f); }
+		if (SaturationSlider) { SaturationSlider->SetValue(0.0f); }
+		if (ValueSlider) { ValueSlider->SetValue(1.0f); }
+	}
 	if (SaturationSlider) { SaturationSlider->SetValue(Saturation); }
 	if (ValueSlider) { ValueSlider->SetValue(Brightness); }
 

@@ -2463,3 +2463,50 @@ void AMyBondageLifeCharacter::ServerSetIgnoredRestraintSlots_Implementation(cons
 	IgnoredRestraintSlots = Slots;
 	ApplyRestraints();
 }
+
+
+namespace
+{
+	FString ReadMaterialColorHex(USkeletalMeshComponent* Component, int32 Channel)
+	{
+		if (!Component)
+		{
+			return FString();
+		}
+
+		const FName ParameterName(*FString::Printf(TEXT("Color%d"), Channel));
+		for (int32 MaterialIndex = 0; MaterialIndex < Component->GetNumMaterials(); ++MaterialIndex)
+		{
+			UMaterialInterface* Material = Component->GetMaterial(MaterialIndex);
+			if (!Material)
+			{
+				continue;
+			}
+
+			FLinearColor Value;
+			if (Material->GetVectorParameterValue(FMaterialParameterInfo(ParameterName), Value))
+			{
+				return TEXT("#") + Value.ToFColor(true).ToHex().LeftChop(2);
+			}
+		}
+		return FString();
+	}
+}
+
+FString AMyBondageLifeCharacter::GetOutfitDefaultColorHex(int32 Slot, int32 Channel) const
+{
+	if (const TObjectPtr<USkeletalMeshComponent>* Found = OutfitComponents.Find(Slot))
+	{
+		return ReadMaterialColorHex(Found->Get(), Channel);
+	}
+	return FString();
+}
+
+FString AMyBondageLifeCharacter::GetRestraintDefaultColorHex(int32 Slot, int32 Channel) const
+{
+	if (const TObjectPtr<USkeletalMeshComponent>* Found = RestraintComponentsBySlot.Find(Slot))
+	{
+		return ReadMaterialColorHex(Found->Get(), Channel);
+	}
+	return FString();
+}

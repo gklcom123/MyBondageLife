@@ -466,6 +466,13 @@ protected:
 	/** 拘束槽位 -> 网格组件（染色按槽位区分）。 */
 	TMap<int32, TObjectPtr<USkeletalMeshComponent>> RestraintComponentsBySlot;
 
+	/** 读取某槽位材质上 ColorN 的默认值（用于调色板初值）。 */
+	UFUNCTION(BlueprintPure, Category = "Color")
+	FString GetOutfitDefaultColorHex(int32 Slot, int32 Channel) const;
+
+	UFUNCTION(BlueprintPure, Category = "Color")
+	FString GetRestraintDefaultColorHex(int32 Slot, int32 Channel) const;
+
 	/** AnimBP used instead of the one assigned on the blueprint mesh. */
 	UPROPERTY(EditDefaultsOnly, Category="Animation")
 	FSoftClassPath AnimBlueprintOverridePath;
