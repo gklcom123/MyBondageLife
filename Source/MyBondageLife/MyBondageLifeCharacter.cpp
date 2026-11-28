@@ -36,7 +36,8 @@
 #include "InputActionValue.h"
 #include "MyBondageLife.h"
 #include "MyBondageLifePlayerController.h"
-#include "Net/UnrealNetwork.h"
+#include "Net/UnrealNetwork.h"
+
 #include "Core/MyBondageLifeMakeupCatalog.h"
 #include "Core/MyBondageLifeEyeCatalog.h"
 
@@ -1459,6 +1460,9 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 	}
 
 	OutfitFeetOffset = FeetOffset;
+	ApplyOutfitCapsule();
+	ApplySkin();
+	ApplyOutfitColors();
 	// 鞋子槽（10）如果有 sock1/sock2 材质槽，就把袜子槽（9）同名槽的材质复制过去。
 	{
 		const TObjectPtr<USkeletalMeshComponent>* SocksPtr = OutfitComponents.Find(9);
@@ -1495,9 +1499,6 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 			}
 		}
 	}
-	ApplyOutfitCapsule();
-	ApplySkin();
-	ApplyOutfitColors();
 	ApplyBodyPartHiding();
 }
 void AMyBondageLifeCharacter::ServerSetAccountName_Implementation(const FString& InAccount)
