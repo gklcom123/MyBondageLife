@@ -2899,6 +2899,7 @@ void UMyBondageLifeWardrobeWidget::OpenOutfitColorPicker(int32 SlotIndex, int32 
 		if (PickerClass)
 		{
 			OutfitColorPicker = CreateWidget<UMyBondageLifeColorPickerWidget>(this, PickerClass);
+			UE_LOG(LogMyBondageLife, Log, TEXT("ColorPicker: created class %s from WBP_ColorPicker"), OutfitColorPicker ? *OutfitColorPicker->GetClass()->GetName() : TEXT("null"));
 			if (OutfitColorPicker)
 			{
 				OutfitColorPicker->AddToViewport(310);
@@ -2970,6 +2971,7 @@ void UMyBondageLifeWardrobeWidget::OpenRestraintColorPicker(int32 SlotIndex, int
 		if (PickerClass)
 		{
 			OutfitColorPicker = CreateWidget<UMyBondageLifeColorPickerWidget>(this, PickerClass);
+			UE_LOG(LogMyBondageLife, Log, TEXT("ColorPicker: created class %s from WBP_ColorPicker"), OutfitColorPicker ? *OutfitColorPicker->GetClass()->GetName() : TEXT("null"));
 			if (OutfitColorPicker)
 			{
 				OutfitColorPicker->AddToViewport(310);
