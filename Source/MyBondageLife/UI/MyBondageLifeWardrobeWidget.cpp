@@ -609,6 +609,8 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 	AddProportionRow(TEXT("\u4E73\u623F\uFF1A"), 730.0f, 0, BreastDownButton, BreastValueLabel, BreastUpButton);
 	AddProportionRow(TEXT("\u4E0A\u8EAB\u5C3A\u5BF8\uFF1A"), 830.0f, 1, WaistDownButton, WaistValueLabel, WaistUpButton);
 	AddProportionRow(TEXT("\u4E0B\u8EAB\u5C3A\u5BF8\uFF1A"), 930.0f, 2, ThighDownButton, ThighValueLabel, ThighUpButton);
+	AddProportionRow(TEXT("\u80A4\u8272\uFF1A"), 1030.0f, 3, SkinColorDownButton, SkinColorValueLabel, SkinColorUpButton);
+	RefreshSkinColorLabel();
 
 	RefreshBodyProportionLabels();
 
