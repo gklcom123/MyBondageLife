@@ -100,7 +100,6 @@ bool UMyBondageLifeSessionSubsystem::HostRoom(const FString& InRoomName)
 		Room.Language = RoomSettings.Language;
 		Room.VisitMode = RoomSettings.VisitMode;
 		Room.bHasPassword = !RoomSettings.Password.IsEmpty();
-		Room.Password = RoomSettings.Password;
 		Room.Admins = RoomSettings.Admins;
 		Room.Whitelist = RoomSettings.Whitelist;
 		Room.Blacklist = RoomSettings.Blacklist;
