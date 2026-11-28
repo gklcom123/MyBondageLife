@@ -573,6 +573,11 @@ void UMyBondageLifeColorPickerWidget::NativeTick(const FGeometry& MyGeometry, fl
 void UMyBondageLifeColorPickerWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+	// 统一尺寸：700 x 500，屏幕居中。
+	SetAnchorsInViewport(FAnchors(0.5f, 0.5f));
+	SetAlignmentInViewport(FVector2D(0.5f, 0.5f));
+	SetDesiredSizeInViewport(FVector2D(700.0f, 500.0f));
 	// 蓝图子类的控件树此时才可用：接管并按名字绑定。
 	EnsureWidgetsBound();
 }
