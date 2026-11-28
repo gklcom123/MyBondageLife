@@ -1477,7 +1477,6 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 		USkeletalMeshComponent* SocksMesh = SocksPtr ? SocksPtr->Get() : nullptr;
 		USkeletalMeshComponent* ShoesMesh = ShoesPtr ? ShoesPtr->Get() : nullptr;
 		if (SocksMesh && ShoesMesh)
-			UE_LOG(LogMyBondageLife, Log, TEXT("SockCopy: socks=%s shoes=%s"), SocksMesh ? *SocksMesh->GetName() : TEXT("null"), ShoesMesh ? *ShoesMesh->GetName() : TEXT("null"));
 		{
 			const TArray<FName> SockSlots = SocksMesh->GetMaterialSlotNames();
 			const TArray<FName> ShoeSlots = ShoesMesh->GetMaterialSlotNames();
@@ -1492,51 +1491,22 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 					continue;
 				}
 
-				const int32 ShoeMatIndex = ShoesMesh->GetMaterialIndex(SlotName);
-				const int32 SockIndex = SocksMesh->GetMaterialIndex(SlotName);
-				if (ShoeMatIndex == INDEX_NONE || SockIndex == INDEX_NONE) { continue; }
-				UE_LOG(LogMyBondageLife, Log, TEXT("SockCopy: shoeSlot=%s sockIndex=%d"), *SlotName.ToString(), SockSlots.IndexOfByKey(SlotName));
+				const int32 SockIndex = SockSlots.IndexOfByKey(SlotName);
 				if (SockIndex == INDEX_NONE) { continue; }
 
 				UMaterialInterface* SockMaterial = SocksMesh->GetMaterial(SockIndex);
 				if (!SockMaterial) { continue; }
 
-				// 用鞋子该槽自己的材质做底（保留鞋子 UV/遮罩），只把袜子的贴图参数搬过来。
-				UMaterialInterface* ShoeBase = (ShoeBaseMats && ShoeBaseMats->IsValidIndex(ShoeMatIndex)) ? (*ShoeBaseMats)[ShoeMatIndex].Get() : ShoesMesh->GetMaterial(ShoeMatIndex);
-				if (!ShoeBase)
+				ShoesMesh->SetMaterial(ShoeIndex, SockMaterial);
+				if (ShoeBaseMats && ShoeBaseMats->IsValidIndex(ShoeIndex))
 				{
-					ShoeBase = SockMaterial;
+					(*ShoeBaseMats)[ShoeIndex] = SockMaterial;
 				}
-
-				UMaterialInstanceDynamic* Copied = UMaterialInstanceDynamic::Create(ShoeBase, this);
-				if (!Copied)
-				{
-					continue;
-				}
-
-				static const FName TextureParams[] = {
-					TEXT("BaseColor"), TEXT("Albedo"), TEXT("Diffuse"),
-					TEXT("Normal"), TEXT("ORM"), TEXT("Mask"), TEXT("Opacity"), TEXT("Emissive"), TEXT("UV")
-				};
-				for (const FName& Param : TextureParams)
-				{
-					UTexture* Texture = nullptr;
-					if (SockMaterial->GetTextureParameterValue(FMaterialParameterInfo(Param), Texture) && Texture)
-					{
-						Copied->SetTextureParameterValue(Param, Texture);
-					}
-				}
-
-				ShoesMesh->SetMaterial(ShoeMatIndex, Copied);
-				UE_LOG(LogMyBondageLife, Log, TEXT("SockCopy: set %s matIndex=%d now=%s"), *SlotName.ToString(), ShoeMatIndex, ShoesMesh->GetMaterial(ShoeMatIndex) ? *ShoesMesh->GetMaterial(ShoeMatIndex)->GetName() : TEXT("null"));
-				if (ShoeBaseMats && ShoeBaseMats->IsValidIndex(ShoeMatIndex))
-				{
-					(*ShoeBaseMats)[ShoeMatIndex] = Copied;
-				}
-				UE_LOG(LogMyBondageLife, Log, TEXT("Outfit: copied %s material from socks to shoes"), *SlotName.ToString());
+				UE_LOG(LogMyBondageLife, Log, TEXT("SockCopy: %s shoeIdx=%d sockIdx=%d now=%s"), *SlotName.ToString(), ShoeIndex, SockIndex, ShoesMesh->GetMaterial(ShoeIndex) ? *ShoesMesh->GetMaterial(ShoeIndex)->GetName() : TEXT("null"));
 			}
 		}
 	}
+
 	ApplyBodyPartHiding();
 	// 隐藏之后，再把鞋子自己的 sock1/sock2 恢复成"袜子原本（已染色）的材质"，
 	// 避免拿到隐藏逻辑写入的透明材质。
