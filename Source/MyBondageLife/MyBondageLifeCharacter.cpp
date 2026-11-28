@@ -36,7 +36,8 @@
 #include "InputActionValue.h"
 #include "MyBondageLife.h"
 #include "MyBondageLifePlayerController.h"
-#include "Net/UnrealNetwork.h"
+#include "Net/UnrealNetwork.h"
+#include "Core/MyBondageLifeMakeupCatalog.h"
 
 namespace
 {
@@ -149,6 +150,7 @@ void AMyBondageLifeCharacter::SetCharacterIdentity(const FText& InCharacterName,
 	CreatedAtUnix = InCreatedAtUnix;
 	HeightScale = FMath::Clamp(InHeightScale, 0.5f, 2.0f);
 	HairIndex = InHairIndex > 0 ? InHairIndex : 1;
+	if (MakeupIndex <= 0) { MakeupIndex = 1; }
 
 	ApplyHeightScale();
 	ApplyHairStyle();
@@ -178,6 +180,7 @@ void AMyBondageLifeCharacter::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(AMyBondageLifeCharacter, OutfitSlots);
 	DOREPLIFETIME(AMyBondageLifeCharacter, OutfitItemIds);
 	DOREPLIFETIME(AMyBondageLifeCharacter, OutfitColorHex);
+	DOREPLIFETIME(AMyBondageLifeCharacter, MakeupIndex);
 	DOREPLIFETIME(AMyBondageLifeCharacter, LegBoundType);
 	DOREPLIFETIME(AMyBondageLifeCharacter, IgnoredRestraintSlots);
 	DOREPLIFETIME(AMyBondageLifeCharacter, AccountName);
@@ -2532,4 +2535,60 @@ void AMyBondageLifeCharacter::ClearRestraintColorsForUI(int32 Slot)
 {
 	RestraintColorHex.Remove(Slot);
 	ApplyRestraintColors();
+}
+
+void AMyBondageLifeCharacter::OnRep_MakeupIndex()
+{
+	ApplyMakeup();
+}
+
+void AMyBondageLifeCharacter::SetMakeupIndex(int32 NewMakeupIndex)
+{
+	const int32 Clamped = FMyBondageLifeMakeupCatalog::ClampId(NewMakeupIndex);
+	MakeupIndex = Clamped;
+	ApplyMakeup();
+}
+
+void AMyBondageLifeCharacter::ApplyMakeup()
+{
+	USkeletalMeshComponent* BodyMesh = GetMesh();
+	if (!BodyMesh)
+	{
+		return;
+	}
+
+	UTexture2D* FaceTexture = FMyBondageLifeMakeupCatalog::LoadFaceTexture(MakeupIndex);
+	if (!FaceTexture)
+	{
+		return;
+	}
+
+	static const FName MakeupParam(TEXT("Makeup"));
+	const int32 NumMaterials = BodyMesh->GetNumMaterials();
+	for (int32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
+	{
+		UMaterialInterface* Material = BodyMesh->GetMaterial(MaterialIndex);
+		if (!Material)
+		{
+			continue;
+		}
+
+		UTexture* Existing = nullptr;
+		if (!Material->GetTextureParameterValue(FMaterialParameterInfo(MakeupParam), Existing))
+		{
+			continue;
+		}
+
+		UMaterialInstanceDynamic* Mid = Cast<UMaterialInstanceDynamic>(Material);
+		if (!Mid)
+		{
+			Mid = UMaterialInstanceDynamic::Create(Material, this);
+			if (!Mid)
+			{
+				continue;
+			}
+			BodyMesh->SetMaterial(MaterialIndex, Mid);
+		}
+		Mid->SetTextureParameterValue(MakeupParam, FaceTexture);
+	}
 }

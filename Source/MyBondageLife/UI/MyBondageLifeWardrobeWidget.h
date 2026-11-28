@@ -244,6 +244,20 @@ protected:
 	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UButton> HairUpButton;
 
+	// 妆容
+	UPROPERTY(Transient)
+	TObjectPtr<UButton> MakeupDownButton;
+	UPROPERTY(Transient)
+	TObjectPtr<UButton> MakeupUpButton;
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> MakeupValueLabel;
+	int32 MakeupId = 1;
+
+	void StepMakeup(int32 Delta);
+	void RefreshMakeupLabel();
+	UFUNCTION() void HandleMakeupDownClicked();
+	UFUNCTION() void HandleMakeupUpClicked();
+
 	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UTextBlock> HairDownLabel;
 

@@ -87,6 +87,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Restraint")
 	void SetFurnitureIgnoredRestraintSlots(const TArray<uint8>& Slots) { SetIgnoredRestraintSlots(Slots); }
 
+	/** UI/控制器用：设置妆容编号。 */
+	void SetMakeupIndexPublic(int32 NewMakeupIndex) { SetMakeupIndex(NewMakeupIndex); }
+
 	/** UI 用：材质默认颜色。 */
 	FString GetOutfitDefaultColorHexForUI(int32 Slot, int32 Channel) const { return GetOutfitDefaultColorHex(Slot, Channel); }
 
@@ -430,6 +433,16 @@ protected:
 
 	UFUNCTION() void OnRep_LegBoundType();
 	void ApplyLegBoundType();
+
+	/** 妆容编号（DT_Makeup.ID）。 */
+	UPROPERTY(ReplicatedUsing = OnRep_MakeupIndex)
+	int32 MakeupIndex = 1;
+
+	UFUNCTION() void OnRep_MakeupIndex();
+	void ApplyMakeup();
+
+	UFUNCTION(BlueprintCallable, Category = "Appearance")
+	void SetMakeupIndex(int32 NewMakeupIndex);
 
 	/** DT_Restraint row names of the equipped items. */
 	UPROPERTY(Replicated, BlueprintReadOnly, Category="Restraint", meta = (AllowPrivateAccess = "true"))

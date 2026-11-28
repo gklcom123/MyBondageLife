@@ -289,6 +289,7 @@ struct FMyBondageLifeUserProfile
 	/** Hair style ID worn by this character. */
 	UPROPERTY(BlueprintReadOnly, Category = "Contract")
 	int32 HairIndex = 1;
+	int32 MakeupIndex = 1;
 
 	int32 SkinId = 1;
 
@@ -466,6 +467,12 @@ public:
 	/** Hair style ID stored for this account (1 based, matches DT_Hair ID). */
 	UFUNCTION(BlueprintPure, Category = "Account")
 	int32 GetHairIndex() const { return HairIndex; }
+
+	/** 当前妆容编号（DT_Makeup.ID）。 */
+	int32 GetMakeupIndex() const { return MakeupIndex; }
+
+	/** 保存妆容编号到服务端（PATCH /users/me/makeup）。 */
+	void RequestUpdateMakeup(int32 NewMakeupIndex);
 
 	/** PATCH /users/me - persists a new hair style and applies it locally. */
 	UFUNCTION(BlueprintCallable, Category = "Account")
@@ -729,6 +736,9 @@ public:
 	FMyBondageLifeHairChanged OnHairChanged;
 
 	UPROPERTY(BlueprintAssignable, Category = "Account")
+	FMyBondageLifeHairChanged OnMakeupChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Account")
 	FMyBondageLifeHeightChanged OnHeightChanged;
 
 	/** Character class as a player-facing label: 支配者 / 转换者 / 臣服者 / 奴隶. */
@@ -961,6 +971,7 @@ private:
 
 	/** Hair style ID from DT_Hair (1 based). */
 	int32 HairIndex = 1;
+	int32 MakeupIndex = 1;
 
 	int32 SkinId = 1;
 

@@ -261,6 +261,18 @@ bool UMyBondageLifeAccountSubsystem::ApplyAuthPayload(const TSharedPtr<FJsonObje
 	(*UserObject)->TryGetStringField(TEXT("account"), AccountName);
 	(*UserObject)->TryGetStringField(TEXT("characterName"), CharacterName);
 
+	{
+		double MakeupValue = 1.0;
+		if ((*UserObject)->TryGetNumberField(TEXT("makeupIndex"), MakeupValue))
+		{
+			MakeupIndex = FMath::Clamp(static_cast<int32>(MakeupValue), 1, 64);
+		}
+		else if (Payload->TryGetNumberField(TEXT("makeupIndex"), MakeupValue))
+		{
+			MakeupIndex = FMath::Clamp(static_cast<int32>(MakeupValue), 1, 64);
+		}
+	}
+
 	double ClassValue = 1.0;
 	if ((*UserObject)->TryGetNumberField(TEXT("characterClass"), ClassValue))
 	{
@@ -3627,5 +3639,35 @@ void UMyBondageLifeAccountSubsystem::RemoveSlaveQuest(const FString& SlaveAccoun
 			if (!Self) { return; }
 			UE_LOG(LogMyBondageLife, Log, TEXT("Quest: remove ok=%d status=%d"), bOk ? 1 : 0, StatusCode);
 			Self->RequestSlaveQuests(SlaveAccount);
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::RequestUpdateMakeup(int32 NewMakeupIndex)
+{
+	const int32 ClampedIndex = FMath::Clamp(NewMakeupIndex, 1, 64);
+
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetNumberField(TEXT("makeupIndex"), ClampedIndex);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+
+	SendFriendApiRequest(TEXT("PATCH"), TEXT("/users/me/makeup"), Body,
+		[WeakThis, ClampedIndex](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self)
+			{
+				return;
+			}
+
+			if (!bOk)
+			{
+				UE_LOG(LogMyBondageLife, Warning, TEXT("Makeup: update rejected (%d)."), StatusCode);
+				return;
+			}
+
+			Self->MakeupIndex = ClampedIndex;
+			Self->OnMakeupChanged.Broadcast(Self->MakeupIndex);
+			UE_LOG(LogMyBondageLife, Log, TEXT("Makeup: stored index %d."), Self->MakeupIndex);
 		});
 }

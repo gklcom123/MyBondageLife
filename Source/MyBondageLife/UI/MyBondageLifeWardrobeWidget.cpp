@@ -38,6 +38,8 @@
 #include "MyBondageLife.h"
 #include "UObject/ConstructorHelpers.h"
 
+#include "Core/MyBondageLifeMakeupCatalog.h"
+
 namespace
 {
 	// Canvas units are 1.5x the viewport pixels at the default UI scale.
@@ -439,6 +441,57 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 	SkinUpButton->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleSkinUpClicked);
 	SkinUpLabel = Cast<UTextBlock>(SkinUpButton->GetChildAt(0));
 
+	// --------------------------------------------------------- makeup row
+	UTextBlock* MakeupCaption = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+	MakeupCaption->SetText(FText::FromString(TEXT("\u5986\u5BB9\uFF1A")));
+	MakeupCaption->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
+	{
+		FSlateFontInfo CaptionFont = MakeupCaption->GetFont();
+		CaptionFont.Size = 28;
+		CaptionFont.FontObject = MyBondageLifeUI::LoadUIFont();
+		MakeupCaption->SetFont(CaptionFont);
+	}
+	if (UCanvasPanelSlot* MakeupCaptionSlot = BodyPage->AddChildToCanvas(MakeupCaption))
+	{
+		MakeupCaptionSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
+		MakeupCaptionSlot->SetAlignment(FVector2D(0.0f, 0.0f));
+		MakeupCaptionSlot->SetPosition(FVector2D(56.0f, 550.0f));
+		MakeupCaptionSlot->SetAutoSize(true);
+	}
+
+	MakeupDownButton = AddHairArrow(TEXT("<"), 180.0f);
+	if (UCanvasPanelSlot* MakeupDownSlot = Cast<UCanvasPanelSlot>(MakeupDownButton->GetParent()->Slot))
+	{
+		MakeupDownSlot->SetPosition(FVector2D(180.0f, 530.0f));
+	}
+	MakeupDownButton->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleMakeupDownClicked);
+
+	MakeupValueLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+	MakeupValueLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
+	MakeupValueLabel->SetJustification(ETextJustify::Center);
+	{
+		FSlateFontInfo ValueFont = MakeupValueLabel->GetFont();
+		ValueFont.Size = 28;
+		ValueFont.FontObject = MyBondageLifeUI::LoadUIFont();
+		MakeupValueLabel->SetFont(ValueFont);
+	}
+	if (UCanvasPanelSlot* MakeupValueSlot = BodyPage->AddChildToCanvas(MakeupValueLabel))
+	{
+		MakeupValueSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
+		MakeupValueSlot->SetAlignment(FVector2D(0.0f, 0.0f));
+		MakeupValueSlot->SetPosition(FVector2D(276.0f, 542.0f));
+		MakeupValueSlot->SetSize(FVector2D(170.0f, 44.0f));
+	}
+
+	MakeupUpButton = AddHairArrow(TEXT(">"), 470.0f);
+	if (UCanvasPanelSlot* MakeupUpSlot = Cast<UCanvasPanelSlot>(MakeupUpButton->GetParent()->Slot))
+	{
+		MakeupUpSlot->SetPosition(FVector2D(470.0f, 530.0f));
+	}
+	MakeupUpButton->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleMakeupUpClicked);
+
+	RefreshMakeupLabel();
+
 	RefreshSkinLabel();
 
 	SelectTab(0);
@@ -488,6 +541,10 @@ void UMyBondageLifeWardrobeWidget::NativeConstruct()
 	// Hair: start on the style stored on the account (falls back to the first row).
 	HairId = FMyBondageLifeHairCatalog::ClampId(Account ? Account->GetHairIndex() : 1);
 	RefreshHairLabel();
+
+	// 妆容：默认取账号上保存的编号。
+	MakeupId = FMyBondageLifeMakeupCatalog::ClampId(Account ? Account->GetMakeupIndex() : 1);
+	RefreshMakeupLabel();
 }
 
 void UMyBondageLifeWardrobeWidget::SelectTab(int32 TabIndex)
@@ -2195,6 +2252,35 @@ bool UMyBondageLifeWardrobeWidget::TryAdoptBlueprintLayout()
 	SkinValueLabel = FindEither<UTextBlock>(WidgetTree, TEXT("W_Skin_Value"), TEXT("SkinValueLabel"));
 	SkinDownButton = FindNamedButton(WidgetTree, TEXT("W_Skin_Down"), TEXT("SkinDownButton"));
 	SkinUpButton = FindNamedButton(WidgetTree, TEXT("W_Skin_Up"), TEXT("SkinUpButton"));
+
+	MakeupValueLabel = FindEither<UTextBlock>(WidgetTree, TEXT("W_Makeup_Value"), TEXT("MakeupValueLabel"));
+	MakeupDownButton = FindNamedButton(WidgetTree, TEXT("W_Makeup_Down"), TEXT("MakeupDownButton"));
+	MakeupUpButton = FindNamedButton(WidgetTree, TEXT("W_Makeup_Up"), TEXT("MakeupUpButton"));
+
+	if (!MakeupValueLabel && BodyPage)
+	{
+		UButton* Down = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
+		UTextBlock* DownText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		DownText->SetText(FText::FromString(TEXT("<")));
+		Down->AddChild(DownText);
+		if (UCanvasPanelSlot* S = BodyPage->AddChildToCanvas(Down)) { S->SetAnchors(FAnchors(0.0f,0.0f,0.0f,0.0f)); S->SetPosition(FVector2D(180.0f, 530.0f)); S->SetSize(FVector2D(64.0f,44.0f)); }
+		Down->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleMakeupDownClicked);
+		MakeupDownButton = Down;
+
+		UButton* Up = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
+		UTextBlock* UpText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		UpText->SetText(FText::FromString(TEXT(">")));
+		Up->AddChild(UpText);
+		if (UCanvasPanelSlot* S = BodyPage->AddChildToCanvas(Up)) { S->SetAnchors(FAnchors(0.0f,0.0f,0.0f,0.0f)); S->SetPosition(FVector2D(470.0f, 530.0f)); S->SetSize(FVector2D(64.0f,44.0f)); }
+		Up->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleMakeupUpClicked);
+		MakeupUpButton = Up;
+
+		UTextBlock* Value = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		Value->SetJustification(ETextJustify::Center);
+		if (UCanvasPanelSlot* S = BodyPage->AddChildToCanvas(Value)) { S->SetAnchors(FAnchors(0.0f,0.0f,0.0f,0.0f)); S->SetPosition(FVector2D(276.0f, 542.0f)); S->SetSize(FVector2D(170.0f,44.0f)); }
+		MakeupValueLabel = Value;
+		RefreshMakeupLabel();
+	}
 	if (SkinDownButton)
 	{
 		SkinDownButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleSkinDownClicked);
@@ -2249,6 +2335,8 @@ void UMyBondageLifeWardrobeWidget::WireAdoptedLayout()
 	if (UButton* Button = FindNamedButton(WidgetTree, TEXT("W_Hair_Up"), TEXT("HairUpButton")))
 	{
 		Button->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleHairUpClicked);
+	if (MakeupDownButton) { MakeupDownButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleMakeupDownClicked); }
+	if (MakeupUpButton) { MakeupUpButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleMakeupUpClicked); }
 	}
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("Wardrobe: adopted layout wired."));
@@ -2922,4 +3010,55 @@ bool UMyBondageLifeWardrobeWidget::CloseTopPopup()
 	}
 
 	return false;
+}
+
+void UMyBondageLifeWardrobeWidget::RefreshMakeupLabel()
+{
+	MakeupId = FMyBondageLifeMakeupCatalog::ClampId(MakeupId);
+	if (MakeupValueLabel)
+	{
+		const FMyBondageLifeMakeupItem* Item = FMyBondageLifeMakeupCatalog::Find(MakeupId);
+		const FString Text = (Item && !Item->Name.IsEmpty()) ? Item->Name : FString::Printf(TEXT("%d"), MakeupId);
+		MakeupValueLabel->SetText(FText::FromString(Text));
+	}
+
+	const int32 Prev = FMyBondageLifeMakeupCatalog::StepId(MakeupId, -1);
+	const int32 Next = FMyBondageLifeMakeupCatalog::StepId(MakeupId, 1);
+	if (MakeupDownButton) { MakeupDownButton->SetIsEnabled(Prev != MakeupId); }
+	if (MakeupUpButton) { MakeupUpButton->SetIsEnabled(Next != MakeupId); }
+}
+
+void UMyBondageLifeWardrobeWidget::StepMakeup(int32 Delta)
+{
+	const int32 NewId = FMyBondageLifeMakeupCatalog::StepId(MakeupId, Delta);
+	if (NewId == MakeupId)
+	{
+		return;
+	}
+
+	MakeupId = NewId;
+	RefreshMakeupLabel();
+
+	if (AMyBondageLifeCharacter* Character = Cast<AMyBondageLifeCharacter>(GetOwningPlayerPawn()))
+	{
+		Character->SetMakeupIndexPublic(NewId);
+	}
+
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
+		{
+			Account->RequestUpdateMakeup(NewId);
+		}
+	}
+}
+
+void UMyBondageLifeWardrobeWidget::HandleMakeupDownClicked()
+{
+	StepMakeup(-1);
+}
+
+void UMyBondageLifeWardrobeWidget::HandleMakeupUpClicked()
+{
+	StepMakeup(1);
 }
