@@ -27,10 +27,8 @@ TSharedRef<SWidget> UMyBondageLifeHostInfoWidget::RebuildWidget()
 	}
 
 	const bool bPureCPP = GetClass() == UMyBondageLifeHostInfoWidget::StaticClass();
-	if (bPureCPP && WidgetTree && !WidgetTree->RootWidget)
-	{
-		BuildLayout();
-	}
+	// 不再生成代码 UI：文本由主 HUD 的 W_RoomInfoHost_Text 提供。
+	(void)bPureCPP;
 
 	return Super::RebuildWidget();
 }

@@ -21,6 +21,9 @@ public:
 
 	UMyBondageLifeHostInfoWidget(const FObjectInitializer& ObjectInitializer);
 
+	/** 由 PlayerController 传入主 HUD 里的 W_RoomInfoHost_Text。 */
+	void SetExternalLabel(UTextBlock* InLabel) { InfoLabel = InLabel; }
+
 protected:
 
 	virtual TSharedRef<SWidget> RebuildWidget() override;

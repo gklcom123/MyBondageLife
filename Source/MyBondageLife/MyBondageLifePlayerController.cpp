@@ -216,6 +216,13 @@ void AMyBondageLifePlayerController::ShowHostInfo()
 	HostInfoWidget = CreateWidget<UMyBondageLifeHostInfoWidget>(this, HostInfoWidgetClass);
 	if (HostInfoWidget)
 	{
+		if (MainHudWidget && MainHudWidget->WidgetTree)
+		{
+			if (UTextBlock* RoomText = Cast<UTextBlock>(MainHudWidget->WidgetTree->FindWidget(TEXT("W_RoomInfoHost_Text"))))
+			{
+				HostInfoWidget->SetExternalLabel(RoomText);
+			}
+		}
 		if (!HostInMainHud(TEXT("W_RoomInfoHost"), HostInfoWidget))
 		{
 			HostInfoWidget->AddToViewport(HostInfoZOrder);
