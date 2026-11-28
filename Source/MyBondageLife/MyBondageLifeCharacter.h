@@ -89,6 +89,19 @@ public:
 
 	/** UI 用：材质默认颜色。 */
 	FString GetOutfitDefaultColorHexForUI(int32 Slot, int32 Channel) const { return GetOutfitDefaultColorHex(Slot, Channel); }
+
+	/** UI 用：当前实际应用的染色（角色复制数据）。 */
+	FString GetAppliedOutfitColorHexForUI(int32 Slot, int32 Channel) const
+	{
+		const int32 Index = Slot * 3 + (Channel - 1);
+		return OutfitColorHex.IsValidIndex(Index) ? OutfitColorHex[Index] : FString();
+	}
+
+	FString GetAppliedRestraintColorHexForUI(int32 Slot, int32 Channel) const
+	{
+		const TMap<int32, FString>* Channels = RestraintColorHex.Find(Slot);
+		return (Channels && Channels->Contains(Channel)) ? Channels->FindRef(Channel) : FString();
+	}
 	FString GetRestraintDefaultColorHexForUI(int32 Slot, int32 Channel) const { return GetRestraintDefaultColorHex(Slot, Channel); }
 
 protected:

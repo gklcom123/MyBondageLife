@@ -91,6 +91,13 @@ void UMyBondageLifeColorPickerWidget::BuildLayout()
 
 	UVerticalBox* Column = Cast<UVerticalBox>(RootPanel ? RootPanel->GetContent() : nullptr);
 
+	// 采纳 WBP 里已有的控件（设计版调色板），否则下面的 if 分支会自建。
+	if (!HueSlider) { HueSlider = Cast<USlider>(WidgetTree->FindWidget(TEXT("W_ColorPicker_Hue"))); }
+	if (!SaturationSlider) { SaturationSlider = Cast<USlider>(WidgetTree->FindWidget(TEXT("W_ColorPicker_Saturation"))); }
+	if (!ValueSlider) { ValueSlider = Cast<USlider>(WidgetTree->FindWidget(TEXT("W_ColorPicker_Value"))); }
+	if (!HexBox) { HexBox = Cast<UEditableTextBox>(WidgetTree->FindWidget(TEXT("W_ColorPicker_Hex"))); }
+	if (!PreviewImage) { PreviewImage = Cast<UImage>(WidgetTree->FindWidget(TEXT("W_ColorPicker_Preview"))); }
+
 	auto AddRow = [this, Column](const FString& Label, TFunction<UWidget*(UWidgetTree*)> MakeWidget)
 	{
 		if (!Column)
