@@ -296,7 +296,6 @@ void UMyBondageLifeColorPickerWidget::OpenForColor(int32 InSlot, int32 InChannel
 		Hue = Hsv.R;
 		Saturation = Hsv.G;
 		Brightness = Hsv.B;
-		Hue *= 360.0f;
 		PendingColor = Color;
 	}
 
@@ -394,7 +393,6 @@ void UMyBondageLifeColorPickerWidget::HandleHexCommitted(const FText& Text, ETex
 		Hue = Hsv.R;
 		Saturation = Hsv.G;
 		Brightness = Hsv.B;
-		Hue *= 360.0f;
 		PendingColor = Color;
 		RefreshPreview();
 	}
