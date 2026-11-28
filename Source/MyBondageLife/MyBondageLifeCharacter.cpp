@@ -1325,6 +1325,12 @@ void AMyBondageLifeCharacter::ApplyBodyPartHiding()
 					if (bHideSlot)
 					{
 						OutfitMesh->SetMaterial(MatIndex, HiddenBodyMaterial.Get());
+						// 记录被隐藏前的可见材质（含染色），供袜子->鞋子复制使用。
+						if (BaseMats && BaseMats->IsValidIndex(MatIndex) && OutfitMesh->GetMaterial(MatIndex) != HiddenBodyMaterial.Get())
+						{
+							(*BaseMats)[MatIndex] = OutfitMesh->GetMaterial(MatIndex);
+						}
+						OutfitMesh->SetMaterial(MatIndex, HiddenBodyMaterial.Get());
 					}
 					else if (OutfitMesh->GetMaterial(MatIndex) == HiddenBodyMaterial.Get())
 					{
@@ -1494,7 +1500,13 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 				const int32 SockIndex = SockSlots.IndexOfByKey(SlotName);
 				if (SockIndex == INDEX_NONE) { continue; }
 
+				TArray<TObjectPtr<UMaterialInterface>>* SockBaseMats = OutfitBaseMaterials.Find(SocksMesh);
 				UMaterialInterface* SockMaterial = SocksMesh->GetMaterial(SockIndex);
+				if (SockBaseMats && SockBaseMats->IsValidIndex(SockIndex) && (*SockBaseMats)[SockIndex])
+				{
+					// 优先用"隐藏前的可见材质"，避免复制到透明材质。
+					SockMaterial = (*SockBaseMats)[SockIndex].Get();
+				}
 				if (!SockMaterial) { continue; }
 
 				ShoesMesh->SetMaterial(ShoeIndex, SockMaterial);
