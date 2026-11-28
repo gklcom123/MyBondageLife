@@ -17,6 +17,7 @@
 #include "Core/MyBondageLifeAccountSubsystem.h"
 #include "MyBondageLife.h"
 #include "UI/MyBondageLifeUIStyle.h"
+#include "UI/MyBondageLifeSettingsWidget.h"
 
 namespace
 {
@@ -734,5 +735,24 @@ void UMyBondageLifeLoginWidget::RefreshOnlineCount()
 				}
 			}
 		});
+	}
+}
+
+void UMyBondageLifeLoginWidget::HandleSettingsClicked()
+{
+	if (!SettingsWidget)
+	{
+		APlayerController* OwnerPC = GetOwningPlayer();
+		if (!OwnerPC && GetGameInstance()) { OwnerPC = GetGameInstance()->GetFirstLocalPlayerController(); }
+		SettingsWidget = CreateWidget<UMyBondageLifeSettingsWidget>(OwnerPC, UMyBondageLifeSettingsWidget::StaticClass());
+		if (SettingsWidget)
+		{
+			SettingsWidget->AddToViewport(600);
+		}
+	}
+
+	if (SettingsWidget)
+	{
+		SettingsWidget->TogglePanel();
 	}
 }

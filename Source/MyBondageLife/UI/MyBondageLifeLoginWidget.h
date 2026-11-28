@@ -89,6 +89,12 @@ protected:
 	void HandleBackToLoginClicked();
 
 	UFUNCTION()
+	void HandleSettingsClicked();
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UMyBondageLifeSettingsWidget> SettingsWidget;
+
+	UFUNCTION()
 	void HandleClass1Clicked();
 
 	UFUNCTION()
