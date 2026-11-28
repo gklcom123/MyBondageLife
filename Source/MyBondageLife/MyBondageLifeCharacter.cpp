@@ -1,5 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
+#pragma warning(disable : 4702)
 #include "MyBondageLifeCharacter.h"
 
 
@@ -2827,9 +2828,11 @@ void AMyBondageLifeCharacter::ApplyBodyProportions()
 	{
 		if (FStructProperty* StructProperty = CastField<FStructProperty>(Anim->GetClass()->FindPropertyByName(Name)))
 		{
-			if (StructProperty->Struct == TBaseStructure<FVector>::Get())
+			if (FVector* Target = StructProperty->ContainerPtrToValuePtr<FVector>(Anim))
 			{
-				*StructProperty->ContainerPtrToValuePtr<FVector>(Anim) = Value;
+				Target->X = Value.X;
+				Target->Y = Value.Y;
+				Target->Z = Value.Z;
 			}
 		}
 	};
