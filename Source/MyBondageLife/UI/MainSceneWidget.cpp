@@ -826,6 +826,11 @@ void UMainSceneWidget::JoinRoomByIndex(int32 RoomIndex)
 		}
 		return;
 	}
+	if (UMyBondageLifeSessionSubsystem* S = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeSessionSubsystem>() : nullptr)
+	{
+		int32 ModeValue = Room.VisitMode == TEXT("admin") ? 1 : (Room.VisitMode == TEXT("admin_whitelist") ? 2 : 0);
+		S->SetRoomDisplayMeta(Room.Language, ModeValue);
+	}
 	Rooms->JoinRoom(Room.RoomId);
 }
 
@@ -1585,6 +1590,11 @@ void UMainSceneWidget::HandleOnlineRoomPasswordConfirmed(const FString& Password
 		const FMyBondageLifeServerRoom Room = DisplayedRooms[PendingOnlineRoomIndex];
 		if (UMyBondageLifeRoomSubsystem* Rooms = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeRoomSubsystem>() : nullptr)
 		{
+			if (UMyBondageLifeSessionSubsystem* S = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMyBondageLifeSessionSubsystem>() : nullptr)
+			{
+				int32 ModeValue = Room.VisitMode == TEXT("admin") ? 1 : (Room.VisitMode == TEXT("admin_whitelist") ? 2 : 0);
+				S->SetRoomDisplayMeta(Room.Language, ModeValue);
+			}
 			Rooms->JoinRoom(Room.RoomId, Password);
 		}
 	}

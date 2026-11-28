@@ -98,6 +98,11 @@ public:
 	UFUNCTION(BlueprintPure, Category = "LAN|Session")
 	int32 GetMaxPlayers() const { return MaxPlayers; }
 
+	/** 房间展示用：语言与访问模式。 */
+	void SetRoomDisplayMeta(const FString& InLanguage, int32 InVisitMode) { RoomLanguage = InLanguage; RoomVisitMode = InVisitMode; }
+	FString GetRoomLanguage() const { return RoomLanguage; }
+	int32 GetRoomVisitMode() const { return RoomVisitMode; }
+
 	/** Best guess at this machine's LAN IPv4 address; falls back to 127.0.0.1. */
 	static FString ResolveLocalIPv4();
 
@@ -135,6 +140,8 @@ private:
 	FString HostIp;
 	int32 GamePort = DefaultGamePort;
 	int32 MaxPlayers = DefaultMaxPlayers;
+	FString RoomLanguage = TEXT("zh");
+	int32 RoomVisitMode = 0;
 
 	FString PendingHostPuid;
 	FString PendingMapName;

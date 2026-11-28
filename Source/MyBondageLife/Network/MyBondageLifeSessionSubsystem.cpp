@@ -113,6 +113,7 @@ bool UMyBondageLifeSessionSubsystem::HostRoom(const FString& InRoomName)
 
 bool UMyBondageLifeSessionSubsystem::JoinRoom(const FMyBondageLifeRoomInfo& Room)
 {
+	SetRoomDisplayMeta(Room.Language, Room.VisitMode);
 	UGameInstance* GameInstance = GetGameInstance();
 	if (!GameInstance)
 	{

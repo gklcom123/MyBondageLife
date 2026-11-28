@@ -105,10 +105,21 @@ void UMyBondageLifeHostInfoWidget::RefreshInfo()
 	else
 	{
 		// "<角色名>的房间   |   2/8": the endpoint stays hidden, the player count remains.
-		Text = FString::Printf(TEXT("%s   |   %d/%d"),
+		FString LanguageText = TEXT("\u4E2D\u6587");
+		if (Session->GetRoomLanguage() == TEXT("en")) { LanguageText = TEXT("English"); }
+		else if (Session->GetRoomLanguage() == TEXT("ko")) { LanguageText = TEXT("\uD55C\uAD6D\uC5B4"); }
+		else if (Session->GetRoomLanguage() == TEXT("ja")) { LanguageText = TEXT("\u65E5\u672C\u8A9E"); }
+
+		FString ModeText = TEXT("\u516C\u5F00");
+		if (Session->GetRoomVisitMode() == 1) { ModeText = TEXT("\u4EC5\u7BA1\u7406\u5458"); }
+		else if (Session->GetRoomVisitMode() == 2) { ModeText = TEXT("\u7BA1\u7406\u5458+\u767D\u540D\u5355"); }
+
+		Text = FString::Printf(TEXT("%s   |   %d/%d   |   %s   |   %s"),
 			*Session->GetRoomName(),
 			Session->GetPlayerCount(),
-			Session->GetMaxPlayers());
+			Session->GetMaxPlayers(),
+			*LanguageText,
+			*ModeText);
 	}
 
 	// Only touch the text when it actually changed, which happens when someone
