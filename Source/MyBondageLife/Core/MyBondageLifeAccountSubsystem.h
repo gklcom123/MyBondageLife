@@ -290,6 +290,7 @@ struct FMyBondageLifeUserProfile
 	UPROPERTY(BlueprintReadOnly, Category = "Contract")
 	int32 HairIndex = 1;
 	int32 MakeupIndex = 1;
+	int32 EyeIndex = 1;
 
 	int32 SkinId = 1;
 
@@ -473,6 +474,12 @@ public:
 
 	/** 保存妆容编号到服务端（PATCH /users/me/makeup）。 */
 	void RequestUpdateMakeup(int32 NewMakeupIndex);
+
+	/** 当前眼睛编号（DT_Eye.ID）。 */
+	int32 GetEyeIndex() const { return EyeIndex; }
+
+	/** 保存眼睛编号到服务端（PATCH /users/me/eye）。 */
+	void RequestUpdateEye(int32 NewEyeIndex);
 
 	/** PATCH /users/me - persists a new hair style and applies it locally. */
 	UFUNCTION(BlueprintCallable, Category = "Account")
@@ -737,6 +744,7 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Account")
 	FMyBondageLifeHairChanged OnMakeupChanged;
+	FMyBondageLifeHairChanged OnEyeChanged;
 
 	UPROPERTY(BlueprintAssignable, Category = "Account")
 	FMyBondageLifeHeightChanged OnHeightChanged;
@@ -972,6 +980,7 @@ private:
 	/** Hair style ID from DT_Hair (1 based). */
 	int32 HairIndex = 1;
 	int32 MakeupIndex = 1;
+	int32 EyeIndex = 1;
 
 	int32 SkinId = 1;
 

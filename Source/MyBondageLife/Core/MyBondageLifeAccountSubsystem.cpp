@@ -271,6 +271,12 @@ bool UMyBondageLifeAccountSubsystem::ApplyAuthPayload(const TSharedPtr<FJsonObje
 		{
 			MakeupIndex = FMath::Clamp(static_cast<int32>(MakeupValue), 1, 64);
 		}
+
+		double EyeValue = 1.0;
+		if ((*UserObject)->TryGetNumberField(TEXT("eyeIndex"), EyeValue) || Payload->TryGetNumberField(TEXT("eyeIndex"), EyeValue))
+		{
+			EyeIndex = FMath::Clamp(static_cast<int32>(EyeValue), 1, 64);
+		}
 	}
 
 	double ClassValue = 1.0;
@@ -3669,5 +3675,28 @@ void UMyBondageLifeAccountSubsystem::RequestUpdateMakeup(int32 NewMakeupIndex)
 			Self->MakeupIndex = ClampedIndex;
 			Self->OnMakeupChanged.Broadcast(Self->MakeupIndex);
 			UE_LOG(LogMyBondageLife, Log, TEXT("Makeup: stored index %d."), Self->MakeupIndex);
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::RequestUpdateEye(int32 NewEyeIndex)
+{
+	const int32 ClampedIndex = FMath::Clamp(NewEyeIndex, 1, 64);
+
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetNumberField(TEXT("eyeIndex"), ClampedIndex);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	SendFriendApiRequest(TEXT("PATCH"), TEXT("/users/me/eye"), Body,
+		[WeakThis, ClampedIndex](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self) { return; }
+			if (!bOk)
+			{
+				UE_LOG(LogMyBondageLife, Warning, TEXT("Eye: update rejected (%d)."), StatusCode);
+				return;
+			}
+			Self->EyeIndex = ClampedIndex;
+			Self->OnEyeChanged.Broadcast(Self->EyeIndex);
 		});
 }

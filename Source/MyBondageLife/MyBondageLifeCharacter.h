@@ -89,6 +89,7 @@ public:
 
 	/** UI/控制器用：设置妆容编号。 */
 	void SetMakeupIndexPublic(int32 NewMakeupIndex) { SetMakeupIndex(NewMakeupIndex); }
+	void SetEyeIndexPublic(int32 NewEyeIndex) { SetEyeIndex(NewEyeIndex); }
 
 	/** UI 用：材质默认颜色。 */
 	FString GetOutfitDefaultColorHexForUI(int32 Slot, int32 Channel) const { return GetOutfitDefaultColorHex(Slot, Channel); }
@@ -443,6 +444,14 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category = "Appearance")
 	void SetMakeupIndex(int32 NewMakeupIndex);
+
+	/** 眼睛编号（DT_Eye.ID）。 */
+	UPROPERTY(ReplicatedUsing = OnRep_EyeIndex)
+	int32 EyeIndex = 1;
+
+	UFUNCTION() void OnRep_EyeIndex();
+	void ApplyEye();
+	void SetEyeIndex(int32 NewEyeIndex);
 
 	/** DT_Restraint row names of the equipped items. */
 	UPROPERTY(Replicated, BlueprintReadOnly, Category="Restraint", meta = (AllowPrivateAccess = "true"))

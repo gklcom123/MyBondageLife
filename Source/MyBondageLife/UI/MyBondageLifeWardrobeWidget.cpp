@@ -40,6 +40,8 @@
 
 #include "Core/MyBondageLifeMakeupCatalog.h"
 
+#include "Core/MyBondageLifeEyeCatalog.h"
+
 namespace
 {
 	// Canvas units are 1.5x the viewport pixels at the default UI scale.
@@ -492,6 +494,55 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 
 	RefreshMakeupLabel();
 
+	// ------------------------------------------------------------ eye row
+	UTextBlock* EyeCaption = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+	EyeCaption->SetText(FText::FromString(TEXT("\u773C\u775B\uFF1A")));
+	EyeCaption->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
+	{
+		FSlateFontInfo CaptionFont = EyeCaption->GetFont();
+		CaptionFont.Size = 28;
+		CaptionFont.FontObject = MyBondageLifeUI::LoadUIFont();
+		EyeCaption->SetFont(CaptionFont);
+	}
+	if (UCanvasPanelSlot* EyeCaptionSlot = BodyPage->AddChildToCanvas(EyeCaption))
+	{
+		EyeCaptionSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
+		EyeCaptionSlot->SetPosition(FVector2D(56.0f, 650.0f));
+		EyeCaptionSlot->SetAutoSize(true);
+	}
+
+	EyeDownButton = AddHairArrow(TEXT("<"), 180.0f);
+	if (UCanvasPanelSlot* EyeDownSlot = Cast<UCanvasPanelSlot>(EyeDownButton->GetParent()->Slot))
+	{
+		EyeDownSlot->SetPosition(FVector2D(180.0f, 630.0f));
+	}
+	EyeDownButton->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleEyeDownClicked);
+
+	EyeValueLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+	EyeValueLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f)));
+	EyeValueLabel->SetJustification(ETextJustify::Center);
+	{
+		FSlateFontInfo ValueFont = EyeValueLabel->GetFont();
+		ValueFont.Size = 28;
+		ValueFont.FontObject = MyBondageLifeUI::LoadUIFont();
+		EyeValueLabel->SetFont(ValueFont);
+	}
+	if (UCanvasPanelSlot* EyeValueSlot = BodyPage->AddChildToCanvas(EyeValueLabel))
+	{
+		EyeValueSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
+		EyeValueSlot->SetPosition(FVector2D(276.0f, 642.0f));
+		EyeValueSlot->SetSize(FVector2D(170.0f, 44.0f));
+	}
+
+	EyeUpButton = AddHairArrow(TEXT(">"), 470.0f);
+	if (UCanvasPanelSlot* EyeUpSlot = Cast<UCanvasPanelSlot>(EyeUpButton->GetParent()->Slot))
+	{
+		EyeUpSlot->SetPosition(FVector2D(470.0f, 630.0f));
+	}
+	EyeUpButton->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleEyeUpClicked);
+
+	RefreshEyeLabel();
+
 	RefreshSkinLabel();
 
 	SelectTab(0);
@@ -545,6 +596,9 @@ void UMyBondageLifeWardrobeWidget::NativeConstruct()
 	// 妆容：默认取账号上保存的编号。
 	MakeupId = FMyBondageLifeMakeupCatalog::ClampId(Account ? Account->GetMakeupIndex() : 1);
 	RefreshMakeupLabel();
+
+	EyeId = FMyBondageLifeEyeCatalog::ClampId(Account ? Account->GetEyeIndex() : 1);
+	RefreshEyeLabel();
 }
 
 void UMyBondageLifeWardrobeWidget::SelectTab(int32 TabIndex)
@@ -2257,6 +2311,10 @@ bool UMyBondageLifeWardrobeWidget::TryAdoptBlueprintLayout()
 	MakeupDownButton = FindNamedButton(WidgetTree, TEXT("W_Makeup_Down"), TEXT("MakeupDownButton"));
 	MakeupUpButton = FindNamedButton(WidgetTree, TEXT("W_Makeup_Up"), TEXT("MakeupUpButton"));
 
+	EyeValueLabel = FindEither<UTextBlock>(WidgetTree, TEXT("W_Eye_Value"), TEXT("EyeValueLabel"));
+	EyeDownButton = FindNamedButton(WidgetTree, TEXT("W_Eye_Down"), TEXT("EyeDownButton"));
+	EyeUpButton = FindNamedButton(WidgetTree, TEXT("W_Eye_Up"), TEXT("EyeUpButton"));
+
 	if (!MakeupValueLabel && BodyPage)
 	{
 		UButton* Down = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
@@ -2337,6 +2395,8 @@ void UMyBondageLifeWardrobeWidget::WireAdoptedLayout()
 		Button->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleHairUpClicked);
 	if (MakeupDownButton) { MakeupDownButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleMakeupDownClicked); }
 	if (MakeupUpButton) { MakeupUpButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleMakeupUpClicked); }
+	if (EyeDownButton) { EyeDownButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleEyeDownClicked); }
+	if (EyeUpButton) { EyeUpButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleEyeUpClicked); }
 	}
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("Wardrobe: adopted layout wired."));
@@ -3061,4 +3121,55 @@ void UMyBondageLifeWardrobeWidget::HandleMakeupDownClicked()
 void UMyBondageLifeWardrobeWidget::HandleMakeupUpClicked()
 {
 	StepMakeup(1);
+}
+
+void UMyBondageLifeWardrobeWidget::RefreshEyeLabel()
+{
+	EyeId = FMyBondageLifeEyeCatalog::ClampId(EyeId);
+	if (EyeValueLabel)
+	{
+		const FMyBondageLifeEyeItem* Item = FMyBondageLifeEyeCatalog::Find(EyeId);
+		const FString Text = (Item && !Item->Name.IsEmpty()) ? Item->Name : FString::Printf(TEXT("%d"), EyeId);
+		EyeValueLabel->SetText(FText::FromString(Text));
+	}
+
+	const int32 Prev = FMyBondageLifeEyeCatalog::StepId(EyeId, -1);
+	const int32 Next = FMyBondageLifeEyeCatalog::StepId(EyeId, 1);
+	if (EyeDownButton) { EyeDownButton->SetIsEnabled(Prev != EyeId); }
+	if (EyeUpButton) { EyeUpButton->SetIsEnabled(Next != EyeId); }
+}
+
+void UMyBondageLifeWardrobeWidget::StepEye(int32 Delta)
+{
+	const int32 NewId = FMyBondageLifeEyeCatalog::StepId(EyeId, Delta);
+	if (NewId == EyeId)
+	{
+		return;
+	}
+
+	EyeId = NewId;
+	RefreshEyeLabel();
+
+	if (AMyBondageLifeCharacter* Character = Cast<AMyBondageLifeCharacter>(GetOwningPlayerPawn()))
+	{
+		Character->SetEyeIndexPublic(NewId);
+	}
+
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
+		{
+			Account->RequestUpdateEye(NewId);
+		}
+	}
+}
+
+void UMyBondageLifeWardrobeWidget::HandleEyeDownClicked()
+{
+	StepEye(-1);
+}
+
+void UMyBondageLifeWardrobeWidget::HandleEyeUpClicked()
+{
+	StepEye(1);
 }

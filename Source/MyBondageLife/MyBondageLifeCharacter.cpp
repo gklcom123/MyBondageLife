@@ -38,6 +38,7 @@
 #include "MyBondageLifePlayerController.h"
 #include "Net/UnrealNetwork.h"
 #include "Core/MyBondageLifeMakeupCatalog.h"
+#include "Core/MyBondageLifeEyeCatalog.h"
 
 namespace
 {
@@ -181,6 +182,7 @@ void AMyBondageLifeCharacter::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(AMyBondageLifeCharacter, OutfitItemIds);
 	DOREPLIFETIME(AMyBondageLifeCharacter, OutfitColorHex);
 	DOREPLIFETIME(AMyBondageLifeCharacter, MakeupIndex);
+	DOREPLIFETIME(AMyBondageLifeCharacter, EyeIndex);
 	DOREPLIFETIME(AMyBondageLifeCharacter, LegBoundType);
 	DOREPLIFETIME(AMyBondageLifeCharacter, IgnoredRestraintSlots);
 	DOREPLIFETIME(AMyBondageLifeCharacter, AccountName);
@@ -2590,5 +2592,65 @@ void AMyBondageLifeCharacter::ApplyMakeup()
 			BodyMesh->SetMaterial(MaterialIndex, Mid);
 		}
 		Mid->SetTextureParameterValue(MakeupParam, FaceTexture);
+	}
+}
+
+void AMyBondageLifeCharacter::OnRep_EyeIndex()
+{
+	ApplyEye();
+}
+
+void AMyBondageLifeCharacter::SetEyeIndex(int32 NewEyeIndex)
+{
+	EyeIndex = FMyBondageLifeEyeCatalog::ClampId(NewEyeIndex);
+	ApplyEye();
+}
+
+void AMyBondageLifeCharacter::ApplyEye()
+{
+	USkeletalMeshComponent* BodyMesh = GetMesh();
+	if (!BodyMesh)
+	{
+		return;
+	}
+
+	UTexture2D* BaseColor = FMyBondageLifeEyeCatalog::LoadBaseColor(EyeIndex);
+	UTexture2D* Emissive = FMyBondageLifeEyeCatalog::LoadEmissive(EyeIndex);
+	UTexture2D* UV = FMyBondageLifeEyeCatalog::LoadUV(EyeIndex);
+	if (!BaseColor && !Emissive && !UV)
+	{
+		return;
+	}
+
+	static const FName BaseColorParam(TEXT("BaseColor"));
+	static const FName EmissiveParam(TEXT("Emissive"));
+	static const FName UVParam(TEXT("UV"));
+
+	TArray<FName> SlotNames = BodyMesh->GetMaterialSlotNames();
+	for (int32 MaterialIndex = 0; MaterialIndex < BodyMesh->GetNumMaterials(); ++MaterialIndex)
+	{
+		const FName SlotName = SlotNames.IsValidIndex(MaterialIndex) ? SlotNames[MaterialIndex] : NAME_None;
+		if (!SlotName.ToString().Contains(TEXT("iri_a"), ESearchCase::IgnoreCase))
+		{
+			continue;
+		}
+
+		UMaterialInterface* Material = BodyMesh->GetMaterial(MaterialIndex);
+		if (!Material)
+		{
+			continue;
+		}
+
+		UMaterialInstanceDynamic* Mid = Cast<UMaterialInstanceDynamic>(Material);
+		if (!Mid)
+		{
+			Mid = UMaterialInstanceDynamic::Create(Material, this);
+			if (!Mid) { continue; }
+			BodyMesh->SetMaterial(MaterialIndex, Mid);
+		}
+
+		if (BaseColor) { Mid->SetTextureParameterValue(BaseColorParam, BaseColor); }
+		if (Emissive) { Mid->SetTextureParameterValue(EmissiveParam, Emissive); }
+		if (UV) { Mid->SetTextureParameterValue(UVParam, UV); }
 	}
 }

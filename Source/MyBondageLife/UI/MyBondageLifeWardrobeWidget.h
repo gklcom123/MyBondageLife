@@ -258,6 +258,20 @@ protected:
 	UFUNCTION() void HandleMakeupDownClicked();
 	UFUNCTION() void HandleMakeupUpClicked();
 
+	// 眼睛
+	UPROPERTY(Transient)
+	TObjectPtr<UButton> EyeDownButton;
+	UPROPERTY(Transient)
+	TObjectPtr<UButton> EyeUpButton;
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> EyeValueLabel;
+	int32 EyeId = 1;
+
+	void StepEye(int32 Delta);
+	void RefreshEyeLabel();
+	UFUNCTION() void HandleEyeDownClicked();
+	UFUNCTION() void HandleEyeUpClicked();
+
 	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UTextBlock> HairDownLabel;
 
