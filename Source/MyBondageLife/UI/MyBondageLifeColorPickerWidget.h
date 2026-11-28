@@ -57,6 +57,7 @@ protected:
 	UFUNCTION() void HandleHexChanged(const FText& Text);
 
 	bool bUpdatingHex = false;
+	bool bUpdatingSliders = false;
 	UFUNCTION() void HandleConfirmClicked();
 	UFUNCTION() void HandleCancelClicked();
 	UFUNCTION() void HandleCloseClicked();

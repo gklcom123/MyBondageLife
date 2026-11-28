@@ -308,6 +308,7 @@ void UMyBondageLifeColorPickerWidget::OpenForColor(int32 InSlot, int32 InChannel
 		Hue *= 360.0f;
 	}
 
+	bUpdatingSliders = true;
 	if (HueSlider) { HueSlider->SetValue(Hue / 360.0f); }
 	if (HexColor.Len() != 7 || !HexColor.StartsWith(TEXT("#")))
 	{
@@ -321,6 +322,7 @@ void UMyBondageLifeColorPickerWidget::OpenForColor(int32 InSlot, int32 InChannel
 	}
 	if (SaturationSlider) { SaturationSlider->SetValue(Saturation); }
 	if (ValueSlider) { ValueSlider->SetValue(Brightness); }
+	bUpdatingSliders = false;
 
 	RefreshPreview();
 	SetVisibility(ESlateVisibility::Visible);
@@ -345,7 +347,8 @@ void UMyBondageLifeColorPickerWidget::RefreshPreview()
 
 	if (PreviewImage)
 	{
-		PreviewImage->SetColorAndOpacity(Color);
+		FSlateBrush Brush = FSlateColorBrush(Color);
+		PreviewImage->SetBrush(Brush);
 	}
 	if (HexBox)
 	{
@@ -355,18 +358,21 @@ void UMyBondageLifeColorPickerWidget::RefreshPreview()
 
 void UMyBondageLifeColorPickerWidget::HandleHueChanged(float Value)
 {
+	if (bUpdatingSliders) { return; }
 	Hue = FMath::Clamp(Value, 0.0f, 1.0f) * 360.0f;
 	RefreshPreview();
 }
 
 void UMyBondageLifeColorPickerWidget::HandleSaturationChanged(float Value)
 {
+	if (bUpdatingSliders) { return; }
 	Saturation = FMath::Clamp(Value, 0.0f, 1.0f);
 	RefreshPreview();
 }
 
 void UMyBondageLifeColorPickerWidget::HandleValueChanged(float Value)
 {
+	if (bUpdatingSliders) { return; }
 	Brightness = FMath::Clamp(Value, 0.0f, 1.0f);
 	RefreshPreview();
 }
@@ -441,6 +447,7 @@ void UMyBondageLifeColorPickerWidget::HandleHexChanged(const FText& Text)
 
 	if (SaturationSlider) { SaturationSlider->SetValue(Saturation); }
 	if (ValueSlider) { ValueSlider->SetValue(Brightness); }
+	bUpdatingSliders = false;
 	if (PreviewImage) { PreviewImage->SetColorAndOpacity(Color); }
 	bUpdatingHex = false;
 }
