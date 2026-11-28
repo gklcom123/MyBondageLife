@@ -1470,6 +1470,7 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 		USkeletalMeshComponent* SocksMesh = SocksPtr ? SocksPtr->Get() : nullptr;
 		USkeletalMeshComponent* ShoesMesh = ShoesPtr ? ShoesPtr->Get() : nullptr;
 		if (SocksMesh && ShoesMesh)
+			UE_LOG(LogMyBondageLife, Log, TEXT("SockCopy: socks=%s shoes=%s"), SocksMesh ? *SocksMesh->GetName() : TEXT("null"), ShoesMesh ? *ShoesMesh->GetName() : TEXT("null"));
 		{
 			const TArray<FName> SockSlots = SocksMesh->GetMaterialSlotNames();
 			const TArray<FName> ShoeSlots = ShoesMesh->GetMaterialSlotNames();
@@ -1485,6 +1486,7 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 				}
 
 				const int32 SockIndex = SockSlots.IndexOfByKey(SlotName);
+				UE_LOG(LogMyBondageLife, Log, TEXT("SockCopy: shoeSlot=%s sockIndex=%d"), *SlotName.ToString(), SockSlots.IndexOfByKey(SlotName));
 				if (SockIndex == INDEX_NONE) { continue; }
 
 				UMaterialInterface* SockMaterial = SocksMesh->GetMaterial(SockIndex);
