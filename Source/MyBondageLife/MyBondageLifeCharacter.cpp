@@ -1509,6 +1509,33 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 		}
 	}
 	ApplyBodyPartHiding();
+	// 隐藏之后，再把鞋子自己的 sock1/sock2 恢复成"袜子原本（已染色）的材质"，
+	// 避免拿到隐藏逻辑写入的透明材质。
+	{
+		const TObjectPtr<USkeletalMeshComponent>* ShoesPtr2 = OutfitComponents.Find(10);
+		USkeletalMeshComponent* ShoesMesh2 = ShoesPtr2 ? ShoesPtr2->Get() : nullptr;
+		if (ShoesMesh2)
+		{
+			TArray<TObjectPtr<UMaterialInterface>>* ShoeBaseMats2 = OutfitBaseMaterials.Find(ShoesMesh2);
+			TArray<FName> ShoeSlots2 = ShoesMesh2->GetMaterialSlotNames();
+			if (ShoeBaseMats2)
+			{
+				for (int32 ShoeIndex = 0; ShoeIndex < ShoeSlots2.Num() && ShoeIndex < ShoeBaseMats2->Num(); ++ShoeIndex)
+				{
+					const FString SlotText = ShoeSlots2[ShoeIndex].ToString();
+					if (!SlotText.Equals(TEXT("sock1"), ESearchCase::IgnoreCase)
+						&& !SlotText.Equals(TEXT("sock2"), ESearchCase::IgnoreCase))
+					{
+						continue;
+					}
+					if ((*ShoeBaseMats2)[ShoeIndex])
+					{
+						ShoesMesh2->SetMaterial(ShoeIndex, (*ShoeBaseMats2)[ShoeIndex].Get());
+					}
+				}
+			}
+		}
+	}
 }
 void AMyBondageLifeCharacter::ServerSetAccountName_Implementation(const FString& InAccount)
 {
