@@ -106,7 +106,7 @@ public:
 	void SetBodyProportionsPublic(int32 B, int32 W, int32 T) { SetBodyProportions(B, W, T); }
 
 	/** AnimBP 用：按骨骼名返回身体比例缩放（Scale Bone 节点的 Scale 输入）。 */
-	UFUNCTION(BlueprintPure, Category = "Appearance")
+	UFUNCTION(BlueprintPure, Category = "Appearance", meta = (BlueprintThreadSafe))
 	static FVector GetBodyBoneScale(FName BoneName, int32 InBreastIndex, int32 InWaistIndex, int32 InThighIndex);
 
 	/** UI 用：材质默认颜色。 */
