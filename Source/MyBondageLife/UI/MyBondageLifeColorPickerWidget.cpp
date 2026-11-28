@@ -349,8 +349,9 @@ void UMyBondageLifeColorPickerWidget::RefreshPreview()
 
 	if (PreviewImage)
 	{
-		FSlateBrush Brush = FSlateColorBrush(Color);
-		PreviewImage->SetBrush(Brush);
+		// 只改颜色，保留 WBP 里配置的 Brush（例如 Rounded Box / 图片）。
+		PreviewImage->SetBrushTintColor(FSlateColor(Color));
+		PreviewImage->SetColorAndOpacity(FLinearColor::White);
 	}
 	if (HexBox)
 	{
