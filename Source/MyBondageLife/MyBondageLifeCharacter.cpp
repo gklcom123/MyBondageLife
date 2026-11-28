@@ -1505,6 +1505,28 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 			}
 		}
 	}
+	// 没有袜子时，把鞋子的 sock1/sock2 恢复成鞋子网格自带的原始材质。
+	{
+		const TObjectPtr<USkeletalMeshComponent>* ShoesPtrR = OutfitComponents.Find(10);
+		USkeletalMeshComponent* ShoesMeshR = ShoesPtrR ? ShoesPtrR->Get() : nullptr;
+		const bool bSocksWorn = OutfitComponents.Contains(9);
+		if (ShoesMeshR && !bSocksWorn && ShoesMeshR->GetSkeletalMeshAsset())
+		{
+			const TArray<FSkeletalMaterial>& MeshMaterials = ShoesMeshR->GetSkeletalMeshAsset()->GetMaterials();
+			TArray<FName> ShoeSlotsR = ShoesMeshR->GetMaterialSlotNames();
+			for (int32 ShoeIndexR = 0; ShoeIndexR < ShoeSlotsR.Num() && ShoeIndexR < MeshMaterials.Num(); ++ShoeIndexR)
+			{
+				const FString SlotTextR = ShoeSlotsR[ShoeIndexR].ToString();
+				if (SlotTextR.Equals(TEXT("sock1"), ESearchCase::IgnoreCase) || SlotTextR.Equals(TEXT("sock2"), ESearchCase::IgnoreCase))
+				{
+					if (MeshMaterials[ShoeIndexR].MaterialInterface)
+					{
+						ShoesMeshR->SetMaterial(ShoeIndexR, MeshMaterials[ShoeIndexR].MaterialInterface);
+					}
+				}
+			}
+		}
+	}
 
 	ApplyBodyPartHiding();
 	// 避免拿到隐藏逻辑写入的透明材质。
