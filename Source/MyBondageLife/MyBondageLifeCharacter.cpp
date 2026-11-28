@@ -1318,10 +1318,7 @@ void AMyBondageLifeCharacter::ApplyBodyPartHiding()
 					{
 						FString OwnList;
 						if (OwnParts) { for (const FName& P : *OwnParts) { OwnList += P.ToString() + TEXT(","); } }
-						UE_LOG(LogMyBondageLife, Log, TEXT("HideOwn: mesh=%s slot=%s own=%d ownList=%s allHas=%d"), *OutfitMesh->GetName(), *SlotName.ToString(), bHidesItself ? 1 : 0, *OwnList, AllPartsForOutfits.Contains(SlotName) ? 1 : 0);
 					}
-					UE_LOG(LogMyBondageLife, Log, TEXT("Hide(outfit) eval: slot=%s own=%d parts=%d hide=%d"), *SlotName.ToString(), bHidesItself ? 1 : 0, AllPartsForOutfits.Num(), (AllPartsForOutfits.Contains(SlotName) && !bHidesItself) ? 1 : 0);
-					UE_LOG(LogMyBondageLife, Log, TEXT("Hide(outfit): mesh=%s slot=%s own=%d hide=%d"), *OutfitMesh->GetName(), *SlotName.ToString(), bHidesItself ? 1 : 0, bHideSlot ? 1 : 0);
 					if (bHideSlot)
 					{
 						OutfitMesh->SetMaterial(MatIndex, HiddenBodyMaterial.Get());
@@ -1337,10 +1334,8 @@ void AMyBondageLifeCharacter::ApplyBodyPartHiding()
 						// 只恢复被隐藏过的槽，避免覆盖颜色动态材质。
 						OutfitMesh->SetMaterial(MatIndex, (*BaseMats)[MatIndex].Get());
 					}
-					UE_LOG(LogMyBondageLife, Log, TEXT("Hide(outfit): slot=%s hide=%d base=%s now=%s"), *SlotName.ToString(), bHideSlot ? 1 : 0, (*BaseMats)[MatIndex] ? *(*BaseMats)[MatIndex]->GetName() : TEXT("null"), OutfitMesh->GetMaterial(MatIndex) ? *OutfitMesh->GetMaterial(MatIndex)->GetName() : TEXT("null"));
 					if (bHideSlot)
 					{
-						UE_LOG(LogMyBondageLife, Verbose, TEXT("Hide(outfit): %s -> material %d"), *SlotName.ToString(), MatIndex);
 					}
 				}
 			}
@@ -1369,7 +1364,6 @@ void AMyBondageLifeCharacter::OnRep_Outfits()
 
 void AMyBondageLifeCharacter::ApplyOutfits()
 {
-	UE_LOG(LogMyBondageLife, Log, TEXT("Outfit: ApplyOutfits items=%d"), OutfitItemIds.Num());
 	USkeletalMeshComponent* BodyMesh = GetMesh();
 	if (!BodyMesh)
 	{
@@ -1400,21 +1394,18 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 		const FMyBondageLifeOutfitItem* Item = FMyBondageLifeOutfitCatalog::Find(OutfitItemIds[Index]);
 		if (!Item)
 		{
-			UE_LOG(LogMyBondageLife, Warning, TEXT("Outfit: id=%s missing at apply time, retrying in 0.5s"), *OutfitItemIds[Index].ToString());
 			if (UWorld* World = GetWorld())
 			{
 				FTimerHandle RetryHandle;
 				World->GetTimerManager().SetTimer(RetryHandle, FTimerDelegate::CreateWeakLambda(this, [this]() { ApplyOutfits(); }), 0.5f, false);
 			}
 		}
-		UE_LOG(LogMyBondageLife, Log, TEXT("Outfit: id=%s item=%s"), *OutfitItemIds[Index].ToString(), Item ? TEXT("found") : TEXT("NULL"));
 		if (!Item)
 		{
 			continue;
 		}
 
 		USkeletalMesh* MeshAsset = Item->Mesh.LoadSynchronous();
-		UE_LOG(LogMyBondageLife, Log, TEXT("Outfit: id=%s meshPath=%s loaded=%s slot=%d"), *Item->ItemId.ToString(), *Item->Mesh.ToString(), MeshAsset ? TEXT("OK") : TEXT("FAILED"), Item->Slot);
 		if (!MeshAsset)
 		{
 			continue;
@@ -1463,13 +1454,11 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 		if (bSameSkeleton)
 		{
 			Component->SetMasterPoseComponent(BodyMesh);
-			UE_LOG(LogMyBondageLife, Log, TEXT("Outfit: id=%s sameSkeleton=1 bounds=%s"), *Item->ItemId.ToString(), *Component->Bounds.BoxExtent.ToString());
 		}
 		else
 		{
 			Component->AttachToComponent(BodyMesh,
 				FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-			UE_LOG(LogMyBondageLife, Log, TEXT("Outfit: id=%s skeletonMismatch bodySkel=%s itemSkel=%s"), *Item->ItemId.ToString(), *BodyMesh->GetSkeletalMeshAsset()->GetSkeleton()->GetName(), *MeshAsset->GetSkeleton()->GetName());
 		}
 	}
 
@@ -1886,12 +1875,16 @@ void AMyBondageLifeCharacter::ApplySitting()
 			SittingMeshDrop = -SittingOffset * FMath::Max(BaseCapsuleHalfHeight, 1.0f)
 				/ FMath::Max(GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), 1.0f);
 
-			UE_LOG(LogMyBondageLife, Log, TEXT("Sit: capsuleHalf=%.1f offset=%.1f drop=%.1f"),
-				GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), SittingOffset, SittingMeshDrop);
 			BodyMesh->SetRelativeLocation(FVector(
 				BodyMesh->GetRelativeLocation().X,
 				BodyMesh->GetRelativeLocation().Y,
 				OutfitBaseMeshZ - SittingMeshDrop));
+		}
+
+		// 坐姿相机：跟随机身一起下沉 SitOffset。
+		if (USpringArmComponent* SitBoom = GetCameraBoom())
+		{
+			SitBoom->TargetOffset = FVector(0.0f, 0.0f, -SittingMeshDrop);
 		}
 	}
 	else
@@ -1904,6 +1897,11 @@ void AMyBondageLifeCharacter::ApplySitting()
 				OutfitBaseMeshZ));
 		}
 		SittingMeshDrop = 0.0f;
+
+		if (USpringArmComponent* ResetBoom = GetCameraBoom())
+		{
+			ResetBoom->TargetOffset = FVector::ZeroVector;
+		}
 
 		ApplyOutfitCapsule();
 
