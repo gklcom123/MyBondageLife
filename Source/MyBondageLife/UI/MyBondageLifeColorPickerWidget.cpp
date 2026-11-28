@@ -26,7 +26,9 @@ TSharedRef<SWidget> UMyBondageLifeColorPickerWidget::RebuildWidget()
 		WidgetTree = NewObject<UWidgetTree>(this, TEXT("WidgetTree"));
 	}
 
-	if (!IsDesignTime() && WidgetTree && !bLayoutBuilt)
+	// 只有纯 C++ 类才自建布局；蓝图子类（WBP_ColorPicker）以蓝图布局为准。
+	const bool bPureCPP = GetClass() == UMyBondageLifeColorPickerWidget::StaticClass();
+	if (bPureCPP && !IsDesignTime() && WidgetTree && !bLayoutBuilt)
 	{
 		bLayoutBuilt = true;
 		BuildLayout();
@@ -566,4 +568,11 @@ void UMyBondageLifeColorPickerWidget::NativeTick(const FGeometry& MyGeometry, fl
 			static_cast<uint8>(FMath::Clamp(Brightness, 0.0f, 1.0f) * 255.0f));
 		RefreshPreview();
 	}
+}
+
+void UMyBondageLifeColorPickerWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+	// 蓝图子类的控件树此时才可用：接管并按名字绑定。
+	EnsureWidgetsBound();
 }

@@ -31,6 +31,7 @@ public:
 
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	virtual void NativeConstruct() override;
 
 	/** Opens the picker for one slot/channel, starting from HexColor (may be empty). */
 	UFUNCTION(BlueprintCallable, Category = "Color")
