@@ -1312,10 +1312,8 @@ void AMyBondageLifeCharacter::ApplyBodyPartHiding()
 					const FName SlotName = SlotNames.IsValidIndex(MatIndex) ? SlotNames[MatIndex] : NAME_None;
 					const TSet<FName>* OwnParts = OutfitComponentHideParts.Find(OutfitMesh);
 					const bool bHidesItself = OwnParts && OwnParts->Contains(SlotName);
-					// sock1/sock2 是袜子->鞋子的材质传递槽，永远不参与隐藏。
-					const FString SlotText = SlotName.ToString();
-					const bool bSockTransfer = SlotText.Equals(TEXT("sock1"), ESearchCase::IgnoreCase) || SlotText.Equals(TEXT("sock2"), ESearchCase::IgnoreCase);
-					const bool bHideSlot = AllPartsForOutfits.Contains(SlotName) && !bHidesItself && !bSockTransfer;
+					// 只隐藏"其他衣物"的同名槽，自己的槽不隐藏（bHidesItself）。
+					const bool bHideSlot = AllPartsForOutfits.Contains(SlotName) && !bHidesItself;
 					UE_LOG(LogMyBondageLife, Log, TEXT("Hide(outfit) eval: slot=%s own=%d parts=%d hide=%d"), *SlotName.ToString(), bHidesItself ? 1 : 0, AllPartsForOutfits.Num(), (AllPartsForOutfits.Contains(SlotName) && !bHidesItself) ? 1 : 0);
 					UE_LOG(LogMyBondageLife, Log, TEXT("Hide(outfit): mesh=%s slot=%s own=%d hide=%d"), *OutfitMesh->GetName(), *SlotName.ToString(), bHidesItself ? 1 : 0, bHideSlot ? 1 : 0);
 					if (bHideSlot)
