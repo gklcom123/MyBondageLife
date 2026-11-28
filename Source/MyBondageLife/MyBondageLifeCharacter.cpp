@@ -2868,9 +2868,8 @@ FVector AMyBondageLifeCharacter::GetBodyBoneScale(FName BoneName, int32 InBreast
 
 	if (Name == TEXT("neck_01"))
 	{
-		// 抵消 spine_02 的缩放，让头部（neck_01 及其子骨骼）恢回 1。
-		if (Waist == 0) { return FVector(1.0f, 1.0f / 0.9f, 1.0f / 0.9f); }
-		if (Waist == 2) { return FVector(1.0f, 1.0f / 1.1f, 1.0f / 1.1f); }
+		// Component Space + Replace 是"绝对缩放"：neck 固定 1，头部就保持正常大小。
+		return FVector(1.0f, 1.0f, 1.0f);
 		return FVector(1.0f, 1.0f, 1.0f);
 	}
 
