@@ -90,6 +90,11 @@ public:
 	/** UI 用：材质默认颜色。 */
 	FString GetOutfitDefaultColorHexForUI(int32 Slot, int32 Channel) const { return GetOutfitDefaultColorHex(Slot, Channel); }
 
+	UFUNCTION(BlueprintCallable, Category = "Color")
+	void ClearOutfitColorsForUI(int32 Slot);
+	UFUNCTION(BlueprintCallable, Category = "Color")
+	void ClearRestraintColorsForUI(int32 Slot);
+
 	/** UI 用：当前实际应用的染色（角色复制数据）。 */
 	FString GetAppliedOutfitColorHexForUI(int32 Slot, int32 Channel) const
 	{

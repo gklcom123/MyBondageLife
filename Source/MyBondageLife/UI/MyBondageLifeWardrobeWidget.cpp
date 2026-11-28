@@ -1387,6 +1387,11 @@ void UMyBondageLifeWardrobeWidget::PickRestraintItem(FName ItemId)
 	{
 		bClosePanelsOnNextChange = true;
 		if (bFriendMode) { Account->UnequipRestraintFor(FriendAccount, PickerSlot); } else { Account->UnequipRestraint(PickerSlot); }
+		if (!bFriendMode)
+		{
+			Account->ClearRestraintColors(PickerSlot);
+			if (AMyBondageLifeCharacter* Char = Cast<AMyBondageLifeCharacter>(GetOwningPlayerPawn())) { Char->ClearRestraintColorsForUI(PickerSlot); }
+		}
 	}
 	else
 	{
@@ -2624,6 +2629,8 @@ void UMyBondageLifeWardrobeWidget::HandleOutfitRemoveChosen(int32 SlotIndex)
 		else
 		{
 			Account->UnequipOutfit(SlotIndex);
+			Account->ClearOutfitColors(SlotIndex);
+			if (AMyBondageLifeCharacter* Char = Cast<AMyBondageLifeCharacter>(GetOwningPlayerPawn())) { Char->ClearOutfitColorsForUI(SlotIndex); }
 		}
 	}
 }

@@ -30,6 +30,7 @@ class MYBONDAGELIFE_API UMyBondageLifeColorPickerWidget : public UUserWidget
 public:
 
 	virtual TSharedRef<SWidget> RebuildWidget() override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 	/** Opens the picker for one slot/channel, starting from HexColor (may be empty). */
 	UFUNCTION(BlueprintCallable, Category = "Color")
@@ -68,6 +69,9 @@ protected:
 	float Saturation = 1.0f;
 	float Brightness = 1.0f;
 	FLinearColor PendingColor = FLinearColor::White;
+	float LastHueValue = -1.0f;
+	float LastSatValue = -1.0f;
+	float LastValValue = -1.0f;
 
 	UPROPERTY(Transient) TObjectPtr<UBorder> RootPanel;
 	UPROPERTY(Transient) TObjectPtr<USlider> HueSlider;

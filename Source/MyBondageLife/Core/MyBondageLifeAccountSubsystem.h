@@ -1048,6 +1048,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Restraint")
 	void SetRestraintColor(int32 Slot, int32 Channel, const FString& HexColor, const FString& Owner = FString());
 
+	/** 脱下时清掉本地颜色缓存。 */
+	void ClearRestraintColors(int32 Slot) { OwnRestraintColors.Remove(Slot); }
+	void ClearOutfitColors(int32 Slot) { OwnOutfitColors.Remove(Slot); }
+
 	UFUNCTION(BlueprintPure, Category = "Restraint")
 	TMap<int32, FString> GetRestraintColors(int32 Slot) const;
 

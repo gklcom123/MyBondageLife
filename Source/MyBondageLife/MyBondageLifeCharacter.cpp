@@ -2510,3 +2510,23 @@ FString AMyBondageLifeCharacter::GetRestraintDefaultColorHex(int32 Slot, int32 C
 	}
 	return FString();
 }
+
+void AMyBondageLifeCharacter::ClearOutfitColorsForUI(int32 Slot)
+{
+	const int32 Base = Slot * 3;
+	for (int32 Offset = 0; Offset < 3; ++Offset)
+	{
+		const int32 Index = Base + Offset;
+		if (OutfitColorHex.IsValidIndex(Index))
+		{
+			OutfitColorHex[Index].Reset();
+		}
+	}
+	ApplyOutfitColors();
+}
+
+void AMyBondageLifeCharacter::ClearRestraintColorsForUI(int32 Slot)
+{
+	RestraintColorHex.Remove(Slot);
+	ApplyRestraintColors();
+}

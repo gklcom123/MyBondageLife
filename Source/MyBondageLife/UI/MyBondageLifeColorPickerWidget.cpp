@@ -299,6 +299,10 @@ void UMyBondageLifeColorPickerWidget::OpenForColor(int32 InSlot, int32 InChannel
 		PendingColor = Color;
 	}
 
+	LastHueValue = Hue / 360.0f;
+	LastSatValue = Saturation;
+	LastValValue = Brightness;
+	PendingColor = PendingColor;
 	bUpdatingSliders = true;
 	if (HueSlider) { HueSlider->SetValue(Hue / 360.0f); }
 	if (HexColor.Len() != 7 || !HexColor.StartsWith(TEXT("#")))
@@ -498,4 +502,68 @@ void UMyBondageLifeColorPickerWidget::EnsureWidgetsBound()
 	}
 	if (ConfirmButton) { ConfirmButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleConfirmClicked); }
 	if (CancelButton) { CancelButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeColorPickerWidget::HandleCancelClicked); }
+}
+
+void UMyBondageLifeColorPickerWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	if (GetVisibility() != ESlateVisibility::Visible || bUpdatingSliders)
+	{
+		return;
+	}
+
+	if (!HueSlider && !SaturationSlider && !ValueSlider)
+	{
+		return;
+	}
+
+	bool bChanged = false;
+
+	if (HueSlider)
+	{
+		const float Min = HueSlider->GetMinValue();
+		const float Max = HueSlider->GetMaxValue();
+		const float Value = HueSlider->GetValue();
+		if (!FMath::IsNearlyEqual(Value, LastHueValue, 0.001f))
+		{
+			LastHueValue = Value;
+			const float Norm = (Max - Min) > KINDA_SMALL_NUMBER ? FMath::Clamp((Value - Min) / (Max - Min), 0.0f, 1.0f) : FMath::Clamp(Value, 0.0f, 1.0f);
+			Hue = Norm * 360.0f;
+			bChanged = true;
+		}
+	}
+	if (SaturationSlider)
+	{
+		const float Min = SaturationSlider->GetMinValue();
+		const float Max = SaturationSlider->GetMaxValue();
+		const float Value = SaturationSlider->GetValue();
+		if (!FMath::IsNearlyEqual(Value, LastSatValue, 0.001f))
+		{
+			LastSatValue = Value;
+			Saturation = (Max - Min) > KINDA_SMALL_NUMBER ? FMath::Clamp((Value - Min) / (Max - Min), 0.0f, 1.0f) : FMath::Clamp(Value, 0.0f, 1.0f);
+			bChanged = true;
+		}
+	}
+	if (ValueSlider)
+	{
+		const float Min = ValueSlider->GetMinValue();
+		const float Max = ValueSlider->GetMaxValue();
+		const float Value = ValueSlider->GetValue();
+		if (!FMath::IsNearlyEqual(Value, LastValValue, 0.001f))
+		{
+			LastValValue = Value;
+			Brightness = (Max - Min) > KINDA_SMALL_NUMBER ? FMath::Clamp((Value - Min) / (Max - Min), 0.0f, 1.0f) : FMath::Clamp(Value, 0.0f, 1.0f);
+			bChanged = true;
+		}
+	}
+
+	if (bChanged)
+	{
+		PendingColor = FLinearColor::MakeFromHSV8(
+			static_cast<uint8>(FMath::Clamp(Hue, 0.0f, 360.0f) / 360.0f * 255.0f),
+			static_cast<uint8>(FMath::Clamp(Saturation, 0.0f, 1.0f) * 255.0f),
+			static_cast<uint8>(FMath::Clamp(Brightness, 0.0f, 1.0f) * 255.0f));
+		RefreshPreview();
+	}
 }
