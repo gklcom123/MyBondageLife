@@ -1673,6 +1673,8 @@ void AMyBondageLifeCharacter::ApplyOutfitColors()
 			continue;
 		}
 
+		TArray<FName> ComponentSlotNames = Component->GetMaterialSlotNames();
+
 		for (int32 Channel = 1; Channel <= 3; ++Channel)
 		{
 			const int32 ColorIndex = Pair.Key * 3 + (Channel - 1);
@@ -1701,6 +1703,16 @@ void AMyBondageLifeCharacter::ApplyOutfitColors()
 
 				// Only tint materials that actually expose ColorN.
 				FLinearColor DummyColor;
+				if (Pair.Key == 10)
+				{
+					const FName MatSlotName = ComponentSlotNames.IsValidIndex(MaterialIndex) ? ComponentSlotNames[MaterialIndex] : NAME_None;
+					const FString MatSlotText = MatSlotName.ToString();
+					if (MatSlotText.Equals(TEXT("sock1"), ESearchCase::IgnoreCase) || MatSlotText.Equals(TEXT("sock2"), ESearchCase::IgnoreCase))
+					{
+						continue;
+					}
+				}
+
 				if (!Material->GetVectorParameterValue(FMaterialParameterInfo(ParameterName), DummyColor))
 				{
 					continue;
