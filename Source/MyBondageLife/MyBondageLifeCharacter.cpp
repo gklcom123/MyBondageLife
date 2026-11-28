@@ -1392,6 +1392,7 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 	float FeetOffset = 0.0f;
 	OutfitHiddenParts.Reset();
 	OutfitBaseMaterials.Reset();
+	OutfitComponents.Reset();
 	OutfitComponentHideParts.Reset();
 
 	for (int32 Index = 0; Index < OutfitItemIds.Num(); ++Index)
