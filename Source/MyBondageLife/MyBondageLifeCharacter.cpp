@@ -1504,9 +1504,6 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 				}
 			}
 		}
-	}
-	// 没有袜子时，把鞋子的 sock1/sock2 恢复成鞋子网格自带的原始材质。
-	{
 		const TObjectPtr<USkeletalMeshComponent>* ShoesPtrR = OutfitComponents.Find(10);
 		USkeletalMeshComponent* ShoesMeshR = ShoesPtrR ? ShoesPtrR->Get() : nullptr;
 		const bool bSocksWorn = OutfitComponents.Contains(9);
@@ -1750,30 +1747,49 @@ void AMyBondageLifeCharacter::ApplyOutfitColors()
 			}
 		}
 	}
-	// 染色之后再次把袜子 sock0 的材质赋给鞋子 sock1/sock2，确保颜色数据晚到时也同步。
+	// 染色之后同步鞋子的 sock1/sock2：有袜子用 sock0 材质，没袜子还原鞋子原材质。
 	{
-		const TObjectPtr<USkeletalMeshComponent>* SocksPtr4 = OutfitComponents.Find(9);
 		const TObjectPtr<USkeletalMeshComponent>* ShoesPtr4 = OutfitComponents.Find(10);
-		USkeletalMeshComponent* SocksMesh4 = SocksPtr4 ? SocksPtr4->Get() : nullptr;
 		USkeletalMeshComponent* ShoesMesh4 = ShoesPtr4 ? ShoesPtr4->Get() : nullptr;
-		if (SocksMesh4 && ShoesMesh4)
+		if (ShoesMesh4)
 		{
-			const int32 Sock0Index4 = SocksMesh4->GetMaterialIndex(TEXT("sock0"));
-			UMaterialInterface* Sock0Material4 = (Sock0Index4 != INDEX_NONE) ? SocksMesh4->GetMaterial(Sock0Index4) : nullptr;
-			if (Sock0Material4)
+			UMaterialInterface* Sock0Material4 = nullptr;
+			if (const TObjectPtr<USkeletalMeshComponent>* SocksPtr4 = OutfitComponents.Find(9))
 			{
-				TArray<FName> ShoeSlots4 = ShoesMesh4->GetMaterialSlotNames();
-				for (int32 ShoeIndex4 = 0; ShoeIndex4 < ShoeSlots4.Num(); ++ShoeIndex4)
+				if (USkeletalMeshComponent* SocksMesh4 = SocksPtr4->Get())
 				{
-					const FString SlotText4 = ShoeSlots4[ShoeIndex4].ToString();
-					if (SlotText4.Equals(TEXT("sock1"), ESearchCase::IgnoreCase) || SlotText4.Equals(TEXT("sock2"), ESearchCase::IgnoreCase))
+					const int32 Sock0Index4 = SocksMesh4->GetMaterialIndex(TEXT("sock0"));
+					if (Sock0Index4 != INDEX_NONE)
 					{
-						ShoesMesh4->SetMaterial(ShoeIndex4, Sock0Material4);
+						Sock0Material4 = SocksMesh4->GetMaterial(Sock0Index4);
 					}
+				}
+			}
+
+			TArray<TObjectPtr<UMaterialInterface>>* ShoeBaseMats4 = OutfitBaseMaterials.Find(ShoesMesh4);
+			TArray<FName> ShoeSlots4 = ShoesMesh4->GetMaterialSlotNames();
+			for (int32 ShoeIndex4 = 0; ShoeIndex4 < ShoeSlots4.Num(); ++ShoeIndex4)
+			{
+				const FString SlotText4 = ShoeSlots4[ShoeIndex4].ToString();
+				if (!SlotText4.Equals(TEXT("sock1"), ESearchCase::IgnoreCase)
+					&& !SlotText4.Equals(TEXT("sock2"), ESearchCase::IgnoreCase))
+				{
+					continue;
+				}
+
+				UMaterialInterface* Target = Sock0Material4;
+				if (!Target && ShoeBaseMats4 && ShoeBaseMats4->IsValidIndex(ShoeIndex4))
+				{
+					Target = (*ShoeBaseMats4)[ShoeIndex4].Get();
+				}
+				if (Target)
+				{
+					ShoesMesh4->SetMaterial(ShoeIndex4, Target);
 				}
 			}
 		}
 	}
+
 }
 
 void AMyBondageLifeCharacter::SetOutfitColorChannel(int32 SlotIndex, int32 Channel, const FString& HexColor)
