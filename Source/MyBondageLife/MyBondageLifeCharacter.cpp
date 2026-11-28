@@ -1732,6 +1732,42 @@ void AMyBondageLifeCharacter::ApplyOutfitColors()
 			}
 		}
 	}
+	// 袜子染色后，把颜色同步到鞋子复制过来的 sock1/sock2 材质上（复制早于染色时需要）。
+	{
+		const TObjectPtr<USkeletalMeshComponent>* ShoesPtr3 = OutfitComponents.Find(10);
+		USkeletalMeshComponent* ShoesMesh3 = ShoesPtr3 ? ShoesPtr3->Get() : nullptr;
+		if (ShoesMesh3)
+		{
+			TArray<FName> ShoeSlots3 = ShoesMesh3->GetMaterialSlotNames();
+			for (int32 ShoeIndex3 = 0; ShoeIndex3 < ShoeSlots3.Num(); ++ShoeIndex3)
+			{
+				const FString SlotText3 = ShoeSlots3[ShoeIndex3].ToString();
+				if (!SlotText3.Equals(TEXT("sock1"), ESearchCase::IgnoreCase)
+					&& !SlotText3.Equals(TEXT("sock2"), ESearchCase::IgnoreCase))
+				{
+					continue;
+				}
+
+				UMaterialInterface* Material3 = ShoesMesh3->GetMaterial(ShoeIndex3);
+				UMaterialInstanceDynamic* Mid3 = Cast<UMaterialInstanceDynamic>(Material3);
+				if (!Mid3)
+				{
+					continue;
+				}
+
+				for (int32 Channel = 1; Channel <= 3; ++Channel)
+				{
+					const int32 SockColorIndex = 9 * 3 + (Channel - 1);
+					if (!OutfitColorHex.IsValidIndex(SockColorIndex) || OutfitColorHex[SockColorIndex].IsEmpty())
+					{
+						continue;
+					}
+					const FName Param(*FString::Printf(TEXT("Color%d"), Channel));
+					Mid3->SetVectorParameterValue(Param, FLinearColor::FromSRGBColor(FColor::FromHex(OutfitColorHex[SockColorIndex])));
+				}
+			}
+		}
+	}
 }
 
 void AMyBondageLifeCharacter::SetOutfitColorChannel(int32 SlotIndex, int32 Channel, const FString& HexColor)
