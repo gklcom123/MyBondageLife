@@ -1502,7 +1502,7 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 
 				TArray<TObjectPtr<UMaterialInterface>>* SockBaseMats = OutfitBaseMaterials.Find(SocksMesh);
 				UMaterialInterface* SockMaterial = SocksMesh->GetMaterial(SockIndex);
-				if (SockBaseMats && SockBaseMats->IsValidIndex(SockIndex) && (*SockBaseMats)[SockIndex])
+				if (SockMaterial == HiddenBodyMaterial.Get() && SockBaseMats && SockBaseMats->IsValidIndex(SockIndex) && (*SockBaseMats)[SockIndex])
 				{
 					// 优先用"隐藏前的可见材质"，避免复制到透明材质。
 					SockMaterial = (*SockBaseMats)[SockIndex].Get();
