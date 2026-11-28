@@ -1476,7 +1476,7 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 	ApplyOutfitCapsule();
 	ApplySkin();
 	ApplyOutfitColors();
-	// 鞋子槽（10）如果有 sock1/sock2 材质槽，就把袜子槽（9）同名槽的材质复制过去。
+	// 鞋子 sock1/sock2 固定使用袜子 sock0 的材质（含染色）。
 	{
 		const TObjectPtr<USkeletalMeshComponent>* SocksPtr = OutfitComponents.Find(9);
 		const TObjectPtr<USkeletalMeshComponent>* ShoesPtr = OutfitComponents.Find(10);
@@ -1484,70 +1484,30 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 		USkeletalMeshComponent* ShoesMesh = ShoesPtr ? ShoesPtr->Get() : nullptr;
 		if (SocksMesh && ShoesMesh)
 		{
-			const TArray<FName> SockSlots = SocksMesh->GetMaterialSlotNames();
-			const TArray<FName> ShoeSlots = ShoesMesh->GetMaterialSlotNames();
-			TArray<TObjectPtr<UMaterialInterface>>* ShoeBaseMats = OutfitBaseMaterials.Find(ShoesMesh);
-
-			for (int32 ShoeIndex = 0; ShoeIndex < ShoeSlots.Num(); ++ShoeIndex)
+			const int32 Sock0Index = SocksMesh->GetMaterialIndex(TEXT("sock0"));
+			if (Sock0Index != INDEX_NONE)
 			{
-				const FName SlotName = ShoeSlots[ShoeIndex];
-				if (!SlotName.ToString().Equals(TEXT("sock1"), ESearchCase::IgnoreCase)
-					&& !SlotName.ToString().Equals(TEXT("sock2"), ESearchCase::IgnoreCase))
+				UMaterialInterface* Sock0Material = SocksMesh->GetMaterial(Sock0Index);
+				if (Sock0Material)
 				{
-					continue;
+					TArray<FName> ShoeSlots = ShoesMesh->GetMaterialSlotNames();
+					for (int32 ShoeIndex = 0; ShoeIndex < ShoeSlots.Num(); ++ShoeIndex)
+					{
+						const FString SlotText = ShoeSlots[ShoeIndex].ToString();
+						if (!SlotText.Equals(TEXT("sock1"), ESearchCase::IgnoreCase)
+							&& !SlotText.Equals(TEXT("sock2"), ESearchCase::IgnoreCase))
+						{
+							continue;
+						}
+						ShoesMesh->SetMaterial(ShoeIndex, Sock0Material);
+					}
 				}
-
-				const int32 SockIndex = SockSlots.IndexOfByKey(SlotName);
-				if (SockIndex == INDEX_NONE) { continue; }
-
-				TArray<TObjectPtr<UMaterialInterface>>* SockBaseMats = OutfitBaseMaterials.Find(SocksMesh);
-				UMaterialInterface* SockMaterial = SocksMesh->GetMaterial(SockIndex);
-				if (SockMaterial == HiddenBodyMaterial.Get() && SockBaseMats && SockBaseMats->IsValidIndex(SockIndex) && (*SockBaseMats)[SockIndex])
-				{
-					// 优先用"隐藏前的可见材质"，避免复制到透明材质。
-					SockMaterial = (*SockBaseMats)[SockIndex].Get();
-				}
-				if (!SockMaterial) { continue; }
-
-				ShoesMesh->SetMaterial(ShoeIndex, SockMaterial);
-				if (ShoeBaseMats && ShoeBaseMats->IsValidIndex(ShoeIndex))
-				{
-					(*ShoeBaseMats)[ShoeIndex] = SockMaterial;
-				}
-				UE_LOG(LogMyBondageLife, Log, TEXT("SockCopy: %s shoeIdx=%d sockIdx=%d now=%s"), *SlotName.ToString(), ShoeIndex, SockIndex, ShoesMesh->GetMaterial(ShoeIndex) ? *ShoesMesh->GetMaterial(ShoeIndex)->GetName() : TEXT("null"));
 			}
 		}
 	}
 
 	ApplyBodyPartHiding();
-	// 隐藏之后，再把鞋子自己的 sock1/sock2 恢复成"袜子原本（已染色）的材质"，
 	// 避免拿到隐藏逻辑写入的透明材质。
-	{
-		const TObjectPtr<USkeletalMeshComponent>* ShoesPtr2 = OutfitComponents.Find(10);
-		USkeletalMeshComponent* ShoesMesh2 = ShoesPtr2 ? ShoesPtr2->Get() : nullptr;
-		if (ShoesMesh2)
-		{
-			TArray<TObjectPtr<UMaterialInterface>>* ShoeBaseMats2 = OutfitBaseMaterials.Find(ShoesMesh2);
-			TArray<FName> ShoeSlots2 = ShoesMesh2->GetMaterialSlotNames();
-			if (ShoeBaseMats2)
-			{
-				for (int32 ShoeIndex = 0; ShoeIndex < ShoeSlots2.Num() && ShoeIndex < ShoeBaseMats2->Num(); ++ShoeIndex)
-				{
-					const FString SlotText = ShoeSlots2[ShoeIndex].ToString();
-					if (!SlotText.Equals(TEXT("sock1"), ESearchCase::IgnoreCase)
-						&& !SlotText.Equals(TEXT("sock2"), ESearchCase::IgnoreCase))
-					{
-						continue;
-					}
-					const int32 RestoreIndex = ShoesMesh2->GetMaterialIndex(ShoeSlots2[ShoeIndex]);
-					if (RestoreIndex != INDEX_NONE && (*ShoeBaseMats2)[ShoeIndex])
-					{
-						ShoesMesh2->SetMaterial(RestoreIndex, (*ShoeBaseMats2)[ShoeIndex].Get());
-					}
-				}
-			}
-		}
-	}
 }
 void AMyBondageLifeCharacter::ServerSetAccountName_Implementation(const FString& InAccount)
 {
@@ -1764,6 +1724,30 @@ void AMyBondageLifeCharacter::ApplyOutfitColors()
 					}
 					const FName Param(*FString::Printf(TEXT("Color%d"), Channel));
 					Mid3->SetVectorParameterValue(Param, FLinearColor::FromSRGBColor(FColor::FromHex(OutfitColorHex[SockColorIndex])));
+				}
+			}
+		}
+	}
+	// 染色之后再次把袜子 sock0 的材质赋给鞋子 sock1/sock2，确保颜色数据晚到时也同步。
+	{
+		const TObjectPtr<USkeletalMeshComponent>* SocksPtr4 = OutfitComponents.Find(9);
+		const TObjectPtr<USkeletalMeshComponent>* ShoesPtr4 = OutfitComponents.Find(10);
+		USkeletalMeshComponent* SocksMesh4 = SocksPtr4 ? SocksPtr4->Get() : nullptr;
+		USkeletalMeshComponent* ShoesMesh4 = ShoesPtr4 ? ShoesPtr4->Get() : nullptr;
+		if (SocksMesh4 && ShoesMesh4)
+		{
+			const int32 Sock0Index4 = SocksMesh4->GetMaterialIndex(TEXT("sock0"));
+			UMaterialInterface* Sock0Material4 = (Sock0Index4 != INDEX_NONE) ? SocksMesh4->GetMaterial(Sock0Index4) : nullptr;
+			if (Sock0Material4)
+			{
+				TArray<FName> ShoeSlots4 = ShoesMesh4->GetMaterialSlotNames();
+				for (int32 ShoeIndex4 = 0; ShoeIndex4 < ShoeSlots4.Num(); ++ShoeIndex4)
+				{
+					const FString SlotText4 = ShoeSlots4[ShoeIndex4].ToString();
+					if (SlotText4.Equals(TEXT("sock1"), ESearchCase::IgnoreCase) || SlotText4.Equals(TEXT("sock2"), ESearchCase::IgnoreCase))
+					{
+						ShoesMesh4->SetMaterial(ShoeIndex4, Sock0Material4);
+					}
 				}
 			}
 		}
