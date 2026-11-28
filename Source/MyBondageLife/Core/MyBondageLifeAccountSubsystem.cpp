@@ -14,6 +14,9 @@
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
 
+#include "MyBondageLifeCharacter.h"
+#include "GameFramework/PlayerController.h"
+
 namespace
 {
 	void ParseOutfitColors(const TSharedPtr<FJsonObject>& Item, TMap<int32, FString>& OutColors);
@@ -1383,6 +1386,7 @@ void UMyBondageLifeAccountSubsystem::RefreshRestraints()
 
 			Self->EquippedRestraints.Reset();
 			Self->RestraintLocks.Reset();
+			Self->OwnRestraintColors.Reset();
 
 			const TArray<TSharedPtr<FJsonValue>>* Equipped = nullptr;
 			if (Json->TryGetArrayField(TEXT("equipped"), Equipped) && Equipped)
@@ -1438,6 +1442,28 @@ void UMyBondageLifeAccountSubsystem::RefreshRestraints()
 			}
 
 			UE_LOG(LogMyBondageLife, Log, TEXT("Restraint: %d slot(s) equipped."), Self->EquippedRestraints.Num());
+			{
+				TArray<FString> Flat;
+				Flat.SetNumZeroed(FMyBondageLifeRestraintCatalog::SlotCount * 3);
+				for (const TPair<int32, TMap<int32, FString>>& SlotPair : Self->OwnRestraintColors)
+				{
+					for (int32 Channel = 1; Channel <= 3; ++Channel)
+					{
+						if (const FString* Hex = SlotPair.Value.Find(Channel))
+						{
+							const int32 Index = SlotPair.Key * 3 + (Channel - 1);
+							if (Flat.IsValidIndex(Index)) { Flat[Index] = *Hex; }
+						}
+					}
+				}
+				if (APlayerController* PC = Self->GetGameInstance() ? Self->GetGameInstance()->GetFirstLocalPlayerController() : nullptr)
+				{
+					if (AMyBondageLifeCharacter* Char = Cast<AMyBondageLifeCharacter>(PC->GetPawn()))
+					{
+						Char->SetRestraintColors(Flat);
+					}
+				}
+			}
 			Self->OnRestraintsChanged.Broadcast();
 		});
 }
@@ -1949,6 +1975,28 @@ void UMyBondageLifeAccountSubsystem::RefreshOutfits(const FString& InAccount)
 			{
 				Self->EquippedOutfits = Parsed;
 				Self->OwnOutfitColors = ColorResult;
+				{
+					TArray<FString> Flat;
+					Flat.SetNumZeroed(FMyBondageLifeOutfitCatalog::SlotCount * 3);
+					for (const TPair<int32, TMap<int32, FString>>& SlotPair : ColorResult)
+					{
+						for (int32 Channel = 1; Channel <= 3; ++Channel)
+						{
+							if (const FString* Hex = SlotPair.Value.Find(Channel))
+							{
+								const int32 Index = SlotPair.Key * 3 + (Channel - 1);
+								if (Flat.IsValidIndex(Index)) { Flat[Index] = *Hex; }
+							}
+						}
+					}
+					if (APlayerController* PC = Self->GetGameInstance() ? Self->GetGameInstance()->GetFirstLocalPlayerController() : nullptr)
+					{
+						if (AMyBondageLifeCharacter* Char = Cast<AMyBondageLifeCharacter>(PC->GetPawn()))
+						{
+							Char->SetOutfitColors(Flat);
+						}
+					}
+				}
 			}
 			else
 			{
