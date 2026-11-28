@@ -1314,6 +1314,12 @@ void AMyBondageLifeCharacter::ApplyBodyPartHiding()
 					const bool bHidesItself = OwnParts && OwnParts->Contains(SlotName);
 					// 只隐藏"其他衣物"的同名槽，自己的槽不隐藏（bHidesItself）。
 					const bool bHideSlot = AllPartsForOutfits.Contains(SlotName) && !bHidesItself;
+					if (SlotName.ToString().Contains(TEXT("sock"), ESearchCase::IgnoreCase))
+					{
+						FString OwnList;
+						if (OwnParts) { for (const FName& P : *OwnParts) { OwnList += P.ToString() + TEXT(","); } }
+						UE_LOG(LogMyBondageLife, Log, TEXT("HideOwn: mesh=%s slot=%s own=%d ownList=%s allHas=%d"), *OutfitMesh->GetName(), *SlotName.ToString(), bHidesItself ? 1 : 0, *OwnList, AllPartsForOutfits.Contains(SlotName) ? 1 : 0);
+					}
 					UE_LOG(LogMyBondageLife, Log, TEXT("Hide(outfit) eval: slot=%s own=%d parts=%d hide=%d"), *SlotName.ToString(), bHidesItself ? 1 : 0, AllPartsForOutfits.Num(), (AllPartsForOutfits.Contains(SlotName) && !bHidesItself) ? 1 : 0);
 					UE_LOG(LogMyBondageLife, Log, TEXT("Hide(outfit): mesh=%s slot=%s own=%d hide=%d"), *OutfitMesh->GetName(), *SlotName.ToString(), bHidesItself ? 1 : 0, bHideSlot ? 1 : 0);
 					if (bHideSlot)
