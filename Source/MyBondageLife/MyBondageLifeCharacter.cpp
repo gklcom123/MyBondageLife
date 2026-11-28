@@ -1492,7 +1492,9 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 					continue;
 				}
 
-				const int32 SockIndex = SockSlots.IndexOfByKey(SlotName);
+				const int32 ShoeMatIndex = ShoesMesh->GetMaterialIndex(SlotName);
+				const int32 SockIndex = SocksMesh->GetMaterialIndex(SlotName);
+				if (ShoeMatIndex == INDEX_NONE || SockIndex == INDEX_NONE) { continue; }
 				UE_LOG(LogMyBondageLife, Log, TEXT("SockCopy: shoeSlot=%s sockIndex=%d"), *SlotName.ToString(), SockSlots.IndexOfByKey(SlotName));
 				if (SockIndex == INDEX_NONE) { continue; }
 
@@ -1500,7 +1502,7 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 				if (!SockMaterial) { continue; }
 
 				// 用鞋子该槽自己的材质做底（保留鞋子 UV/遮罩），只把袜子的贴图参数搬过来。
-				UMaterialInterface* ShoeBase = (ShoeBaseMats && ShoeBaseMats->IsValidIndex(ShoeIndex)) ? (*ShoeBaseMats)[ShoeIndex].Get() : ShoesMesh->GetMaterial(ShoeIndex);
+				UMaterialInterface* ShoeBase = (ShoeBaseMats && ShoeBaseMats->IsValidIndex(ShoeMatIndex)) ? (*ShoeBaseMats)[ShoeMatIndex].Get() : ShoesMesh->GetMaterial(ShoeMatIndex);
 				if (!ShoeBase)
 				{
 					ShoeBase = SockMaterial;
@@ -1525,10 +1527,11 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 					}
 				}
 
-				ShoesMesh->SetMaterial(ShoeIndex, Copied);
-				if (ShoeBaseMats && ShoeBaseMats->IsValidIndex(ShoeIndex))
+				ShoesMesh->SetMaterial(ShoeMatIndex, Copied);
+				UE_LOG(LogMyBondageLife, Log, TEXT("SockCopy: set %s matIndex=%d now=%s"), *SlotName.ToString(), ShoeMatIndex, ShoesMesh->GetMaterial(ShoeMatIndex) ? *ShoesMesh->GetMaterial(ShoeMatIndex)->GetName() : TEXT("null"));
+				if (ShoeBaseMats && ShoeBaseMats->IsValidIndex(ShoeMatIndex))
 				{
-					(*ShoeBaseMats)[ShoeIndex] = Copied;
+					(*ShoeBaseMats)[ShoeMatIndex] = Copied;
 				}
 				UE_LOG(LogMyBondageLife, Log, TEXT("Outfit: copied %s material from socks to shoes"), *SlotName.ToString());
 			}
@@ -1554,9 +1557,10 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 					{
 						continue;
 					}
-					if ((*ShoeBaseMats2)[ShoeIndex])
+					const int32 RestoreIndex = ShoesMesh2->GetMaterialIndex(ShoeSlots2[ShoeIndex]);
+					if (RestoreIndex != INDEX_NONE && (*ShoeBaseMats2)[ShoeIndex])
 					{
-						ShoesMesh2->SetMaterial(ShoeIndex, (*ShoeBaseMats2)[ShoeIndex].Get());
+						ShoesMesh2->SetMaterial(RestoreIndex, (*ShoeBaseMats2)[ShoeIndex].Get());
 					}
 				}
 			}
