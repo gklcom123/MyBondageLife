@@ -15,6 +15,9 @@ struct FMyBondageLifeMakeupItem
 	/** Face texture applied to the head material's "Makeup" parameter. */
 	TSoftObjectPtr<UTexture2D> FaceTx;
 
+	/** 妆容覆盖遮罩（ST_Makeup.FaceTxMask）。 */
+	TSoftObjectPtr<UTexture2D> FaceTxMask;
+
 	/** Display name (DT_Makeup.Name). */
 	FString Name;
 
@@ -51,6 +54,7 @@ public:
 
 	/** Loads the face texture synchronously; null when the row has none. */
 	static UTexture2D* LoadFaceTexture(int32 MakeupId);
+	static UTexture2D* LoadFaceMask(int32 MakeupId);
 
 private:
 

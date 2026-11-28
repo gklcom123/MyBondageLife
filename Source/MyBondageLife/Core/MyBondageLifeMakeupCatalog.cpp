@@ -41,26 +41,38 @@ namespace
 		return 0;
 	}
 
-	void ReadRowTexture(const UScriptStruct* RowStruct, const uint8* RowData, FMyBondageLifeMakeupItem& Item)
+	TSoftObjectPtr<UTexture2D> FindRowTexture(const UScriptStruct* RowStruct, const uint8* RowData, const TCHAR* Token, bool bExcludeMask)
 	{
-		for (TFieldIterator<FSoftObjectProperty> It(RowStruct); It; ++It)
+		for (TFieldIterator<FObjectProperty> It(RowStruct); It; ++It)
 		{
-			const FSoftObjectPtr Value = It->GetPropertyValue_InContainer(RowData);
-			if (!Value.IsNull())
+			const FString Name = It->GetName();
+			if (!Name.Contains(Token, ESearchCase::IgnoreCase)) { continue; }
+			if (bExcludeMask && Name.Contains(TEXT("Mask"), ESearchCase::IgnoreCase)) { continue; }
+			if (UTexture2D* Texture = Cast<UTexture2D>(It->GetObjectPropertyValue_InContainer(RowData)))
 			{
-				Item.FaceTx = TSoftObjectPtr<UTexture2D>(Value.ToSoftObjectPath());
-				return;
+				return TSoftObjectPtr<UTexture2D>(Texture);
 			}
 		}
 
-		for (TFieldIterator<FObjectProperty> It(RowStruct); It; ++It)
+		for (TFieldIterator<FSoftObjectProperty> It(RowStruct); It; ++It)
 		{
-			if (UTexture2D* Texture = Cast<UTexture2D>(It->GetObjectPropertyValue_InContainer(RowData)))
+			const FString Name = It->GetName();
+			if (!Name.Contains(Token, ESearchCase::IgnoreCase)) { continue; }
+			if (bExcludeMask && Name.Contains(TEXT("Mask"), ESearchCase::IgnoreCase)) { continue; }
+			const FSoftObjectPtr Value = It->GetPropertyValue_InContainer(RowData);
+			if (!Value.IsNull())
 			{
-				Item.FaceTx = Texture;
-				return;
+				return TSoftObjectPtr<UTexture2D>(Value.ToSoftObjectPath());
 			}
 		}
+
+		return nullptr;
+	}
+
+	void ReadRowTexture(const UScriptStruct* RowStruct, const uint8* RowData, FMyBondageLifeMakeupItem& Item)
+	{
+		Item.FaceTx = FindRowTexture(RowStruct, RowData, TEXT("FaceTx"), true);
+		Item.FaceTxMask = FindRowTexture(RowStruct, RowData, TEXT("FaceTxMask"), false);
 	}
 
 	void ReadRowName(const UScriptStruct* RowStruct, const uint8* RowData, FMyBondageLifeMakeupItem& Item)
@@ -241,6 +253,15 @@ UTexture2D* FMyBondageLifeMakeupCatalog::LoadFaceTexture(int32 MakeupId)
 	if (const FMyBondageLifeMakeupItem* Item = Find(MakeupId))
 	{
 		return Item->FaceTx.LoadSynchronous();
+	}
+	return nullptr;
+}
+
+UTexture2D* FMyBondageLifeMakeupCatalog::LoadFaceMask(int32 MakeupId)
+{
+	if (const FMyBondageLifeMakeupItem* Item = Find(MakeupId))
+	{
+		return Item->FaceTxMask.LoadSynchronous();
 	}
 	return nullptr;
 }

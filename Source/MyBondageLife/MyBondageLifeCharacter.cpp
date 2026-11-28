@@ -2682,6 +2682,7 @@ void AMyBondageLifeCharacter::ApplyMakeup()
 	}
 
 	UTexture2D* FaceTexture = FMyBondageLifeMakeupCatalog::LoadFaceTexture(MakeupIndex);
+	UTexture2D* FaceMask = FMyBondageLifeMakeupCatalog::LoadFaceMask(MakeupIndex);
 	if (!FaceTexture)
 	{
 		return;
@@ -2714,6 +2715,15 @@ void AMyBondageLifeCharacter::ApplyMakeup()
 			BodyMesh->SetMaterial(MaterialIndex, Mid);
 		}
 		Mid->SetTextureParameterValue(MakeupParam, FaceTexture);
+		if (FaceMask)
+		{
+			static const FName MaskParam(TEXT("MakeupMask"));
+			UTexture* ExistingMask = nullptr;
+			if (Mid->GetTextureParameterValue(FMaterialParameterInfo(MaskParam), ExistingMask))
+			{
+				Mid->SetTextureParameterValue(MaskParam, FaceMask);
+			}
+		}
 	}
 }
 
