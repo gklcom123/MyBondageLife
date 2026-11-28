@@ -2827,3 +2827,41 @@ void AMyBondageLifeCharacter::ApplyBodyProportions()
 	SetIntProperty(TEXT("WaistIndex"), WaistIndex);
 	SetIntProperty(TEXT("ThighIndex"), ThighIndex);
 }
+
+FVector AMyBondageLifeCharacter::GetBodyBoneScale(FName BoneName, int32 InBreastIndex, int32 InWaistIndex, int32 InThighIndex)
+{
+	const FString Name = BoneName.ToString().ToLower();
+	const int32 Breast = FMath::Clamp(InBreastIndex, 0, 3);
+	const int32 Waist = FMath::Clamp(InWaistIndex, 0, 2);
+	const int32 Thigh = FMath::Clamp(InThighIndex, 0, 2);
+
+	if (Name == TEXT("breast_l") || Name == TEXT("breast_r"))
+	{
+		static const float BreastScale[] = { 0.9f, 1.0f, 1.1f, 1.3f };
+		const float S = BreastScale[Breast];
+		return FVector(S, S, S);
+	}
+
+	if (Name == TEXT("spine_02"))
+	{
+		if (Waist == 0) { return FVector(1.0f, 0.9f, 0.9f); }
+		if (Waist == 2) { return FVector(1.0f, 1.1f, 1.1f); }
+		return FVector(1.0f, 1.0f, 1.0f);
+	}
+
+	if (Name == TEXT("neck_01"))
+	{
+		if (Waist == 0) { return FVector(1.0f, 1.1f, 1.1f); }
+		if (Waist == 2) { return FVector(1.0f, 0.9f, 0.9f); }
+		return FVector(1.0f, 1.0f, 1.0f);
+	}
+
+	if (Name == TEXT("thigh_l") || Name == TEXT("thigh_r"))
+	{
+		if (Thigh == 0) { return FVector(1.0f, 0.9f, 0.9f); }
+		if (Thigh == 2) { return FVector(1.0f, 1.1f, 1.1f); }
+		return FVector(1.0f, 1.0f, 1.0f);
+	}
+
+	return FVector(1.0f, 1.0f, 1.0f);
+}

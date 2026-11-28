@@ -105,6 +105,10 @@ public:
 	void SetBodyProportions(int32 NewBreast, int32 NewWaist, int32 NewThigh);
 	void SetBodyProportionsPublic(int32 B, int32 W, int32 T) { SetBodyProportions(B, W, T); }
 
+	/** AnimBP 用：按骨骼名返回身体比例缩放（Scale Bone 节点的 Scale 输入）。 */
+	UFUNCTION(BlueprintPure, Category = "Appearance")
+	static FVector GetBodyBoneScale(FName BoneName, int32 InBreastIndex, int32 InWaistIndex, int32 InThighIndex);
+
 	/** UI 用：材质默认颜色。 */
 	FString GetOutfitDefaultColorHexForUI(int32 Slot, int32 Channel) const { return GetOutfitDefaultColorHex(Slot, Channel); }
 
