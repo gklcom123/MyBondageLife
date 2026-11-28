@@ -1,5 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
+#include "MyBondageLife.h"
 #include "MyBondageLifeHostInfoWidget.h"
 #include "MyBondageLifeUIStyle.h"
 
@@ -25,7 +26,8 @@ TSharedRef<SWidget> UMyBondageLifeHostInfoWidget::RebuildWidget()
 		WidgetTree = NewObject<UWidgetTree>(this, TEXT("WidgetTree"));
 	}
 
-	if (WidgetTree && !WidgetTree->RootWidget)
+	const bool bPureCPP = GetClass() == UMyBondageLifeHostInfoWidget::StaticClass();
+	if (bPureCPP && WidgetTree && !WidgetTree->RootWidget)
 	{
 		BuildLayout();
 	}
@@ -66,6 +68,19 @@ void UMyBondageLifeHostInfoWidget::BuildLayout()
 void UMyBondageLifeHostInfoWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+	// 使用 WBP 里的 W_RoomInfoHost_Text（没有才回退代码创建的文本）。
+	if (WidgetTree)
+	{
+		if (UTextBlock* Named = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("W_RoomInfoHost_Text"))))
+		{
+			InfoLabel = Named;
+		}
+		else
+		{
+			UE_LOG(LogMyBondageLife, Warning, TEXT("HostInfo: W_RoomInfoHost_Text not found; using code label."));
+		}
+	}
 
 	RefreshInfo();
 
