@@ -294,6 +294,7 @@ struct FMyBondageLifeUserProfile
 	int32 BreastIndex = 1;
 	int32 WaistIndex = 1;
 	int32 ThighIndex = 1;
+	int32 SkinColorIndex = 1;
 
 	int32 SkinId = 1;
 
@@ -490,6 +491,9 @@ public:
 	int32 GetThighIndex() const { return ThighIndex; }
 
 	void RequestUpdateBodyProportions(int32 NewBreast, int32 NewWaist, int32 NewThigh);
+
+	int32 GetSkinColorIndex() const { return SkinColorIndex; }
+	void RequestUpdateSkinColor(int32 NewSkinColorIndex);
 
 	/** PATCH /users/me - persists a new hair style and applies it locally. */
 	UFUNCTION(BlueprintCallable, Category = "Account")
@@ -994,6 +998,7 @@ private:
 	int32 BreastIndex = 1;
 	int32 WaistIndex = 1;
 	int32 ThighIndex = 1;
+	int32 SkinColorIndex = 1;
 
 	int32 SkinId = 1;
 

@@ -40,7 +40,8 @@
 #include "Net/UnrealNetwork.h"
 
 #include "Core/MyBondageLifeMakeupCatalog.h"
-#include "Core/MyBondageLifeEyeCatalog.h"
+#include "Core/MyBondageLifeEyeCatalog.h"
+#include "Core/MyBondageLifeSkinColorCatalog.h"
 
 namespace
 {
@@ -188,6 +189,7 @@ void AMyBondageLifeCharacter::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(AMyBondageLifeCharacter, BreastIndex);
 	DOREPLIFETIME(AMyBondageLifeCharacter, WaistIndex);
 	DOREPLIFETIME(AMyBondageLifeCharacter, ThighIndex);
+	DOREPLIFETIME(AMyBondageLifeCharacter, SkinColorIndex);
 	DOREPLIFETIME(AMyBondageLifeCharacter, LegBoundType);
 	DOREPLIFETIME(AMyBondageLifeCharacter, IgnoredRestraintSlots);
 	DOREPLIFETIME(AMyBondageLifeCharacter, AccountName);
@@ -2894,4 +2896,59 @@ FVector AMyBondageLifeCharacter::GetBodyBoneScale(FName BoneName, int32 InBreast
 	}
 
 	return FVector(1.0f, 1.0f, 1.0f);
+}
+
+
+void AMyBondageLifeCharacter::OnRep_SkinColorIndex()
+{
+	ApplySkinColor();
+}
+
+void AMyBondageLifeCharacter::SetSkinColorIndex(int32 NewIndex)
+{
+	SkinColorIndex = FMyBondageLifeSkinColorCatalog::ClampId(NewIndex);
+	ApplySkinColor();
+}
+
+void AMyBondageLifeCharacter::ApplySkinColor()
+{
+	USkeletalMeshComponent* BodyMesh = GetMesh();
+	if (!BodyMesh) { return; }
+
+	UTexture2D* BodyTexture = FMyBondageLifeSkinColorCatalog::LoadBodyTexture(SkinColorIndex);
+	UTexture2D* HeadTexture = FMyBondageLifeSkinColorCatalog::LoadHeadTexture(SkinColorIndex);
+	if (!BodyTexture && !HeadTexture) { return; }
+
+	static const FName SkinBaseParam(TEXT("SkinBase"));
+	TArray<FName> SlotNames = BodyMesh->GetMaterialSlotNames();
+
+	for (int32 MaterialIndex = 0; MaterialIndex < BodyMesh->GetNumMaterials(); ++MaterialIndex)
+	{
+		const FName SlotName = SlotNames.IsValidIndex(MaterialIndex) ? SlotNames[MaterialIndex] : NAME_None;
+		const FString SlotText = SlotName.ToString().ToLower();
+
+		UTexture2D* Target = nullptr;
+		if (SlotText.Contains(TEXT("head"))) { Target = HeadTexture; }
+		else if (SlotText.Contains(TEXT("upbody")) || SlotText.Contains(TEXT("leg")) || SlotText.Contains(TEXT("yatoe"))
+			|| SlotText.Contains(TEXT("feet")) || SlotText.Contains(TEXT("hand")))
+		{
+			Target = BodyTexture;
+		}
+		if (!Target) { continue; }
+
+		UMaterialInterface* Material = BodyMesh->GetMaterial(MaterialIndex);
+		if (!Material) { continue; }
+
+		UTexture* Existing = nullptr;
+		if (!Material->GetTextureParameterValue(FMaterialParameterInfo(SkinBaseParam), Existing)) { continue; }
+
+		UMaterialInstanceDynamic* Mid = Cast<UMaterialInstanceDynamic>(Material);
+		if (!Mid)
+		{
+			Mid = UMaterialInstanceDynamic::Create(Material, this);
+			if (!Mid) { continue; }
+			BodyMesh->SetMaterial(MaterialIndex, Mid);
+		}
+		Mid->SetTextureParameterValue(SkinBaseParam, Target);
+	}
 }

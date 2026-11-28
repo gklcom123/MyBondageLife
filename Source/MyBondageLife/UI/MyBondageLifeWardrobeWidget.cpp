@@ -42,6 +42,8 @@
 
 #include "Core/MyBondageLifeEyeCatalog.h"
 
+#include "Core/MyBondageLifeSkinColorCatalog.h"
+
 namespace
 {
 	// Canvas units are 1.5x the viewport pixels at the default UI scale.
@@ -569,6 +571,7 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 		switch (Kind)
 		{
 		case 0: DownOut->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleBreastDownClicked); break;
+		case 3: DownOut->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleSkinColorDownClicked); break;
 		case 1: DownOut->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleWaistDownClicked); break;
 		default: DownOut->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleThighDownClicked); break;
 		}
@@ -597,6 +600,7 @@ void UMyBondageLifeWardrobeWidget::BuildLayout()
 		switch (Kind)
 		{
 		case 0: UpOut->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleBreastUpClicked); break;
+		case 3: UpOut->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleSkinColorUpClicked); break;
 		case 1: UpOut->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleWaistUpClicked); break;
 		default: UpOut->OnClicked.AddDynamic(this, &UMyBondageLifeWardrobeWidget::HandleThighUpClicked); break;
 		}
@@ -668,6 +672,8 @@ void UMyBondageLifeWardrobeWidget::NativeConstruct()
 	BreastSizeIndex = Account ? FMath::Clamp(Account->GetBreastIndex(), 0, 3) : 1;
 	WaistSizeIndex = Account ? FMath::Clamp(Account->GetWaistIndex(), 0, 2) : 1;
 	ThighSizeIndex = Account ? FMath::Clamp(Account->GetThighIndex(), 0, 2) : 1;
+	SkinColorId = FMyBondageLifeSkinColorCatalog::ClampId(Account ? Account->GetSkinColorIndex() : 1);
+	RefreshSkinColorLabel();
 	RefreshBodyProportionLabels();
 }
 
@@ -2395,6 +2401,10 @@ bool UMyBondageLifeWardrobeWidget::TryAdoptBlueprintLayout()
 	ThighDownButton = FindNamedButton(WidgetTree, TEXT("W_Thigh_Down"), TEXT("ThighDownButton"));
 	ThighUpButton = FindNamedButton(WidgetTree, TEXT("W_Thigh_Up"), TEXT("ThighUpButton"));
 
+	SkinColorValueLabel = FindEither<UTextBlock>(WidgetTree, TEXT("W_SkinColor_Value"), TEXT("SkinColorValueLabel"));
+	SkinColorDownButton = FindNamedButton(WidgetTree, TEXT("W_SkinColor_Down"), TEXT("SkinColorDownButton"));
+	SkinColorUpButton = FindNamedButton(WidgetTree, TEXT("W_SkinColor_Up"), TEXT("SkinColorUpButton"));
+
 	if (!MakeupValueLabel && BodyPage)
 	{
 		UButton* Down = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
@@ -2483,6 +2493,8 @@ void UMyBondageLifeWardrobeWidget::WireAdoptedLayout()
 	if (WaistUpButton) { WaistUpButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleWaistUpClicked); }
 	if (ThighDownButton) { ThighDownButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleThighDownClicked); }
 	if (ThighUpButton) { ThighUpButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleThighUpClicked); }
+	if (SkinColorDownButton) { SkinColorDownButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleSkinColorDownClicked); }
+	if (SkinColorUpButton) { SkinColorUpButton->OnClicked.AddUniqueDynamic(this, &UMyBondageLifeWardrobeWidget::HandleSkinColorUpClicked); }
 	}
 
 	UE_LOG(LogMyBondageLife, Log, TEXT("Wardrobe: adopted layout wired."));
@@ -3312,3 +3324,39 @@ void UMyBondageLifeWardrobeWidget::HandleWaistDownClicked() { StepBodyProportion
 void UMyBondageLifeWardrobeWidget::HandleWaistUpClicked() { StepBodyProportion(1, 1); }
 void UMyBondageLifeWardrobeWidget::HandleThighDownClicked() { StepBodyProportion(2, -1); }
 void UMyBondageLifeWardrobeWidget::HandleThighUpClicked() { StepBodyProportion(2, 1); }
+
+void UMyBondageLifeWardrobeWidget::RefreshSkinColorLabel()
+{
+	SkinColorId = FMyBondageLifeSkinColorCatalog::ClampId(SkinColorId);
+	if (SkinColorValueLabel)
+	{
+		const FMyBondageLifeSkinColorItem* Item = FMyBondageLifeSkinColorCatalog::Find(SkinColorId);
+		const FString Text = (Item && !Item->Name.IsEmpty()) ? Item->Name : FString::Printf(TEXT("%d"), SkinColorId);
+		SkinColorValueLabel->SetText(FText::FromString(Text));
+	}
+	if (SkinColorDownButton) { SkinColorDownButton->SetIsEnabled(FMyBondageLifeSkinColorCatalog::StepId(SkinColorId, -1) != SkinColorId); }
+	if (SkinColorUpButton) { SkinColorUpButton->SetIsEnabled(FMyBondageLifeSkinColorCatalog::StepId(SkinColorId, 1) != SkinColorId); }
+}
+
+void UMyBondageLifeWardrobeWidget::StepSkinColor(int32 Delta)
+{
+	const int32 NewId = FMyBondageLifeSkinColorCatalog::StepId(SkinColorId, Delta);
+	if (NewId == SkinColorId) { return; }
+	SkinColorId = NewId;
+	RefreshSkinColorLabel();
+
+	if (AMyBondageLifeCharacter* Character = Cast<AMyBondageLifeCharacter>(GetOwningPlayerPawn()))
+	{
+		Character->SetSkinColorIndexPublic(SkinColorId);
+	}
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UMyBondageLifeAccountSubsystem* Account = GameInstance->GetSubsystem<UMyBondageLifeAccountSubsystem>())
+		{
+			Account->RequestUpdateSkinColor(SkinColorId);
+		}
+	}
+}
+
+void UMyBondageLifeWardrobeWidget::HandleSkinColorDownClicked() { StepSkinColor(-1); }
+void UMyBondageLifeWardrobeWidget::HandleSkinColorUpClicked() { StepSkinColor(1); }

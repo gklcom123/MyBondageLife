@@ -100,6 +100,15 @@ public:
 	int32 ThighIndex = 1;
 
 	UFUNCTION() void OnRep_BodyProportions();
+
+	/** 肤色编号（DT_SkinColor.ID），替换材质 SkinBase 贴图。 */
+	UPROPERTY(ReplicatedUsing = OnRep_SkinColorIndex)
+	int32 SkinColorIndex = 1;
+
+	UFUNCTION() void OnRep_SkinColorIndex();
+	void ApplySkinColor();
+	void SetSkinColorIndex(int32 NewIndex);
+	void SetSkinColorIndexPublic(int32 NewIndex) { SetSkinColorIndex(NewIndex); }
 	void ApplyBodyProportions();
 	UFUNCTION(BlueprintCallable, Category = "Appearance")
 	void SetBodyProportions(int32 NewBreast, int32 NewWaist, int32 NewThigh);

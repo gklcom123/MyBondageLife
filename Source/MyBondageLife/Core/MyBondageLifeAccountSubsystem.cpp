@@ -288,6 +288,12 @@ bool UMyBondageLifeAccountSubsystem::ApplyAuthPayload(const TSharedPtr<FJsonObje
 		{
 			WaistIndex = FMath::Clamp(static_cast<int32>(WaistValue), 0, 2);
 		}
+		double SkinColorValue = 1.0;
+		if ((*UserObject)->TryGetNumberField(TEXT("skinColorIndex"), SkinColorValue))
+		{
+			SkinColorIndex = FMath::Clamp(static_cast<int32>(SkinColorValue), 1, 64);
+		}
+
 		double ThighValue = 1.0;
 		if ((*UserObject)->TryGetNumberField(TEXT("thighIndex"), ThighValue))
 		{
@@ -3742,5 +3748,26 @@ void UMyBondageLifeAccountSubsystem::RequestUpdateBodyProportions(int32 NewBreas
 			Self->BreastIndex = Breast;
 			Self->WaistIndex = Waist;
 			Self->ThighIndex = Thigh;
+		});
+}
+
+void UMyBondageLifeAccountSubsystem::RequestUpdateSkinColor(int32 NewSkinColorIndex)
+{
+	const int32 Clamped = FMath::Clamp(NewSkinColorIndex, 1, 64);
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetNumberField(TEXT("skinColorIndex"), Clamped);
+
+	TWeakObjectPtr<UMyBondageLifeAccountSubsystem> WeakThis(this);
+	SendFriendApiRequest(TEXT("PATCH"), TEXT("/users/me/skin-color"), Body,
+		[WeakThis, Clamped](bool bOk, int32 StatusCode, const TSharedPtr<FJsonObject>& Json)
+		{
+			UMyBondageLifeAccountSubsystem* Self = WeakThis.Get();
+			if (!Self) { return; }
+			if (!bOk)
+			{
+				UE_LOG(LogMyBondageLife, Warning, TEXT("SkinColor: update rejected (%d)."), StatusCode);
+				return;
+			}
+			Self->SkinColorIndex = Clamped;
 		});
 }

@@ -295,6 +295,17 @@ protected:
 	UFUNCTION() void HandleThighDownClicked();
 	UFUNCTION() void HandleThighUpClicked();
 
+	// 肤色
+	UPROPERTY(Transient) TObjectPtr<UButton> SkinColorDownButton;
+	UPROPERTY(Transient) TObjectPtr<UButton> SkinColorUpButton;
+	UPROPERTY(Transient) TObjectPtr<UTextBlock> SkinColorValueLabel;
+	int32 SkinColorId = 1;
+
+	void StepSkinColor(int32 Delta);
+	void RefreshSkinColorLabel();
+	UFUNCTION() void HandleSkinColorDownClicked();
+	UFUNCTION() void HandleSkinColorUpClicked();
+
 	UPROPERTY(Transient, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UTextBlock> HairDownLabel;
 
