@@ -290,8 +290,8 @@ void UMyBondageLifeColorPickerWidget::OpenForColor(int32 InSlot, int32 InChannel
 		const bool bValidHex = HexColor.Len() == 7 && HexColor.StartsWith(TEXT("#"));
 		FLinearColor DebugColor = FLinearColor::White;
 		if (bValidHex) { DebugColor = FLinearColor::FromSRGBColor(FColor::FromHex(HexColor)); }
-		const FString DebugMsg = FString::Printf(TEXT("ColorPicker open slot=%d ch=%d hex=%s valid=%d rgb=%s widgets H=%d S=%d V=%d Hex=%d Preview=%d"),
-			InSlot, InChannel, *HexColor, bValidHex ? 1 : 0, *DebugColor.ToFColor(true).ToHex().LeftChop(2),
+		const FString DebugMsg = FString::Printf(TEXT("ColorPicker[%s] open slot=%d ch=%d hex=%s valid=%d rgb=%s widgets H=%d S=%d V=%d Hex=%d Preview=%d"),
+			*GetName(), InSlot, InChannel, *HexColor, bValidHex ? 1 : 0, *DebugColor.ToFColor(true).ToHex().LeftChop(2),
 			HueSlider ? 1 : 0, SaturationSlider ? 1 : 0, ValueSlider ? 1 : 0, HexBox ? 1 : 0, PreviewImage ? 1 : 0);
 		UE_LOG(LogMyBondageLife, Log, TEXT("%s"), *DebugMsg);
 		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 6.0f, FColor::Yellow, DebugMsg); }
@@ -327,7 +327,7 @@ void UMyBondageLifeColorPickerWidget::OpenForColor(int32 InSlot, int32 InChannel
 	RefreshPreview();
 	SetVisibility(ESlateVisibility::Visible);
 	{
-		const FString DebugHsv = FString::Printf(TEXT("ColorPicker HSV slot=%d ch=%d H=%.1f S=%.3f V=%.3f hex=%s"), PickerSlot, PickerChannel, Hue, Saturation, Brightness, *FLinearColor::MakeFromHSV8(static_cast<uint8>(FMath::Clamp(Hue,0.0f,360.0f)/360.0f*255.0f), static_cast<uint8>(FMath::Clamp(Saturation,0.0f,1.0f)*255.0f), static_cast<uint8>(FMath::Clamp(Brightness,0.0f,1.0f)*255.0f)).ToFColor(true).ToHex().LeftChop(2));
+		const FString DebugHsv = FString::Printf(TEXT("ColorPicker[%s] HSV slot=%d ch=%d H=%.1f S=%.3f V=%.3f hex=%s"), *GetName(), PickerSlot, PickerChannel, Hue, Saturation, Brightness, *FLinearColor(FColor::MakeFromHSV8(static_cast<uint8>(FMath::Clamp(Hue,0.0f,360.0f)/360.0f*255.0f), static_cast<uint8>(FMath::Clamp(Saturation,0.0f,1.0f)*255.0f), static_cast<uint8>(FMath::Clamp(Brightness,0.0f,1.0f)*255.0f))).ToFColor(true).ToHex().LeftChop(2));
 		UE_LOG(LogMyBondageLife, Log, TEXT("%s"), *DebugHsv);
 		if (GEngine) { GEngine->AddOnScreenDebugMessage(-1, 6.0f, FColor::Yellow, DebugHsv); }
 	}
