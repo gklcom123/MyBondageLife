@@ -463,6 +463,9 @@ protected:
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<USkeletalMeshComponent>> RestraintComponents;
 
+	/** 拘束槽位 -> 网格组件（染色按槽位区分）。 */
+	TMap<int32, TObjectPtr<USkeletalMeshComponent>> RestraintComponentsBySlot;
+
 	/** AnimBP used instead of the one assigned on the blueprint mesh. */
 	UPROPERTY(EditDefaultsOnly, Category="Animation")
 	FSoftClassPath AnimBlueprintOverridePath;

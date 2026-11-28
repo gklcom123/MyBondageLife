@@ -785,6 +785,7 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 		}
 	}
 	RestraintComponents.Reset();
+	RestraintComponentsBySlot.Reset();
 
 	bRestraintArm = false;
 	bRestraintInGag = false;
@@ -888,6 +889,7 @@ void AMyBondageLifeCharacter::ApplyRestraints()
 			}
 
 			RestraintComponents.Add(Component);
+			RestraintComponentsBySlot.Add(Slot, Component);
 		}
 	}
 
@@ -1797,62 +1799,57 @@ void AMyBondageLifeCharacter::SetRestraintColorChannel(int32 Slot, int32 Channel
 
 void AMyBondageLifeCharacter::ApplyRestraintColors()
 {
-	USkeletalMeshComponent* BodyMesh = GetMesh();
-	if (!BodyMesh)
+	// 只对"当前槽位自己"的组件应用该槽位的颜色，避免一个槽改色影响到其它槽。
+	for (const TPair<int32, TObjectPtr<USkeletalMeshComponent>>& Entry : RestraintComponentsBySlot)
 	{
-		return;
-	}
-
-	// 拘束网格 = 除身体/头发/衣物之外的骨骼网格组件
-	TArray<USkeletalMeshComponent*> Components;
-	GetComponents<USkeletalMeshComponent>(Components);
-
-	for (USkeletalMeshComponent* Component : Components)
-	{
-		if (!Component || Component == BodyMesh || Component->ComponentHasTag(TEXT("OutfitPart")))
+		USkeletalMeshComponent* Component = Entry.Value;
+		if (!Component)
 		{
 			continue;
 		}
 
-		for (const TPair<int32, TMap<int32, FString>>& SlotPair : RestraintColorHex)
+		const TMap<int32, FString>* ChannelColors = RestraintColorHex.Find(Entry.Key);
+		if (!ChannelColors)
 		{
-			for (const TPair<int32, FString>& ChannelPair : SlotPair.Value)
+			continue;
+		}
+
+		for (const TPair<int32, FString>& ChannelPair : *ChannelColors)
+		{
+			const FString& Hex = ChannelPair.Value;
+			if (Hex.Len() != 7)
 			{
-				const FString& Hex = ChannelPair.Value;
-				if (Hex.Len() != 7)
+				continue;
+			}
+
+			const FLinearColor Color = FLinearColor::FromSRGBColor(FColor::FromHex(Hex));
+			const FName ParameterName(*FString::Printf(TEXT("Color%d"), ChannelPair.Key));
+
+			for (int32 MaterialIndex = 0; MaterialIndex < Component->GetNumMaterials(); ++MaterialIndex)
+			{
+				UMaterialInterface* Material = Component->GetMaterial(MaterialIndex);
+				if (!Material)
 				{
 					continue;
 				}
 
-				const FLinearColor Color = FLinearColor::FromSRGBColor(FColor::FromHex(Hex));
-				const FName ParameterName(*FString::Printf(TEXT("Color%d"), ChannelPair.Key));
-
-				for (int32 MaterialIndex = 0; MaterialIndex < Component->GetNumMaterials(); ++MaterialIndex)
+				FLinearColor Dummy;
+				if (!Material->GetVectorParameterValue(FMaterialParameterInfo(ParameterName), Dummy))
 				{
-					UMaterialInterface* Material = Component->GetMaterial(MaterialIndex);
-					if (!Material)
-					{
-						continue;
-					}
+					continue;
+				}
 
-					FLinearColor Dummy;
-					if (!Material->GetVectorParameterValue(FMaterialParameterInfo(ParameterName), Dummy))
-					{
-						continue;
-					}
-
-					UMaterialInstanceDynamic* Mid = Cast<UMaterialInstanceDynamic>(Material);
+				UMaterialInstanceDynamic* Mid = Cast<UMaterialInstanceDynamic>(Material);
+				if (!Mid)
+				{
+					Mid = UMaterialInstanceDynamic::Create(Material, this);
 					if (!Mid)
 					{
-						Mid = UMaterialInstanceDynamic::Create(Material, this);
-						if (!Mid)
-						{
-							continue;
-						}
-						Component->SetMaterial(MaterialIndex, Mid);
+						continue;
 					}
-					Mid->SetVectorParameterValue(ParameterName, Color);
+					Component->SetMaterial(MaterialIndex, Mid);
 				}
+				Mid->SetVectorParameterValue(ParameterName, Color);
 			}
 		}
 	}
