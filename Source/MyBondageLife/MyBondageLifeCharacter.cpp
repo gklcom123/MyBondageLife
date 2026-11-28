@@ -2823,9 +2823,26 @@ void AMyBondageLifeCharacter::ApplyBodyProportions()
 		}
 	};
 
+	auto SetVectorProperty = [Anim](const TCHAR* Name, const FVector& Value)
+	{
+		if (FStructProperty* StructProperty = CastField<FStructProperty>(Anim->GetClass()->FindPropertyByName(Name)))
+		{
+			if (StructProperty->Struct == TBaseStructure<FVector>::Get())
+			{
+				*StructProperty->ContainerPtrToValuePtr<FVector>(Anim) = Value;
+			}
+		}
+	};
+
 	SetIntProperty(TEXT("BreastIndex"), BreastIndex);
 	SetIntProperty(TEXT("WaistIndex"), WaistIndex);
 	SetIntProperty(TEXT("ThighIndex"), ThighIndex);
+
+	// 供 AnimGraph 直接读取（避免在工作线程调用函数）。
+	SetVectorProperty(TEXT("BreastScale"), GetBodyBoneScale(TEXT("breast_l"), BreastIndex, WaistIndex, ThighIndex));
+	SetVectorProperty(TEXT("SpineScale"), GetBodyBoneScale(TEXT("spine_02"), BreastIndex, WaistIndex, ThighIndex));
+	SetVectorProperty(TEXT("NeckScale"), GetBodyBoneScale(TEXT("neck_01"), BreastIndex, WaistIndex, ThighIndex));
+	SetVectorProperty(TEXT("ThighScale"), GetBodyBoneScale(TEXT("thigh_l"), BreastIndex, WaistIndex, ThighIndex));
 }
 
 FVector AMyBondageLifeCharacter::GetBodyBoneScale(FName BoneName, int32 InBreastIndex, int32 InWaistIndex, int32 InThighIndex)
@@ -2851,8 +2868,9 @@ FVector AMyBondageLifeCharacter::GetBodyBoneScale(FName BoneName, int32 InBreast
 
 	if (Name == TEXT("neck_01"))
 	{
-		if (Waist == 0) { return FVector(1.0f, 1.1f, 1.1f); }
-		if (Waist == 2) { return FVector(1.0f, 0.9f, 0.9f); }
+		// 抵消 spine_02 的缩放，让头部（neck_01 及其子骨骼）恢回 1。
+		if (Waist == 0) { return FVector(1.0f, 1.0f / 0.9f, 1.0f / 0.9f); }
+		if (Waist == 2) { return FVector(1.0f, 1.0f / 1.1f, 1.0f / 1.1f); }
 		return FVector(1.0f, 1.0f, 1.0f);
 	}
 
