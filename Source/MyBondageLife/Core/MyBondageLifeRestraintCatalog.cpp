@@ -368,17 +368,17 @@ TArray<const FMyBondageLifeRestraintItem*> FMyBondageLifeRestraintCatalog::GetIt
 
 FString FMyBondageLifeRestraintCatalog::GetSlotName(int32 Slot)
 {
-	// "嘴部 / 项圈 / 上身拘束 / 下身拘束 / 脚步拘束 / 固定位拘束 / 上身配件1-3 / 下身配件1-3"
+	// "嘴部 / 项圈 / 上身拘束 / 下身拘束 / 脚部拘束 / 固定位拘束 / 乳头配件 / 耳部配件 / 鼻孔配件 / 下身配件1-3"
 	static const TCHAR* Names[SlotCount] = {
 		TEXT("\u5634\u90E8"),
 		TEXT("\u9879\u5708"),
 		TEXT("\u4E0A\u8EAB\u62D8\u675F"),
 		TEXT("\u4E0B\u8EAB\u62D8\u675F"),
-		TEXT("\u811A\u6B65\u62D8\u675F"),
+		TEXT("\u811A\u90E8\u62D8\u675F"),
 		TEXT("\u56FA\u5B9A\u4F4D\u62D8\u675F"),
-		TEXT("\u4E0A\u8EAB\u914D\u4EF61"),
-		TEXT("\u4E0A\u8EAB\u914D\u4EF62"),
-		TEXT("\u4E0A\u8EAB\u914D\u4EF63"),
+		TEXT("\u4E73\u5934\u914D\u4EF6"),
+		TEXT("\u8033\u90E8\u914D\u4EF6"),
+		TEXT("\u9F3B\u5B54\u914D\u4EF6"),
 		TEXT("\u4E0B\u8EAB\u914D\u4EF61"),
 		TEXT("\u4E0B\u8EAB\u914D\u4EF62"),
 		TEXT("\u4E0B\u8EAB\u914D\u4EF63"),
