@@ -1499,10 +1499,36 @@ void AMyBondageLifeCharacter::ApplyOutfits()
 				UMaterialInterface* SockMaterial = SocksMesh->GetMaterial(SockIndex);
 				if (!SockMaterial) { continue; }
 
-				ShoesMesh->SetMaterial(ShoeIndex, SockMaterial);
+				// 用鞋子该槽自己的材质做底（保留鞋子 UV/遮罩），只把袜子的贴图参数搬过来。
+				UMaterialInterface* ShoeBase = (ShoeBaseMats && ShoeBaseMats->IsValidIndex(ShoeIndex)) ? (*ShoeBaseMats)[ShoeIndex].Get() : ShoesMesh->GetMaterial(ShoeIndex);
+				if (!ShoeBase)
+				{
+					ShoeBase = SockMaterial;
+				}
+
+				UMaterialInstanceDynamic* Copied = UMaterialInstanceDynamic::Create(ShoeBase, this);
+				if (!Copied)
+				{
+					continue;
+				}
+
+				static const FName TextureParams[] = {
+					TEXT("BaseColor"), TEXT("Albedo"), TEXT("Diffuse"),
+					TEXT("Normal"), TEXT("ORM"), TEXT("Mask"), TEXT("Opacity"), TEXT("Emissive"), TEXT("UV")
+				};
+				for (const FName& Param : TextureParams)
+				{
+					UTexture* Texture = nullptr;
+					if (SockMaterial->GetTextureParameterValue(FMaterialParameterInfo(Param), Texture) && Texture)
+					{
+						Copied->SetTextureParameterValue(Param, Texture);
+					}
+				}
+
+				ShoesMesh->SetMaterial(ShoeIndex, Copied);
 				if (ShoeBaseMats && ShoeBaseMats->IsValidIndex(ShoeIndex))
 				{
-					(*ShoeBaseMats)[ShoeIndex] = SockMaterial;
+					(*ShoeBaseMats)[ShoeIndex] = Copied;
 				}
 				UE_LOG(LogMyBondageLife, Log, TEXT("Outfit: copied %s material from socks to shoes"), *SlotName.ToString());
 			}
