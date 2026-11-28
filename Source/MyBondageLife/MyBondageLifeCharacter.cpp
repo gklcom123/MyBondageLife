@@ -40,7 +40,8 @@
 #include "Net/UnrealNetwork.h"
 
 #include "Core/MyBondageLifeMakeupCatalog.h"
-#include "Core/MyBondageLifeEyeCatalog.h"
+#include "Core/MyBondageLifeEyeCatalog.h"
+
 #include "Core/MyBondageLifeSkinColorCatalog.h"
 
 namespace
@@ -1625,6 +1626,8 @@ void AMyBondageLifeCharacter::ApplySkin()
 
 	// 隐藏材质优先级最高：皮肤铺完之后再盖透明材质（只作用于身体）。
 	ApplyBodyPartHiding();
+	ApplySkinColor();
+	ApplyMakeup();
 }
 void AMyBondageLifeCharacter::ServerSetSkin_Implementation(int32 InSkinId)
 {

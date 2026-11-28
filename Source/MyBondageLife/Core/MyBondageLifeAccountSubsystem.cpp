@@ -292,6 +292,7 @@ bool UMyBondageLifeAccountSubsystem::ApplyAuthPayload(const TSharedPtr<FJsonObje
 		if ((*UserObject)->TryGetNumberField(TEXT("skinColorIndex"), SkinColorValue))
 		{
 			SkinColorIndex = FMath::Clamp(static_cast<int32>(SkinColorValue), 1, 64);
+			UE_LOG(LogMyBondageLife, Log, TEXT("SkinColor: login index %d."), SkinColorIndex);
 		}
 
 		double ThighValue = 1.0;
@@ -3769,5 +3770,6 @@ void UMyBondageLifeAccountSubsystem::RequestUpdateSkinColor(int32 NewSkinColorIn
 				return;
 			}
 			Self->SkinColorIndex = Clamped;
+			UE_LOG(LogMyBondageLife, Log, TEXT("SkinColor: stored index %d."), Clamped);
 		});
 }
